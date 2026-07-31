@@ -1,0 +1,30 @@
+[package]
+name = "pledgestrike"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+tokio = { version = "1.40", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.22"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+colored = "2.1"
+rayon = "1.10"
+anyhow = "1.0"
+chrono = "0.4"
+reqwest = { version = "0.12", features = ["json"] }
+url = "2.5"
+rand = "0.8"
+ratatui = "0.28"
+crossterm = "0.28"
+tui-input = "0.10"
+regex = "1.10"
+rustls = "0.23"
+rustls-pemfile = "2.1"
+webpki-roots = "0.26"
+x509-parser = "0.16"
+hickory-resolver = "0.24"
