@@ -691,6 +691,12 @@ pub enum Commands {
         #[command(subcommand)]
         action: SharepointAction,
     },
+
+    /// WAF detector — fingerprint WAF via headers and payload analysis
+    Waf {
+        #[command(subcommand)]
+        action: WafAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -2411,6 +2417,20 @@ pub enum ExploitAction {
         #[arg(short, long)]
         query: String,
     },
+    /// Look up a single CVE by ID (queries NVD API with local fallback)
+    Lookup {
+        #[arg(short, long)]
+        cve: String,
+    },
+    /// List recent CVEs published within a date range (queries NVD API)
+    Recent {
+        #[arg(short, long)]
+        start: String,
+        #[arg(short, long)]
+        end: String,
+        #[arg(short = 's', long)]
+        severity: Option<String>,
+    },
     /// Run an exploit against a target
     Run {
         #[arg(short, long)]
@@ -3038,4 +3058,18 @@ pub enum SharepointAction {
     Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
     Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
     Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+}
+
+#[derive(Subcommand)]
+pub enum WafAction {
+    /// Detect and fingerprint WAF via header analysis and payload probing
+    Detect {
+        /// Target URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }

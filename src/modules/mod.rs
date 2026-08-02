@@ -115,3 +115,4 @@ pub mod winrm;
 pub mod exchange;
 pub mod owa;
 pub mod sharepoint;
+pub mod waf;

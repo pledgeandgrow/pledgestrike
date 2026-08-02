@@ -49,14 +49,21 @@ pub async fn scan_host(host: &str, verbose: bool) -> anyhow::Result<TlsScanResul
 
     // Try TCP connection first
     let addr = format!("{}:{}", hostname, port);
-    match TcpStream::connect(&addr).await {
-        Ok(_stream) => {
+    match tokio::time::timeout(std::time::Duration::from_secs(10), TcpStream::connect(&addr)).await {
+        Ok(Ok(_stream)) => {
             result.connected = true;
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             result.findings.push(TlsFinding {
                 severity: "CRITICAL".to_string(),
                 description: format!("Connection failed: {}", e),
+            });
+            return Ok(result);
+        }
+        Err(_) => {
+            result.findings.push(TlsFinding {
+                severity: "CRITICAL".to_string(),
+                description: "Connection timed out after 10s".to_string(),
             });
             return Ok(result);
         }
@@ -220,7 +227,12 @@ async fn analyze_tls(host: &str, port: u16, result: &mut TlsScanResult) -> anyho
     let (protocol_version, cipher_suite) = tokio::task::spawn_blocking(move || -> anyhow::Result<(Option<String>, Option<String>)> {
         use std::io::Read;
         let conn = ClientConnection::new(config_clone, server_name_clone)?;
-        let sock = std::net::TcpStream::connect(format!("{}:{}", host_owned, 443))?;
+        let sock = std::net::TcpStream::connect_timeout(
+            &format!("{}:{}", host_owned, 443).parse().unwrap_or_else(|_| "0.0.0.0:443".parse().unwrap()),
+            std::time::Duration::from_secs(10),
+        )?;
+        sock.set_read_timeout(Some(std::time::Duration::from_secs(10)))?;
+        sock.set_write_timeout(Some(std::time::Duration::from_secs(10)))?;
         let mut sock = sock;
         let mut conn = conn;
         let mut tls = Stream::new(&mut conn, &mut sock);

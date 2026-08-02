@@ -19,7 +19,7 @@ use cli::{
     SubdomAction, SupplyAction, SwAction, TakeoverAction, TelnetAction, TftpAction, TlsAction,
     UnicodeAction, UpnpAction, VncAction, WasmAction, Web3Action, WebdavAction, WebauthnAction,
     WebrtcAction, WhoisAction, WinrmAction, WfuzzAction, WsAction, WsdlAction, X11Action,
-    XssAction, XxeAction, ZookeeperAction, OpenapiAction,
+    XssAction, XxeAction, ZookeeperAction, OpenapiAction, WafAction,
 };
 use colored::Colorize;
 
@@ -39,7 +39,7 @@ fn main() -> anyhow::Result<()> {
     let args = Cli::parse();
 
     let runtime = tokio::runtime::Runtime::new()?;
-    runtime.block_on(async_main(args))
+    runtime.block_on(Box::pin(async_main(args)))
 }
 
 async fn async_main(args: Cli) -> anyhow::Result<()> {
@@ -1197,6 +1197,18 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             ExploitAction::Search { query } => {
                 banner();
                 if let Err(e) = modules::exploit::search(&query).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+            ExploitAction::Lookup { cve } => {
+                banner();
+                if let Err(e) = modules::exploit::lookup(&cve).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+            ExploitAction::Recent { start, end, severity } => {
+                banner();
+                if let Err(e) = modules::exploit::recent(&start, &end, severity.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -3225,6 +3237,15 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             SharepointAction::Inject { url, timeout } => {
                 banner();
                 if let Err(e) = modules::sharepoint::inject(&url, timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+
+        Commands::Waf { action } => match action {
+            WafAction::Detect { url, timeout } => {
+                banner();
+                if let Err(e) = modules::waf::detect(&url, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
