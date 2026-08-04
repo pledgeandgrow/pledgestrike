@@ -7,12 +7,10 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
@@ -60,9 +58,15 @@ pub async fn file_read(
     }
 
     if body.contains("root:") || body.contains("[boot loader]") || body.contains("daemon:") {
-        println!("\n{} [CRITICAL] XXE file read confirmed!", "[!]".red().bold());
+        println!(
+            "\n{} [CRITICAL] XXE file read confirmed!",
+            "[!]".red().bold()
+        );
     } else {
-        println!("\n{} Response may not contain file contents. Check manually.", "[-]".yellow().bold());
+        println!(
+            "\n{} Response may not contain file contents. Check manually.",
+            "[-]".yellow().bold()
+        );
     }
     Ok(())
 }
@@ -139,7 +143,10 @@ pub async fn blind(
         .send()
         .await;
 
-    println!("{} Blind XXE payload sent. Monitor callback for DTD fetch.", "[*]".cyan().bold());
+    println!(
+        "{} Blind XXE payload sent. Monitor callback for DTD fetch.",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }
 
@@ -177,6 +184,10 @@ pub async fn oob(
         .send()
         .await;
 
-    println!("{} OOB payload sent. Set up a listener on {} to receive exfiltrated data.", "[*]".cyan().bold(), callback_host);
+    println!(
+        "{} OOB payload sent. Set up a listener on {} to receive exfiltrated data.",
+        "[*]".cyan().bold(),
+        callback_host
+    );
     Ok(())
 }

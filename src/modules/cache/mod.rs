@@ -7,28 +7,31 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
 
 const UNKEYED_HEADERS: &[&str] = &[
-    "X-Forwarded-Host", "X-Forwarded-For", "X-Host", "X-Forwarded-Server",
-    "X-Real-IP", "X-Original-URL", "X-Rewrite-URL", "X-Custom-Header",
-    "X-Forwarded-Scheme", "X-Forwarded-Proto", "CF-Connecting-IP",
-    "True-Client-IP", "X-Forwarded-Port",
+    "X-Forwarded-Host",
+    "X-Forwarded-For",
+    "X-Host",
+    "X-Forwarded-Server",
+    "X-Real-IP",
+    "X-Original-URL",
+    "X-Rewrite-URL",
+    "X-Custom-Header",
+    "X-Forwarded-Scheme",
+    "X-Forwarded-Proto",
+    "CF-Connecting-IP",
+    "True-Client-IP",
+    "X-Forwarded-Port",
 ];
 
-pub async fn poison(
-    url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn poison(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Web Cache Poisoning", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
@@ -36,12 +39,19 @@ pub async fn poison(
 
     let client = build_client(timeout, token);
 
-    println!("{} Step 1: Fetching baseline response...", "[*]".cyan().bold());
+    println!(
+        "{} Step 1: Fetching baseline response...",
+        "[*]".cyan().bold()
+    );
     let baseline = client.get(url).send().await?;
     let baseline_body = baseline.text().await.unwrap_or_default();
     let baseline_len = baseline_body.len();
 
-    println!("{} Baseline length: {} bytes", "[*]".cyan().bold(), baseline_len);
+    println!(
+        "{} Baseline length: {} bytes",
+        "[*]".cyan().bold(),
+        baseline_len
+    );
     println!("{} Testing unkeyed headers...", "[*]".cyan().bold());
 
     for header in UNKEYED_HEADERS {
@@ -50,9 +60,16 @@ pub async fn poison(
         let body = resp.text().await.unwrap_or_default();
 
         if body.contains(&value) {
-            println!("{} [HIGH] Cache poisoning via {}!", "[!]".red().bold(), header);
+            println!(
+                "{} [HIGH] Cache poisoning via {}!",
+                "[!]".red().bold(),
+                header
+            );
             println!("  {} Header value reflected in response", "•".cyan());
-            println!("  {} If this response is cached, all users get poisoned content", "•".cyan());
+            println!(
+                "  {} If this response is cached, all users get poisoned content",
+                "•".cyan()
+            );
         }
     }
 
@@ -60,11 +77,7 @@ pub async fn poison(
     Ok(())
 }
 
-pub async fn deceive(
-    url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn deceive(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Cache Deception", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
@@ -76,24 +89,42 @@ pub async fn deceive(
 
     for suffix in &suffixes {
         let test_url = format!("{}{}", url, suffix);
-        match client.get(&test_url).send().await {
-            Ok(resp) => {
-                let status = resp.status();
-                let ct = resp.headers().get("content-type").and_then(|v| v.to_str().ok()).unwrap_or("unknown").to_string();
-                let cache = resp.headers().get("cache-control").and_then(|v| v.to_str().ok()).unwrap_or("none").to_string();
-                let body = resp.text().await.unwrap_or_default();
-                let body_len = body.len();
+        if let Ok(resp) = client.get(&test_url).send().await {
+            let status = resp.status();
+            let ct = resp
+                .headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("unknown")
+                .to_string();
+            let cache = resp
+                .headers()
+                .get("cache-control")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("none")
+                .to_string();
+            let body = resp.text().await.unwrap_or_default();
+            let body_len = body.len();
 
-                if status.is_success() && ct.contains("text/html") {
-                    println!("{} [HIGH] Cache deception possible with {}!", "[!]".red().bold(), suffix);
-                    println!("  {} URL returns HTML with non-static suffix", "•".cyan());
-                    println!("  {} Content-Type: {} (should be static)", "•".cyan(), ct);
-                    println!("  {} Cache-Control: {}", "•".cyan(), cache);
-                } else {
-                    println!("  {} {:8} status={} ct={} len={}", "•".cyan(), suffix, status, ct, body_len);
-                }
+            if status.is_success() && ct.contains("text/html") {
+                println!(
+                    "{} [HIGH] Cache deception possible with {}!",
+                    "[!]".red().bold(),
+                    suffix
+                );
+                println!("  {} URL returns HTML with non-static suffix", "•".cyan());
+                println!("  {} Content-Type: {} (should be static)", "•".cyan(), ct);
+                println!("  {} Cache-Control: {}", "•".cyan(), cache);
+            } else {
+                println!(
+                    "  {} {:8} status={} ct={} len={}",
+                    "•".cyan(),
+                    suffix,
+                    status,
+                    ct,
+                    body_len
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -101,11 +132,7 @@ pub async fn deceive(
     Ok(())
 }
 
-pub async fn key(
-    url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn key(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Cache Key Analysis", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
@@ -119,20 +146,40 @@ pub async fn key(
 
     println!("{} Baseline hash: {:x}", "[*]".cyan().bold(), baseline_hash);
 
-    let test_params = ["utm_source", "utm_medium", "fbclid", "gclid", "mc_eid", "_ga", "nr"];
+    let test_params = [
+        "utm_source",
+        "utm_medium",
+        "fbclid",
+        "gclid",
+        "mc_eid",
+        "_ga",
+        "nr",
+    ];
 
     for param in &test_params {
-        let test_url = format!("{}{}{}=test123", url, if url.contains('?') { "&" } else { "?" }, param);
+        let test_url = format!(
+            "{}{}{}=test123",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param
+        );
         let resp = client.get(&test_url).send().await?;
         let body = resp.text().await.unwrap_or_default();
         let hash = simple_hash(&body);
 
         let same = hash == baseline_hash;
-        let status = if same { "SAME (unkeyed — cacheable)".yellow().to_string() } else { "DIFFERENT (keyed)".green().to_string() };
+        let status = if same {
+            "SAME (unkeyed — cacheable)".yellow().to_string()
+        } else {
+            "DIFFERENT (keyed)".green().to_string()
+        };
         println!("  {} {:15} hash={:x}  {}", "•".cyan(), param, hash, status);
     }
 
-    println!("\n{} Unkeyed params can be used for cache poisoning.", "[*]".cyan().bold());
+    println!(
+        "\n{} Unkeyed params can be used for cache poisoning.",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }
 

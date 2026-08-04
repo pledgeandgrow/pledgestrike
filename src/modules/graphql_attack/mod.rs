@@ -8,12 +8,10 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
@@ -24,11 +22,7 @@ struct GraphQLResponse {
     errors: Option<Vec<serde_json::Value>>,
 }
 
-pub async fn introspect(
-    url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn introspect(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} GraphQL Introspection", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
@@ -38,7 +32,12 @@ pub async fn introspect(
 
     let query = r#"{"query":"query IntrospectionQuery { __schema { queryType { name } mutationType { name } subscriptionType { name } types { name kind description fields { name description type { name kind ofType { name kind } } args { name description type { name kind ofType { name kind } } } } inputFields { name description type { name kind ofType { name kind } } } enums { name description } interfaces { name } } directives { name description locations args { name description type { name kind ofType { name kind } } } } } }"}"#;
 
-    let resp = client.post(url).header("Content-Type", "application/json").body(query.to_string()).send().await?;
+    let resp = client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .body(query.to_string())
+        .send()
+        .await?;
     let status = resp.status();
     let body = resp.text().await.unwrap_or_default();
 
@@ -64,8 +63,15 @@ pub async fn introspect(
             }
         }
     } else if body.contains("errors") {
-        println!("{} Introspection disabled or errors returned.", "[-]".yellow().bold());
-        println!("  {} {}", "*".cyan(), body.chars().take(300).collect::<String>());
+        println!(
+            "{} Introspection disabled or errors returned.",
+            "[-]".yellow().bold()
+        );
+        println!(
+            "  {} {}",
+            "*".cyan(),
+            body.chars().take(300).collect::<String>()
+        );
     } else {
         println!("{} Unexpected response.", "[-]".yellow().bold());
     }
@@ -90,19 +96,40 @@ pub async fn batch(
     let batch: Vec<&str> = vec![single_query; count];
     let batch_json = format!("[{}]", batch.join(","));
 
-    println!("{} Sending batch of {} queries...", "[*]".cyan().bold(), count);
+    println!(
+        "{} Sending batch of {} queries...",
+        "[*]".cyan().bold(),
+        count
+    );
     let start = std::time::Instant::now();
-    let resp = client.post(url).header("Content-Type", "application/json").body(batch_json).send().await?;
+    let resp = client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .body(batch_json)
+        .send()
+        .await?;
     let elapsed = start.elapsed();
     let status = resp.status();
     let body = resp.text().await.unwrap_or_default();
 
     println!("{} Status: {}", "[*]".cyan().bold(), status);
-    println!("{} Time: {:.2}s", "[*]".cyan().bold(), elapsed.as_secs_f64());
-    println!("{} Response length: {} bytes", "[*]".cyan().bold(), body.len());
+    println!(
+        "{} Time: {:.2}s",
+        "[*]".cyan().bold(),
+        elapsed.as_secs_f64()
+    );
+    println!(
+        "{} Response length: {} bytes",
+        "[*]".cyan().bold(),
+        body.len()
+    );
 
     if elapsed.as_secs() > 5 {
-        println!("{} [HIGH] Server vulnerable to batch query DoS — {}s response time", "[!]".red().bold(), elapsed.as_secs());
+        println!(
+            "{} [HIGH] Server vulnerable to batch query DoS — {}s response time",
+            "[!]".red().bold(),
+            elapsed.as_secs()
+        );
     } else {
         println!("{} No significant delay detected.", "[-]".yellow().bold());
     }
@@ -123,32 +150,86 @@ pub async fn suggest(
     let client = build_client(timeout, token);
 
     let fields: Vec<String> = if let Some(wl) = wordlist {
-        std::fs::read_to_string(wl)?.lines().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+        std::fs::read_to_string(wl)?
+            .lines()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
     } else {
         vec![
-            "user", "users", "admin", "id", "email", "name", "password", "token",
-            "session", "account", "post", "posts", "comment", "comments",
-            "product", "products", "order", "orders", "payment", "payments",
-            "file", "files", "upload", "config", "settings", "debug",
-            "query", "mutation", "subscription", "node", "nodes", "edges",
-            "createdAt", "updatedAt", "deletedAt", "role", "permissions",
-            "apiKey", "secret", "key", "hash", "salt", "otp", "mfa",
-        ].iter().map(|s| s.to_string()).collect()
+            "user",
+            "users",
+            "admin",
+            "id",
+            "email",
+            "name",
+            "password",
+            "token",
+            "session",
+            "account",
+            "post",
+            "posts",
+            "comment",
+            "comments",
+            "product",
+            "products",
+            "order",
+            "orders",
+            "payment",
+            "payments",
+            "file",
+            "files",
+            "upload",
+            "config",
+            "settings",
+            "debug",
+            "query",
+            "mutation",
+            "subscription",
+            "node",
+            "nodes",
+            "edges",
+            "createdAt",
+            "updatedAt",
+            "deletedAt",
+            "role",
+            "permissions",
+            "apiKey",
+            "secret",
+            "key",
+            "hash",
+            "salt",
+            "otp",
+            "mfa",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
     };
 
     let mut found = Vec::new();
 
     for field in &fields {
         let query = format!(r#"{{"query":"{{ {} }}"}}"#, field);
-        let resp = client.post(url).header("Content-Type", "application/json").body(query).send().await;
+        let resp = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .body(query)
+            .send()
+            .await;
         if let Ok(r) = resp {
             let body = r.text().await.unwrap_or_default();
-            if body.contains("Did you mean") || body.contains("did you mean") {
-                if let Some(start_idx) = body.find("did you mean") {
-                    let snippet = &body[start_idx..body.len().min(start_idx + 100)];
-                    found.push((field.clone(), snippet.to_string()));
-                    println!("{} [+] Field suggestion for '{}': {}", "[+]".green().bold(), field.yellow(), snippet);
-                }
+            if (body.contains("Did you mean") || body.contains("did you mean"))
+                && let Some(start_idx) = body.find("did you mean")
+            {
+                let snippet = &body[start_idx..body.len().min(start_idx + 100)];
+                found.push((field.clone(), snippet.to_string()));
+                println!(
+                    "{} [+] Field suggestion for '{}': {}",
+                    "[+]".green().bold(),
+                    field.yellow(),
+                    snippet
+                );
             }
         }
     }
@@ -156,7 +237,11 @@ pub async fn suggest(
     if found.is_empty() {
         println!("{} No field suggestions leaked.", "[-]".yellow().bold());
     } else {
-        println!("\n{} {} field(s) leaked via suggestions", "[*]".cyan().bold(), found.len());
+        println!(
+            "\n{} {} field(s) leaked via suggestions",
+            "[*]".cyan().bold(),
+            found.len()
+        );
     }
     Ok(())
 }
@@ -187,25 +272,52 @@ pub async fn depth(
 
         let payload = format!(r#"{{"query":"{}"}}"#, query.replace("\"", "\\\""));
         let start = std::time::Instant::now();
-        let resp = client.post(url).header("Content-Type", "application/json").body(payload).send().await;
+        let resp = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .body(payload)
+            .send()
+            .await;
         let elapsed = start.elapsed();
 
         match resp {
             Ok(r) => {
                 let status = r.status();
                 let body = r.text().await.unwrap_or_default();
-                let has_error = body.contains("depth") || body.contains("too deep") || body.contains("maximum");
-                let status_str = if has_error { "BLOCKED".green().to_string() } else if elapsed.as_secs() > 3 { "SLOW".red().bold().to_string() } else { "ok".to_string() };
-                println!("  {} depth={:3} status={} time={:.2}s {}", "*".cyan(), depth, status, elapsed.as_secs_f64(), status_str);
+                let has_error =
+                    body.contains("depth") || body.contains("too deep") || body.contains("maximum");
+                let status_str = if has_error {
+                    "BLOCKED".green().to_string()
+                } else if elapsed.as_secs() > 3 {
+                    "SLOW".red().bold().to_string()
+                } else {
+                    "ok".to_string()
+                };
+                println!(
+                    "  {} depth={:3} status={} time={:.2}s {}",
+                    "*".cyan(),
+                    depth,
+                    status,
+                    elapsed.as_secs_f64(),
+                    status_str
+                );
 
                 if has_error {
-                    println!("{} Depth limit found at depth {}", "[+]".green().bold(), depth);
+                    println!(
+                        "{} Depth limit found at depth {}",
+                        "[+]".green().bold(),
+                        depth
+                    );
                     break;
                 }
             }
             Err(_) => {
                 println!("  {} depth={:3} ERROR (timeout/refused)", "*".cyan(), depth);
-                println!("{} Server may have crashed or rate-limited at depth {}", "[!]".red().bold(), depth);
+                println!(
+                    "{} Server may have crashed or rate-limited at depth {}",
+                    "[!]".red().bold(),
+                    depth
+                );
                 break;
             }
         }

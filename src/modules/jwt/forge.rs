@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use colored::Colorize;
 use hmac::{Hmac, Mac};
 use sha2::{Sha256, Sha384, Sha512};
@@ -42,7 +42,10 @@ pub fn forge(secret: &str, payload_json: &str, alg: &str) -> anyhow::Result<Stri
             mac.finalize().into_bytes().to_vec()
         }
         "none" => Vec::new(),
-        _ => anyhow::bail!("Unsupported algorithm: {}. Use HS256, HS384, HS512, or none.", alg),
+        _ => anyhow::bail!(
+            "Unsupported algorithm: {}. Use HS256, HS384, HS512, or none.",
+            alg
+        ),
     };
 
     let sig_b64 = if signature.is_empty() {
@@ -65,6 +68,9 @@ pub fn print_forge_result(token: &str, secret: &str, alg: &str, payload: &str) {
     println!("{} Secret:   {}", "[*]".cyan().bold(), secret);
     println!("{} Payload:  {}", "[*]".cyan().bold(), payload);
     println!();
-    println!("{} Use this token in the Authorization header:", "[*]".cyan().bold());
+    println!(
+        "{} Use this token in the Authorization header:",
+        "[*]".cyan().bold()
+    );
     println!("    Authorization: Bearer {}", token);
 }

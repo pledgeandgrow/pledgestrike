@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn token(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -14,10 +18,21 @@ pub async fn token(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let resp = client.get(url).send().await?;
-    let status = resp.status().as_u16();
+    let _status = resp.status().as_u16();
     let body = resp.text().await.unwrap_or_default();
 
-    let token_patterns = ["csrf", "CSRF", "csrfToken", "csrf_token", "authenticity_token", "csrfmiddlewaretoken", "__RequestVerificationToken", "anticsrf", "_csrf", "token"];
+    let token_patterns = [
+        "csrf",
+        "CSRF",
+        "csrfToken",
+        "csrf_token",
+        "authenticity_token",
+        "csrfmiddlewaretoken",
+        "__RequestVerificationToken",
+        "anticsrf",
+        "_csrf",
+        "token",
+    ];
     let mut found_tokens = Vec::new();
     for p in &token_patterns {
         if body.contains(p) {
@@ -30,14 +45,21 @@ pub async fn token(url: &str, timeout: u64) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    println!("  {} CSRF tokens found: {}", "[+]".yellow().bold(), found_tokens.join(", "));
+    println!(
+        "  {} CSRF tokens found: {}",
+        "[+]".yellow().bold(),
+        found_tokens.join(", ")
+    );
 
     let test_cases = [
         ("Remove token", "submit without csrf token"),
         ("Empty token", "submit with empty csrf field"),
         ("Static token", "submit with a hardcoded/static token"),
         ("Cross-user token", "submit with another user's token"),
-        ("GET param token", "submit token as GET parameter instead of POST body"),
+        (
+            "GET param token",
+            "submit token as GET parameter instead of POST body",
+        ),
         ("Header token", "submit token in X-CSRF-Token header"),
     ];
 
@@ -51,17 +73,34 @@ pub async fn token(url: &str, timeout: u64) -> anyhow::Result<()> {
     if let Ok(r) = no_token_resp {
         let s = r.status().as_u16();
         if s == 200 || s == 201 || s == 302 {
-            println!("\n  {} Request without token was accepted (status={})!", "[!]".red().bold(), s);
+            println!(
+                "\n  {} Request without token was accepted (status={})!",
+                "[!]".red().bold(),
+                s
+            );
         } else {
-            println!("\n  {} Request without token was rejected (status={})", "[-]".green().bold(), s);
+            println!(
+                "\n  {} Request without token was rejected (status={})",
+                "[-]".green().bold(),
+                s
+            );
         }
     }
 
-    let header_resp = client.post(url).header("X-CSRF-Token", "test").json(&post_body).send().await;
+    let header_resp = client
+        .post(url)
+        .header("X-CSRF-Token", "test")
+        .json(&post_body)
+        .send()
+        .await;
     if let Ok(r) = header_resp {
         let s = r.status().as_u16();
         if s == 200 || s == 201 || s == 302 {
-            println!("  {} Token via header was accepted (status={})!", "[!]".red().bold(), s);
+            println!(
+                "  {} Token via header was accepted (status={})!",
+                "[!]".red().bold(),
+                s
+            );
         }
     }
 
@@ -84,27 +123,58 @@ pub async fn samesite(url: &str, timeout: u64) -> anyhow::Result<()> {
         if cookie_str.contains("SameSite") {
             found_samesite = true;
             if cookie_str.contains("SameSite=None") {
-                println!("  {} Cookie has SameSite=None — cross-site requests allowed.", "[!]".red().bold());
+                println!(
+                    "  {} Cookie has SameSite=None — cross-site requests allowed.",
+                    "[!]".red().bold()
+                );
             } else if cookie_str.contains("SameSite=Lax") {
-                println!("  {} Cookie has SameSite=Lax — bypassable via top-level navigation GET.", "[*]".yellow().bold());
+                println!(
+                    "  {} Cookie has SameSite=Lax — bypassable via top-level navigation GET.",
+                    "[*]".yellow().bold()
+                );
             } else if cookie_str.contains("SameSite=Strict") {
-                println!("  {} Cookie has SameSite=Strict — most restrictive.", "[-]".green().bold());
+                println!(
+                    "  {} Cookie has SameSite=Strict — most restrictive.",
+                    "[-]".green().bold()
+                );
             }
         } else {
-            println!("  {} Cookie without SameSite: {}", "[!]".red().bold(), cookie_str.chars().take(60).collect::<String>());
+            println!(
+                "  {} Cookie without SameSite: {}",
+                "[!]".red().bold(),
+                cookie_str.chars().take(60).collect::<String>()
+            );
         }
     }
 
     if !found_samesite {
-        println!("  {} No SameSite attribute on cookies — vulnerable to CSRF!", "[!]".red().bold());
+        println!(
+            "  {} No SameSite attribute on cookies — vulnerable to CSRF!",
+            "[!]".red().bold()
+        );
     }
 
     let bypass_methods = [
-        ("window.open", "window.open('target', '_blank') — top-level navigation bypass for Lax"),
-        ("meta refresh", "<meta http-equiv='refresh' content='0;url=target'> — navigation bypass"),
-        ("form GET", "<form method='GET' action='target'> — Lax allows top-level GET"),
-        ("iframe POST", "Cross-origin iframe POST — older browsers ignore SameSite"),
-        ("link prefetch", "<link rel='prefetch' href='target'> — background request"),
+        (
+            "window.open",
+            "window.open('target', '_blank') — top-level navigation bypass for Lax",
+        ),
+        (
+            "meta refresh",
+            "<meta http-equiv='refresh' content='0;url=target'> — navigation bypass",
+        ),
+        (
+            "form GET",
+            "<form method='GET' action='target'> — Lax allows top-level GET",
+        ),
+        (
+            "iframe POST",
+            "Cross-origin iframe POST — older browsers ignore SameSite",
+        ),
+        (
+            "link prefetch",
+            "<link rel='prefetch' href='target'> — background request",
+        ),
     ];
 
     println!("\n  {} SameSite bypass vectors:", "[*]".cyan().bold());
@@ -123,25 +193,49 @@ pub async fn json(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let payloads = [
-        ("Plain JSON POST", "application/json", r#"{"action":"test"}"#),
+        (
+            "Plain JSON POST",
+            "application/json",
+            r#"{"action":"test"}"#,
+        ),
         ("Text/plain POST", "text/plain", r#"{"action":"test"}"#),
-        ("Multipart CSRF", "multipart/form-data", r#"--boundary\r\nContent-Disposition: form-data; name="action"\r\n\r\ntest\r\n--boundary--"#),
-        ("Form-encoded", "application/x-www-form-urlencoded", "action=test"),
+        (
+            "Multipart CSRF",
+            "multipart/form-data",
+            r#"--boundary\r\nContent-Disposition: form-data; name="action"\r\n\r\ntest\r\n--boundary--"#,
+        ),
+        (
+            "Form-encoded",
+            "application/x-www-form-urlencoded",
+            "action=test",
+        ),
     ];
 
     for (name, ct, body) in &payloads {
-        let resp = client.post(url).header("Content-Type", *ct).body(*body).send().await;
+        let resp = client
+            .post(url)
+            .header("Content-Type", *ct)
+            .body(*body)
+            .send()
+            .await;
         match resp {
             Ok(r) => {
                 let status = r.status().as_u16();
-                let tag = if status == 200 || status == 201 { "ACCEPTED".red().bold().to_string() } else { format!("status={}", status) };
+                let tag = if status == 200 || status == 201 {
+                    "ACCEPTED".red().bold().to_string()
+                } else {
+                    format!("status={}", status)
+                };
                 println!("  {} {:25} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:25} error", "[-]".dimmed(), name),
         }
     }
 
-    println!("\n  {} JSON CSRF requires content-type confusion or CORS misconfiguration.", "[*]".yellow().bold());
+    println!(
+        "\n  {} JSON CSRF requires content-type confusion or CORS misconfiguration.",
+        "[*]".yellow().bold()
+    );
     Ok(())
 }
 
@@ -156,12 +250,19 @@ pub async fn method(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     for method in &methods {
         let m = reqwest::Method::from_bytes(method.as_bytes()).unwrap();
-        let resp = client.request(m, url).body("action=test&value=1").send().await;
+        let resp = client
+            .request(m, url)
+            .body("action=test&value=1")
+            .send()
+            .await;
         match resp {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let tag = if status == 200 || status == 201 || status == 204 {
-                    format!("status={} — STATE CHANGE POSSIBLE", status).red().bold().to_string()
+                    format!("status={} — STATE CHANGE POSSIBLE", status)
+                        .red()
+                        .bold()
+                        .to_string()
                 } else {
                     format!("status={}", status)
                 };
@@ -171,6 +272,9 @@ pub async fn method(url: &str, timeout: u64) -> anyhow::Result<()> {
         }
     }
 
-    println!("\n{} GET-based state changes are the most dangerous CSRF vector.", "[*]".yellow().bold());
+    println!(
+        "\n{} GET-based state changes are the most dangerous CSRF vector.",
+        "[*]".yellow().bold()
+    );
     Ok(())
 }

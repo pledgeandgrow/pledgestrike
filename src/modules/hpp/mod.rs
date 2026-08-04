@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -18,14 +22,25 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
     let body = resp.text().await.unwrap_or_default();
     let baseline_len = body.len();
 
-    println!("  {} Baseline: status={}, {} bytes", "*".cyan(), status, baseline_len);
+    println!(
+        "  {} Baseline: status={}, {} bytes",
+        "*".cyan(),
+        status,
+        baseline_len
+    );
 
     let hpp_payloads = [
         ("Duplicate param", format!("{}&param=test&param=evil", url)),
         ("Array syntax", format!("{}&param[]=test&param[]=evil", url)),
-        ("Index syntax", format!("{}&param[0]=test&param[1]=evil", url)),
+        (
+            "Index syntax",
+            format!("{}&param[0]=test&param[1]=evil", url),
+        ),
         ("Dot notation", format!("{}&param.test=evil", url)),
-        ("Nested JSON", format!("{}&param={{\"action\":\"evil\"}}", url)),
+        (
+            "Nested JSON",
+            format!("{}&param={{\"action\":\"evil\"}}", url),
+        ),
         ("Encoded dup", format!("{}&param=test%26param%3Devil", url)),
     ];
 
@@ -37,7 +52,10 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let b = r.text().await.unwrap_or_default();
                 let len_diff = b.len() as i64 - baseline_len as i64;
                 let tag = if len_diff.abs() > 100 || s != status {
-                    format!("status={} diff={} bytes — BEHAVIOR CHANGE", s, len_diff).red().bold().to_string()
+                    format!("status={} diff={} bytes — BEHAVIOR CHANGE", s, len_diff)
+                        .red()
+                        .bold()
+                        .to_string()
                 } else {
                     format!("status={} diff={} bytes", s, len_diff)
                 };
@@ -66,20 +84,34 @@ pub async fn bypass(url: &str, timeout: u64) -> anyhow::Result<()> {
     ];
 
     for (name, payload) in &payloads {
-        let target = if url.contains('?') { format!("{}&{}", url, payload) } else { format!("{}?{}", url, payload) };
+        let target = if url.contains('?') {
+            format!("{}&{}", url, payload)
+        } else {
+            format!("{}?{}", url, payload)
+        };
         match client.get(&target).send().await {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let body = r.text().await.unwrap_or_default();
-                let blocked = status == 403 || body.contains("blocked") || body.contains("forbidden") || body.contains("WAF");
-                let tag = if blocked { "BLOCKED".green().bold().to_string() } else { "PASSED WAF".red().bold().to_string() };
+                let blocked = status == 403
+                    || body.contains("blocked")
+                    || body.contains("forbidden")
+                    || body.contains("WAF");
+                let tag = if blocked {
+                    "BLOCKED".green().bold().to_string()
+                } else {
+                    "PASSED WAF".red().bold().to_string()
+                };
                 println!("  {} {:20} status={} {}", "*".cyan(), name, status, tag);
             }
             Err(_) => println!("  {} {:20} error", "[-]".dimmed(), name),
         }
     }
 
-    println!("\n{} WAFs that inspect first value but backend uses last value are vulnerable.", "[*]".yellow().bold());
+    println!(
+        "\n{} WAFs that inspect first value but backend uses last value are vulnerable.",
+        "[*]".yellow().bold()
+    );
     Ok(())
 }
 
@@ -100,13 +132,24 @@ pub async fn auth(url: &str, timeout: u64) -> anyhow::Result<()> {
     ];
 
     for (name, payload) in &auth_payloads {
-        let target = if url.contains('?') { format!("{}&{}", url, payload) } else { format!("{}?{}", url, payload) };
+        let target = if url.contains('?') {
+            format!("{}&{}", url, payload)
+        } else {
+            format!("{}?{}", url, payload)
+        };
         match client.get(&target).send().await {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let body = r.text().await.unwrap_or_default();
-                let interesting = status == 200 && (body.contains("admin") || body.contains("success") || body.contains("granted"));
-                let tag = if interesting { "AUTH BYPASS POSSIBLE".red().bold().to_string() } else { format!("status={}", status) };
+                let interesting = status == 200
+                    && (body.contains("admin")
+                        || body.contains("success")
+                        || body.contains("granted"));
+                let tag = if interesting {
+                    "AUTH BYPASS POSSIBLE".red().bold().to_string()
+                } else {
+                    format!("status={}", status)
+                };
                 println!("  {} {:25} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:25} error", "[-]".dimmed(), name),
@@ -133,13 +176,22 @@ pub async fn logic(url: &str, timeout: u64) -> anyhow::Result<()> {
     ];
 
     for (name, payload) in &logic_payloads {
-        let target = if url.contains('?') { format!("{}&{}", url, payload) } else { format!("{}?{}", url, payload) };
+        let target = if url.contains('?') {
+            format!("{}&{}", url, payload)
+        } else {
+            format!("{}?{}", url, payload)
+        };
         match client.get(&target).send().await {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let body = r.text().await.unwrap_or_default();
-                let interesting = status == 200 && (body.contains("total") || body.contains("price") || body.contains("order"));
-                let tag = if interesting { "LOGIC ABUSE POSSIBLE".red().bold().to_string() } else { format!("status={}", status) };
+                let interesting = status == 200
+                    && (body.contains("total") || body.contains("price") || body.contains("order"));
+                let tag = if interesting {
+                    "LOGIC ABUSE POSSIBLE".red().bold().to_string()
+                } else {
+                    format!("status={}", status)
+                };
                 println!("  {} {:25} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:25} error", "[-]".dimmed(), name),

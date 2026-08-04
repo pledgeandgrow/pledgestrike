@@ -2,8 +2,8 @@ use colored::Colorize;
 use std::time::Duration;
 use tokio::time::sleep;
 
-use super::callback::{print_hits, CallbackServer};
-use super::payloads::{generate_payloads, print_payloads, PayloadCategory};
+use super::callback::{CallbackServer, print_hits};
+use super::payloads::{PayloadCategory, generate_payloads, print_payloads};
 
 pub async fn probe(
     target_template: &str,
@@ -36,7 +36,11 @@ pub async fn probe(
     }
 
     println!("{} Target: {}", "[*]".cyan().bold(), target_template);
-    println!("{} Sending {} payloads...", "[*]".cyan().bold(), payloads.len());
+    println!(
+        "{} Sending {} payloads...",
+        "[*]".cyan().bold(),
+        payloads.len()
+    );
     println!("{}", "─".repeat(60).dimmed());
 
     let client = reqwest::Client::builder()
@@ -141,7 +145,12 @@ pub async fn probe(
         println!("{}", "─".repeat(60).dimmed());
 
         for r in &interesting {
-            println!("  {} {} (HTTP {})", "•".green(), r.payload.white().bold(), r.status);
+            println!(
+                "  {} {} (HTTP {})",
+                "•".green(),
+                r.payload.white().bold(),
+                r.status
+            );
             println!("    {} {}", "URL:".dimmed(), r.url.green());
             println!("    {} {} bytes", "Size:".dimmed(), r.body_len);
             println!("    {} {}", "Preview:".dimmed(), r.body_preview.dimmed());
@@ -164,7 +173,11 @@ pub async fn probe(
 pub async fn listen_only(port: u16) -> anyhow::Result<()> {
     let server = CallbackServer::start(port).await?;
 
-    println!("{} Listening for callbacks on port {}", "[*]".cyan().bold(), port);
+    println!(
+        "{} Listening for callbacks on port {}",
+        "[*]".cyan().bold(),
+        port
+    );
     println!("{} Press Ctrl+C to stop", "[*]".cyan().bold());
     println!("{}", "─".repeat(60).dimmed());
 
@@ -178,11 +191,7 @@ pub async fn listen_only(port: u16) -> anyhow::Result<()> {
     }
 }
 
-pub async fn payloads_only(
-    external_ip: &str,
-    cloud: &str,
-    smuggle: bool,
-) -> anyhow::Result<()> {
+pub async fn payloads_only(external_ip: &str, cloud: &str, smuggle: bool) -> anyhow::Result<()> {
     let payloads = generate_payloads(external_ip, 8888, cloud, smuggle, None);
     print_payloads(&payloads);
     Ok(())
@@ -226,7 +235,9 @@ fn is_interesting_response(body: &str, category: &PayloadCategory) -> bool {
                 || body.contains("compute")
         }
         PayloadCategory::InternalScan => {
-            body_len_check(body) && !body_lower.contains("not found") && !body_lower.contains("error")
+            body_len_check(body)
+                && !body_lower.contains("not found")
+                && !body_lower.contains("error")
         }
         PayloadCategory::ProtocolSmuggle => {
             body.contains("root:")

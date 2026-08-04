@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn read(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -13,21 +17,32 @@ pub async fn read(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let files = ["/etc/passwd", "/etc/shadow", "/etc/hosts", "/config", "/boot.cfg", "/firmware", "/startup-config", "/running-config"];
+    let files = [
+        "/etc/passwd",
+        "/etc/shadow",
+        "/etc/hosts",
+        "/config",
+        "/boot.cfg",
+        "/firmware",
+        "/startup-config",
+        "/running-config",
+    ];
     for file in &files {
         let target = format!("{}{}", url.trim_end_matches('/'), file);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} {:25} — {} bytes", "[+]".green().bold(), file, text.len());
-                    if file == &"/etc/passwd" && text.contains("root:") {
-                        println!("    {} passwd file readable!", "[!]".red().bold());
-                    }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!(
+                    "  {} {:25} — {} bytes",
+                    "[+]".green().bold(),
+                    file,
+                    text.len()
+                );
+                if file == &"/etc/passwd" && text.contains("root:") {
+                    println!("    {} passwd file readable!", "[!]".red().bold());
                 }
             }
-            Err(_) => {}
         }
     }
 
@@ -41,7 +56,12 @@ pub async fn write(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let write_paths = ["/test.txt", "/tmp/test.txt", "/upload/test.txt", "/incoming/test.txt"];
+    let write_paths = [
+        "/test.txt",
+        "/tmp/test.txt",
+        "/upload/test.txt",
+        "/incoming/test.txt",
+    ];
     for path in &write_paths {
         let target = format!("{}{}", url.trim_end_matches('/'), path);
         let body = "TFTP_WRITE_TEST";
@@ -69,22 +89,36 @@ pub async fn brute(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let paths = [
-        "/config", "/backup", "/firmware", "/image", "/os",
-        "/startup", "/running", "/vlan.dat", "/license", "/boot",
-        "/system", "/admin", "/private", "/secret", "/key",
+        "/config",
+        "/backup",
+        "/firmware",
+        "/image",
+        "/os",
+        "/startup",
+        "/running",
+        "/vlan.dat",
+        "/license",
+        "/boot",
+        "/system",
+        "/admin",
+        "/private",
+        "/secret",
+        "/key",
     ];
 
     for path in &paths {
         let target = format!("{}{}", url.trim_end_matches('/'), path);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} {:20} — {} bytes", "[+]".green().bold(), path, text.len());
-                }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!(
+                    "  {} {:20} — {} bytes",
+                    "[+]".green().bold(),
+                    path,
+                    text.len()
+                );
             }
-            Err(_) => {}
         }
     }
 

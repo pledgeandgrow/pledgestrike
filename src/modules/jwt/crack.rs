@@ -1,23 +1,19 @@
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use colored::Colorize;
 use hmac::{Hmac, Mac};
 use rayon::prelude::*;
 use sha2::{Sha256, Sha384, Sha512};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Instant;
 
 type HmacSha256 = Hmac<Sha256>;
 type HmacSha384 = Hmac<Sha384>;
 type HmacSha512 = Hmac<Sha512>;
 
-pub fn crack(
-    token: &str,
-    wordlist_path: &str,
-    threads: usize,
-) -> anyhow::Result<Option<String>> {
+pub fn crack(token: &str, wordlist_path: &str, threads: usize) -> anyhow::Result<Option<String>> {
     let parts: Vec<&str> = token.trim().split('.').collect();
     if parts.len() != 3 {
         anyhow::bail!("Invalid JWT: expected 3 parts, got {}", parts.len());
@@ -44,11 +40,20 @@ pub fn crack(
     // Load wordlist
     let file = File::open(wordlist_path)?;
     let reader = BufReader::new(file);
-    let words: Vec<String> = reader.lines().filter_map(|l| l.ok()).collect();
+    let words: Vec<String> = reader.lines().map_while(Result::ok).collect();
     let total = words.len();
 
-    eprintln!("{} Loaded {} words from {}", "[*]".cyan().bold(), total, wordlist_path);
-    eprintln!("{} Signing input: {}.{}", "[*]".cyan().bold(), &parts[0][..parts[0].len().min(20)], "...");
+    eprintln!(
+        "{} Loaded {} words from {}",
+        "[*]".cyan().bold(),
+        total,
+        wordlist_path
+    );
+    eprintln!(
+        "{} Signing input: {}....",
+        "[*]".cyan().bold(),
+        &parts[0][..parts[0].len().min(20)]
+    );
 
     if threads > 0 {
         rayon::ThreadPoolBuilder::new()
@@ -69,7 +74,7 @@ pub fn crack(
             }
 
             let count = tried.fetch_add(1, Ordering::Relaxed);
-            if count % 100000 == 0 && count > 0 {
+            if count.is_multiple_of(100000) && count > 0 {
                 let elapsed = start.elapsed().as_secs_f64();
                 let rate = count as f64 / elapsed;
                 eprintln!(

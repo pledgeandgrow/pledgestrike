@@ -49,7 +49,12 @@ pub async fn scan_host(host: &str, verbose: bool) -> anyhow::Result<TlsScanResul
 
     // Try TCP connection first
     let addr = format!("{}:{}", hostname, port);
-    match tokio::time::timeout(std::time::Duration::from_secs(10), TcpStream::connect(&addr)).await {
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        TcpStream::connect(&addr),
+    )
+    .await
+    {
         Ok(Ok(_stream)) => {
             result.connected = true;
         }
@@ -104,12 +109,11 @@ pub async fn scan_host(host: &str, verbose: bool) -> anyhow::Result<TlsScanResul
             }
 
             // Check for certificate transparency
-            if let Some(ct) = headers.get("expect-ct") {
-                if let Ok(s) = ct.to_str() {
-                    if s.contains("enforce") {
-                        // CT enforcement is good
-                    }
-                }
+            if let Some(ct) = headers.get("expect-ct")
+                && let Ok(s) = ct.to_str()
+                && s.contains("enforce")
+            {
+                // CT enforcement is good
             }
 
             // We can't directly access TLS session info from reqwest
@@ -135,7 +139,7 @@ pub async fn scan_host(host: &str, verbose: bool) -> anyhow::Result<TlsScanResul
     Ok(result)
 }
 
-async fn analyze_tls(host: &str, port: u16, result: &mut TlsScanResult) -> anyhow::Result<()> {
+async fn analyze_tls(host: &str, _port: u16, result: &mut TlsScanResult) -> anyhow::Result<()> {
     use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
     use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
     use rustls::{ClientConfig, ClientConnection, Stream};
@@ -216,77 +220,84 @@ async fn analyze_tls(host: &str, port: u16, result: &mut TlsScanResult) -> anyho
 
     let config = Arc::new(config);
 
-    let server_name = ServerName::try_from(host.to_string())
-        .map_err(|_| anyhow::anyhow!("Invalid hostname"))?;
+    let server_name =
+        ServerName::try_from(host.to_string()).map_err(|_| anyhow::anyhow!("Invalid hostname"))?;
 
     // Use blocking I/O in spawn_blocking
     let host_owned = host.to_string();
     let config_clone = config.clone();
     let server_name_clone = server_name.clone();
 
-    let (protocol_version, cipher_suite) = tokio::task::spawn_blocking(move || -> anyhow::Result<(Option<String>, Option<String>)> {
-        use std::io::Read;
-        let conn = ClientConnection::new(config_clone, server_name_clone)?;
-        let sock = std::net::TcpStream::connect_timeout(
-            &format!("{}:{}", host_owned, 443).parse().unwrap_or_else(|_| "0.0.0.0:443".parse().unwrap()),
-            std::time::Duration::from_secs(10),
-        )?;
-        sock.set_read_timeout(Some(std::time::Duration::from_secs(10)))?;
-        sock.set_write_timeout(Some(std::time::Duration::from_secs(10)))?;
-        let mut sock = sock;
-        let mut conn = conn;
-        let mut tls = Stream::new(&mut conn, &mut sock);
+    let (protocol_version, cipher_suite) = tokio::task::spawn_blocking(
+        move || -> anyhow::Result<(Option<String>, Option<String>)> {
+            use std::io::Read;
+            let conn = ClientConnection::new(config_clone, server_name_clone)?;
+            let sock = std::net::TcpStream::connect_timeout(
+                &format!("{}:{}", host_owned, 443)
+                    .parse()
+                    .unwrap_or_else(|_| "0.0.0.0:443".parse().unwrap()),
+                std::time::Duration::from_secs(10),
+            )?;
+            sock.set_read_timeout(Some(std::time::Duration::from_secs(10)))?;
+            sock.set_write_timeout(Some(std::time::Duration::from_secs(10)))?;
+            let mut sock = sock;
+            let mut conn = conn;
+            let mut tls = Stream::new(&mut conn, &mut sock);
 
-        let mut buf = vec![0u8; 8192];
-        let _ = tls.read(&mut buf);
+            let mut buf = vec![0u8; 8192];
+            let _ = tls.read(&mut buf);
 
-        let pv = conn.protocol_version();
-        let cs = conn.negotiated_cipher_suite();
+            let pv = conn.protocol_version();
+            let cs = conn.negotiated_cipher_suite();
 
-        let pv_str = pv.map(|v| format!("{:?}", v).replace("Tls", "TLS "));
-        let cs_str = cs.map(|c| format!("{:?}", c));
+            let pv_str = pv.map(|v| format!("{:?}", v).replace("Tls", "TLS "));
+            let cs_str = cs.map(|c| format!("{:?}", c));
 
-        Ok((pv_str, cs_str))
-    })
+            Ok((pv_str, cs_str))
+        },
+    )
     .await??;
 
     result.protocol_version = protocol_version;
     result.cipher_suite = cipher_suite;
 
     // Parse cert info
-    if let Ok(guard) = cert_data.lock() {
-        if let Some(cert_bytes) = guard.as_ref() {
-            if let Ok((_, parsed)) = x509_parser::parse_x509_certificate(cert_bytes) {
-                let subject = parsed.subject();
-                let issuer = parsed.issuer();
+    if let Ok(guard) = cert_data.lock()
+        && let Some(cert_bytes) = guard.as_ref()
+        && let Ok((_, parsed)) = x509_parser::parse_x509_certificate(cert_bytes)
+    {
+        let subject = parsed.subject();
+        let issuer = parsed.issuer();
 
-                result.cert_subject = Some(subject.to_string());
-                result.cert_issuer = Some(issuer.to_string());
-                result.cert_self_signed = subject == issuer;
+        result.cert_subject = Some(subject.to_string());
+        result.cert_issuer = Some(issuer.to_string());
+        result.cert_self_signed = subject == issuer;
 
-                let cn = subject.iter_common_name().next()
-                    .and_then(|cn| cn.as_str().ok())
-                    .unwrap_or("");
-                if !cn.is_empty() && !host_matches_cn(host, cn) {
-                    result.cert_cn_mismatch = true;
-                }
+        let cn = subject
+            .iter_common_name()
+            .next()
+            .and_then(|cn| cn.as_str().ok())
+            .unwrap_or("");
+        if !cn.is_empty() && !host_matches_cn(host, cn) {
+            result.cert_cn_mismatch = true;
+        }
 
-                let not_before = parsed.validity().not_before.to_datetime();
-                result.cert_not_before = Some(format!("{}", not_before));
+        let not_before = parsed.validity().not_before.to_datetime();
+        result.cert_not_before = Some(format!("{}", not_before));
 
-                let not_after = parsed.validity().not_after.to_datetime();
-                result.cert_not_after = Some(format!("{}", not_after));
+        let not_after = parsed.validity().not_after.to_datetime();
+        result.cert_not_after = Some(format!("{}", not_after));
 
-                let now = chrono::Utc::now();
-                if let Ok(exp) = chrono::DateTime::parse_from_rfc3339(&result.cert_not_after.as_ref().unwrap()) {
-                    let exp = exp.with_timezone(&chrono::Utc);
-                    if exp < now {
-                        result.cert_expired = true;
-                    }
-                    if exp > now && exp < now + chrono::Duration::days(30) {
-                        result.cert_expiring_soon = true;
-                    }
-                }
+        let now = chrono::Utc::now();
+        if let Ok(exp) =
+            chrono::DateTime::parse_from_rfc3339(result.cert_not_after.as_ref().unwrap())
+        {
+            let exp = exp.with_timezone(&chrono::Utc);
+            if exp < now {
+                result.cert_expired = true;
+            }
+            if exp > now && exp < now + chrono::Duration::days(30) {
+                result.cert_expiring_soon = true;
             }
         }
     }
@@ -326,25 +337,31 @@ fn generate_findings(result: &mut TlsScanResult) {
     }
 
     // Check for weak protocol versions
-    if let Some(ref version) = result.protocol_version {
-        if version.contains("1.0") || version.contains("1.1") {
-            result.findings.push(TlsFinding {
-                severity: "HIGH".to_string(),
-                description: format!("Weak protocol version supported: {}", version),
-            });
-        }
+    if let Some(ref version) = result.protocol_version
+        && (version.contains("1.0") || version.contains("1.1"))
+    {
+        result.findings.push(TlsFinding {
+            severity: "HIGH".to_string(),
+            description: format!("Weak protocol version supported: {}", version),
+        });
     }
 
     // Check for weak ciphers
     if let Some(ref cipher) = result.cipher_suite {
         let cipher_lower = cipher.to_lowercase();
-        if cipher_lower.contains("rc4") || cipher_lower.contains("3des") || cipher_lower.contains("null") {
+        if cipher_lower.contains("rc4")
+            || cipher_lower.contains("3des")
+            || cipher_lower.contains("null")
+        {
             result.findings.push(TlsFinding {
                 severity: "CRITICAL".to_string(),
                 description: format!("Weak cipher suite: {}", cipher),
             });
         }
-        if cipher_lower.contains("sha1") && !cipher_lower.contains("sha256") && !cipher_lower.contains("sha384") {
+        if cipher_lower.contains("sha1")
+            && !cipher_lower.contains("sha256")
+            && !cipher_lower.contains("sha384")
+        {
             result.findings.push(TlsFinding {
                 severity: "MEDIUM".to_string(),
                 description: format!("SHA-1 based cipher: {}", cipher),
@@ -358,20 +375,19 @@ fn host_matches_cn(host: &str, cn: &str) -> bool {
         return true;
     }
     // Wildcard matching
-    if cn.starts_with("*.") {
-        let cn_suffix = &cn[2..];
-        if let Some(host_suffix) = host.split_once('.') {
-            return host_suffix.1 == cn_suffix;
-        }
+    if let Some(cn_suffix) = cn.strip_prefix("*.")
+        && let Some(host_suffix) = host.split_once('.')
+    {
+        return host_suffix.1 == cn_suffix;
     }
     false
 }
 
 fn parse_host(host: &str) -> (String, u16) {
-    if let Some((h, p)) = host.rsplit_once(':') {
-        if let Ok(port) = p.parse::<u16>() {
-            return (h.to_string(), port);
-        }
+    if let Some((h, p)) = host.rsplit_once(':')
+        && let Ok(port) = p.parse::<u16>()
+    {
+        return (h.to_string(), port);
     }
     (host.to_string(), 443)
 }
@@ -416,7 +432,8 @@ pub async fn batch_scan(
     println!("{} Workers: {}", "[*]".cyan().bold(), workers);
     println!("{}", "─".repeat(60).dimmed());
 
-    let results: Arc<std::sync::Mutex<Vec<TlsScanResult>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let results: Arc<std::sync::Mutex<Vec<TlsScanResult>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
     let semaphore = Arc::new(tokio::sync::Semaphore::new(workers));
 
     let mut handles = Vec::new();
@@ -471,7 +488,11 @@ fn print_batch_summary(results: &[TlsScanResult]) {
         };
 
         let findings_count = r.findings.len();
-        let critical = r.findings.iter().filter(|f| f.severity == "CRITICAL").count();
+        let critical = r
+            .findings
+            .iter()
+            .filter(|f| f.severity == "CRITICAL")
+            .count();
         let high = r.findings.iter().filter(|f| f.severity == "HIGH").count();
 
         println!(
@@ -486,11 +507,19 @@ fn print_batch_summary(results: &[TlsScanResult]) {
     }
 
     let total = results.len();
-    let ok = results.iter().filter(|r| r.findings.is_empty() && r.connected).count();
+    let ok = results
+        .iter()
+        .filter(|r| r.findings.is_empty() && r.connected)
+        .count();
     let issues = total - ok;
 
-    println!("\n{} Total: {} | OK: {} | Issues: {}", "[*]".cyan().bold(),
-        total, ok.to_string().green(), issues.to_string().yellow());
+    println!(
+        "\n{} Total: {} | OK: {} | Issues: {}",
+        "[*]".cyan().bold(),
+        total,
+        ok.to_string().green(),
+        issues.to_string().yellow()
+    );
 }
 
 pub async fn generate_report(
@@ -523,23 +552,31 @@ fn generate_markdown_report(results: &[TlsScanResult]) -> String {
     let mut md = String::new();
 
     md.push_str("# TLS/SSL Audit Report\n\n");
-    md.push_str(&format!("**Generated:** {}\n\n", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")));
+    md.push_str(&format!(
+        "**Generated:** {}\n\n",
+        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+    ));
     md.push_str(&format!("**Hosts scanned:** {}\n\n", results.len()));
     md.push_str("---\n\n");
 
     // Summary
-    let ok = results.iter().filter(|r| r.findings.is_empty() && r.connected).count();
-    let critical = results.iter()
+    let ok = results
+        .iter()
+        .filter(|r| r.findings.is_empty() && r.connected)
+        .count();
+    let critical = results
+        .iter()
         .flat_map(|r| &r.findings)
         .filter(|f| f.severity == "CRITICAL")
         .count();
-    let high = results.iter()
+    let high = results
+        .iter()
         .flat_map(|r| &r.findings)
         .filter(|f| f.severity == "HIGH")
         .count();
 
     md.push_str("## Summary\n\n");
-    md.push_str(&format!("| Metric | Count |\n|--------|-------|\n"));
+    md.push_str("| Metric | Count |\n|--------|-------|\n");
     md.push_str(&format!("| Total hosts | {} |\n", results.len()));
     md.push_str(&format!("| Healthy | {} |\n", ok));
     md.push_str(&format!("| Critical findings | {} |\n", critical));
@@ -549,7 +586,10 @@ fn generate_markdown_report(results: &[TlsScanResult]) -> String {
     md.push_str("## Host Details\n\n");
     for r in results {
         md.push_str(&format!("### {}:{}\n\n", r.host, r.port));
-        md.push_str(&format!("- **Connected:** {}\n", if r.connected { "Yes" } else { "No" }));
+        md.push_str(&format!(
+            "- **Connected:** {}\n",
+            if r.connected { "Yes" } else { "No" }
+        ));
         if let Some(ref v) = r.protocol_version {
             md.push_str(&format!("- **Protocol:** {}\n", v));
         }
@@ -565,8 +605,14 @@ fn generate_markdown_report(results: &[TlsScanResult]) -> String {
         if let Some(ref na) = r.cert_not_after {
             md.push_str(&format!("- **Expires:** {}\n", na));
         }
-        md.push_str(&format!("- **Expired:** {}\n", if r.cert_expired { "Yes" } else { "No" }));
-        md.push_str(&format!("- **Self-signed:** {}\n", if r.cert_self_signed { "Yes" } else { "No" }));
+        md.push_str(&format!(
+            "- **Expired:** {}\n",
+            if r.cert_expired { "Yes" } else { "No" }
+        ));
+        md.push_str(&format!(
+            "- **Self-signed:** {}\n",
+            if r.cert_self_signed { "Yes" } else { "No" }
+        ));
 
         if !r.findings.is_empty() {
             md.push_str("\n**Findings:**\n\n");
@@ -574,7 +620,7 @@ fn generate_markdown_report(results: &[TlsScanResult]) -> String {
                 md.push_str(&format!("- **[{}]** {}\n", f.severity, f.description));
             }
         }
-        md.push_str("\n");
+        md.push('\n');
     }
 
     md
@@ -594,23 +640,46 @@ fn generate_html_report(results: &[TlsScanResult]) -> String {
     html.push_str("</style></head><body>");
 
     html.push_str("<h1>TLS/SSL Audit Report</h1>");
-    html.push_str(&format!("<p>Generated: {}</p>", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")));
+    html.push_str(&format!(
+        "<p>Generated: {}</p>",
+        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+    ));
 
     html.push_str("<h2>Summary</h2><table>");
-    html.push_str(&format!("<tr><th>Metric</th><th>Count</th></tr>"));
-    html.push_str(&format!("<tr><td>Total hosts</td><td>{}</td></tr>", results.len()));
-    html.push_str(&format!("<tr><td>Healthy</td><td>{}</td></tr>",
-        results.iter().filter(|r| r.findings.is_empty() && r.connected).count()));
+    html.push_str("<tr><th>Metric</th><th>Count</th></tr>");
+    html.push_str(&format!(
+        "<tr><td>Total hosts</td><td>{}</td></tr>",
+        results.len()
+    ));
+    html.push_str(&format!(
+        "<tr><td>Healthy</td><td>{}</td></tr>",
+        results
+            .iter()
+            .filter(|r| r.findings.is_empty() && r.connected)
+            .count()
+    ));
     html.push_str("</table>");
 
     html.push_str("<h2>Host Details</h2><table>");
     html.push_str("<tr><th>Host</th><th>Status</th><th>Protocol</th><th>Cipher</th><th>Expired</th><th>Self-signed</th><th>Findings</th></tr>");
 
     for r in results {
-        let status_class = if !r.connected { "critical" } else if r.cert_expired { "critical" }
-            else if r.findings.is_empty() { "ok" } else { "high" };
-        let status_text = if !r.connected { "CONN FAIL" } else if r.cert_expired { "EXPIRED" }
-            else if r.findings.is_empty() { "OK" } else { "ISSUES" };
+        let status_class = if !r.connected || r.cert_expired {
+            "critical"
+        } else if r.findings.is_empty() {
+            "ok"
+        } else {
+            "high"
+        };
+        let status_text = if !r.connected {
+            "CONN FAIL"
+        } else if r.cert_expired {
+            "EXPIRED"
+        } else if r.findings.is_empty() {
+            "OK"
+        } else {
+            "ISSUES"
+        };
 
         html.push_str(&format!("<tr><td>{}:{}</td><td class='{}'>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
             r.host, r.port, status_class, status_text,
@@ -628,7 +697,12 @@ fn generate_html_report(results: &[TlsScanResult]) -> String {
 }
 
 pub fn print_scan_result(result: &TlsScanResult) {
-    println!("{} Host: {}:{}", "[*]".cyan().bold(), result.host.white(), result.port);
+    println!(
+        "{} Host: {}:{}",
+        "[*]".cyan().bold(),
+        result.host.white(),
+        result.port
+    );
 
     if !result.connected {
         println!("  {} Connection failed", "[-]".red().bold());
@@ -654,7 +728,10 @@ pub fn print_scan_result(result: &TlsScanResult) {
         let expiry_status = if result.cert_expired {
             format!("{} (EXPIRED)", na).red().bold().to_string()
         } else if result.cert_expiring_soon {
-            format!("{} (EXPIRING SOON)", na).yellow().bold().to_string()
+            format!("{} (EXPIRING SOON)", na)
+                .yellow()
+                .bold()
+                .to_string()
         } else {
             na.green().to_string()
         };
@@ -671,7 +748,11 @@ pub fn print_scan_result(result: &TlsScanResult) {
     if result.findings.is_empty() {
         println!("  {} No issues found", "[+]".green().bold());
     } else {
-        println!("\n  {} Findings ({}):", "[!]".yellow().bold(), result.findings.len());
+        println!(
+            "\n  {} Findings ({}):",
+            "[!]".yellow().bold(),
+            result.findings.len()
+        );
         for f in &result.findings {
             let sev = match f.severity.as_str() {
                 "CRITICAL" => f.severity.red().bold(),

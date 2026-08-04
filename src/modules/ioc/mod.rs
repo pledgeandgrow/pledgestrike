@@ -73,11 +73,7 @@ pub async fn extract(
     Ok(())
 }
 
-pub async fn hunt(
-    file_path: &str,
-    pattern: &str,
-    context_lines: usize,
-) -> anyhow::Result<()> {
+pub async fn hunt(file_path: &str, pattern: &str, context_lines: usize) -> anyhow::Result<()> {
     println!("{} IOC Hunt", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} File:    {}", "[*]".cyan().bold(), file_path.green());
@@ -89,7 +85,7 @@ pub async fn hunt(
 
     let file = std::fs::File::open(file_path)?;
     let reader = std::io::BufReader::new(file);
-    let lines: Vec<String> = reader.lines().filter_map(|l| l.ok()).collect();
+    let lines: Vec<String> = reader.lines().map_while(Result::ok).collect();
 
     let mut matches = Vec::new();
 
@@ -108,22 +104,41 @@ pub async fn hunt(
 
     for (idx, line) in &matches {
         let line_num = idx + 1;
-        println!("{} Line {}:", "[>]".cyan().bold(), line_num.to_string().yellow());
+        println!(
+            "{} Line {}:",
+            "[>]".cyan().bold(),
+            line_num.to_string().yellow()
+        );
 
         // Print context before
         for c in (1..=context_lines).rev() {
             if let Some(ctx_line) = lines.get(idx.saturating_sub(c)) {
-                println!("  {} {:>5} │ {}", " ".dimmed(), idx + 1 - c, ctx_line.dimmed());
+                println!(
+                    "  {} {:>5} │ {}",
+                    " ".dimmed(),
+                    idx + 1 - c,
+                    ctx_line.dimmed()
+                );
             }
         }
 
         // Print matching line
-        println!("  {} {:>5} │ {}", ">>".cyan().bold(), line_num, line.white().bold());
+        println!(
+            "  {} {:>5} │ {}",
+            ">>".cyan().bold(),
+            line_num,
+            line.white().bold()
+        );
 
         // Print context after
         for c in 1..=context_lines {
             if let Some(ctx_line) = lines.get(idx + c) {
-                println!("  {} {:>5} │ {}", " ".dimmed(), idx + 1 + c, ctx_line.dimmed());
+                println!(
+                    "  {} {:>5} │ {}",
+                    " ".dimmed(),
+                    idx + 1 + c,
+                    ctx_line.dimmed()
+                );
             }
         }
 
@@ -139,7 +154,11 @@ pub async fn stats(file_path: &str, min_occurrences: usize) -> anyhow::Result<()
     println!("{} IOC Statistics", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} File: {}", "[*]".cyan().bold(), file_path.green());
-    println!("{} Min occurrences: {}", "[*]".cyan().bold(), min_occurrences);
+    println!(
+        "{} Min occurrences: {}",
+        "[*]".cyan().bold(),
+        min_occurrences
+    );
     println!("{}", "─".repeat(60).dimmed());
 
     let iocs = extract_from_file(file_path, &patterns)?;
@@ -147,12 +166,14 @@ pub async fn stats(file_path: &str, min_occurrences: usize) -> anyhow::Result<()
     // Count by value
     let mut counts: HashMap<(String, String), usize> = HashMap::new();
     for ioc in &iocs {
-        *counts.entry((ioc.ioc_type.clone(), ioc.value.clone())).or_insert(0) += 1;
+        *counts
+            .entry((ioc.ioc_type.clone(), ioc.value.clone()))
+            .or_insert(0) += 1;
     }
 
     // Sort by count descending
     let mut sorted: Vec<((String, String), usize)> = counts.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
 
     // Group by type
     let mut by_type: HashMap<String, Vec<(String, usize)>> = HashMap::new();
@@ -170,12 +191,22 @@ pub async fn stats(file_path: &str, min_occurrences: usize) -> anyhow::Result<()
 
     for ioc_type in &types {
         let items = by_type.get(ioc_type).unwrap();
-        println!("\n{} ({} unique values)", ioc_type.white().bold(), items.len());
+        println!(
+            "\n{} ({} unique values)",
+            ioc_type.white().bold(),
+            items.len()
+        );
         println!("{}", "─".repeat(40).dimmed());
 
         for (value, count) in items.iter().take(50) {
             let bar = "█".repeat((*count).min(30));
-            let bar_colored = if *count > 10 { bar.red() } else if *count > 3 { bar.yellow() } else { bar.green() };
+            let bar_colored = if *count > 10 {
+                bar.red()
+            } else if *count > 3 {
+                bar.yellow()
+            } else {
+                bar.green()
+            };
             println!(
                 "  {} {:>5} {} {}",
                 "•".cyan(),
@@ -209,30 +240,22 @@ fn compile_patterns(types: &str) -> Vec<IocPattern> {
         r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"
     ).unwrap();
 
-    let ipv6_regex = Regex::new(
-        r"\b(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}\b"
-    ).unwrap();
+    let ipv6_regex = Regex::new(r"\b(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}\b").unwrap();
 
-    let url_regex = Regex::new(
-        r#"\bhttps?://[^\s<>'"{}|\\^`\[\]]+"#
-    ).unwrap();
+    let url_regex = Regex::new(r#"\bhttps?://[^\s<>'"{}|\\^`\[\]]+"#).unwrap();
 
-    let email_regex = Regex::new(
-        r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"
-    ).unwrap();
+    let email_regex = Regex::new(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b").unwrap();
 
     let md5_regex = Regex::new(r"\b[a-fA-F0-9]{32}\b").unwrap();
     let sha1_regex = Regex::new(r"\b[a-fA-F0-9]{40}\b").unwrap();
     let sha256_regex = Regex::new(r"\b[a-fA-F0-9]{64}\b").unwrap();
     let sha512_regex = Regex::new(r"\b[a-fA-F0-9]{128}\b").unwrap();
 
-    let domain_regex = Regex::new(
-        r"\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b"
-    ).unwrap();
+    let domain_regex =
+        Regex::new(r"\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b")
+            .unwrap();
 
-    let mac_regex = Regex::new(
-        r"\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b"
-    ).unwrap();
+    let mac_regex = Regex::new(r"\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b").unwrap();
 
     let cve_regex = Regex::new(r"\bCVE-\d{4}-\d{4,}\b").unwrap();
 
@@ -242,7 +265,11 @@ fn compile_patterns(types: &str) -> Vec<IocPattern> {
 
     let ssn_regex = Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").unwrap();
 
-    let add = |patterns: &mut Vec<IocPattern>, ioc_type: &str, regex: Regex, requested: &[String], all: bool| {
+    let add = |patterns: &mut Vec<IocPattern>,
+               ioc_type: &str,
+               regex: Regex,
+               requested: &[String],
+               all: bool| {
         if all || requested.iter().any(|t| t == ioc_type) {
             patterns.push(IocPattern {
                 ioc_type: ioc_type.to_string(),
@@ -262,7 +289,13 @@ fn compile_patterns(types: &str) -> Vec<IocPattern> {
     add(&mut patterns, "domain", domain_regex, &requested, all);
     add(&mut patterns, "mac", mac_regex, &requested, all);
     add(&mut patterns, "cve", cve_regex, &requested, all);
-    add(&mut patterns, "credit_card", credit_card_regex, &requested, all);
+    add(
+        &mut patterns,
+        "credit_card",
+        credit_card_regex,
+        &requested,
+        all,
+    );
     add(&mut patterns, "ssn", ssn_regex, &requested, all);
 
     patterns
@@ -340,10 +373,10 @@ fn detect_pattern(pattern: &str) -> anyhow::Result<Regex> {
     }
 
     // Check if it looks like a hash
-    if pattern.len() == 32 || pattern.len() == 40 || pattern.len() == 64 {
-        if pattern.chars().all(|c| c.is_ascii_hexdigit()) {
-            return Ok(Regex::new(&regex::escape(pattern))?);
-        }
+    if (pattern.len() == 32 || pattern.len() == 40 || pattern.len() == 64)
+        && pattern.chars().all(|c| c.is_ascii_hexdigit())
+    {
+        return Ok(Regex::new(&regex::escape(pattern))?);
     }
 
     // Check if it looks like an email
@@ -378,7 +411,11 @@ fn format_text(iocs: &[Ioc]) -> String {
 
     for ioc_type in &types {
         let items = by_type.get(ioc_type).unwrap();
-        output.push_str(&format!("\n{} ({}):\n", ioc_type.to_uppercase(), items.len()));
+        output.push_str(&format!(
+            "\n{} ({}):\n",
+            ioc_type.to_uppercase(),
+            items.len()
+        ));
 
         let mut seen = std::collections::HashSet::new();
         for ioc in items {

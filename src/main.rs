@@ -1,25 +1,27 @@
+#![allow(dead_code, clippy::too_many_arguments)]
+
 mod cli;
 mod modules;
 
 use clap::Parser;
 use cli::{
     AclAction, ActuatorAction, AgentAction, AmqpAction, ApiAction, BleAction, BruteAction,
-    CacheAction, CicdAction, ClickAction, Cli, CloudAction, CmdiAction, CoapAction, Commands,
-    ContainerAction, CookieAction, CorsAction, CrlfAction, CsrfAction, CspAction, DebugAction,
+    CacheAction, CicdAction, Cli, ClickAction, CloudAction, CmdiAction, CoapAction, Commands,
+    ContainerAction, CookieAction, CorsAction, CrlfAction, CspAction, CsrfAction, DebugAction,
     DeserAction, DnsenumAction, ElasticAction, EtcdAction, ExchangeAction, ExfilAction,
     ExploitAction, FingerAction, FtpAction, GitAction, GraphqlAttackAction, GrpcAction, H2Action,
-    HppAction, HostAction, IdorAction, IocAction, IpmiAction, JndiAction, JwtAction, K8sAction,
-    KerbAction, LdapiAction, LfiAction, LlmAction, MassAction, MfaAction, MemcacheAction,
+    HostAction, HppAction, IdorAction, IocAction, IpmiAction, JndiAction, JwtAction, K8sAction,
+    KerbAction, LdapiAction, LfiAction, LlmAction, MassAction, MemcacheAction, MfaAction,
     MongoAction, MqttAction, NfsAction, NosqliAction, NtlmAction, NtpAction, OauthAction,
-    OwaAction, OtAction, PadoracleAction, PayloadAction, PostmsgAction, ProtoAction,
-    RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction, RedirectAction,
-    RedisxAction, RtspAction, SamlAction, SecretAction, SessionAction, SharepointAction,
-    ShellAction, SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction, SseAction,
-    SprayAction, SsrfAction, SsrfChainAction, SqliAction, SshAction, SstiAction, StompAction,
-    SubdomAction, SupplyAction, SwAction, TakeoverAction, TelnetAction, TftpAction, TlsAction,
-    UnicodeAction, UpnpAction, VncAction, WasmAction, Web3Action, WebdavAction, WebauthnAction,
-    WebrtcAction, WhoisAction, WinrmAction, WfuzzAction, WsAction, WsdlAction, X11Action,
-    XssAction, XxeAction, ZookeeperAction, OpenapiAction, WafAction,
+    OpenapiAction, OtAction, OwaAction, PadoracleAction, PayloadAction, PostmsgAction, ProtoAction,
+    RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction, RedirectAction, RedisxAction,
+    RtspAction, SamlAction, SecretAction, SessionAction, SharepointAction, ShellAction, SipAction,
+    SmbAction, SmtpAction, SmuggleAction, SnmpAction, SprayAction, SqliAction, SseAction,
+    SshAction, SsrfAction, SsrfChainAction, SstiAction, StompAction, SubdomAction, SupplyAction,
+    SwAction, TakeoverAction, TelnetAction, TftpAction, TlsAction, UnicodeAction, UpnpAction,
+    VncAction, WafAction, WasmAction, Web3Action, WebauthnAction, WebdavAction, WebrtcAction,
+    WfuzzAction, WhoisAction, WinrmAction, WsAction, WsdlAction, X11Action, XssAction, XxeAction,
+    ZookeeperAction,
 };
 use colored::Colorize;
 
@@ -92,17 +94,17 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                             secret.white().bold()
                         );
                         println!();
-                        println!("{} You can now forge tokens with this secret:", "[*]".cyan().bold());
+                        println!(
+                            "{} You can now forge tokens with this secret:",
+                            "[*]".cyan().bold()
+                        );
                         println!(
                             "    pledgestrike jwt forge --secret \"{}\" --payload '{{\"user\":\"admin\",\"role\":\"admin\"}}'",
                             secret
                         );
                     }
                     Ok(None) => {
-                        println!(
-                            "\n{} Secret not found in wordlist.",
-                            "[-]".red().bold()
-                        );
+                        println!("\n{} Secret not found in wordlist.", "[-]".red().bold());
                     }
                     Err(e) => {
                         println!("{} Error: {}", "[-]".red().bold(), e);
@@ -131,13 +133,21 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 } else if let Some(p) = &payload {
                     p.clone()
                 } else {
-                    println!("{} Either --payload or --payload-file must be provided", "[-]".red().bold());
+                    println!(
+                        "{} Either --payload or --payload-file must be provided",
+                        "[-]".red().bold()
+                    );
                     return Ok(());
                 };
 
                 match modules::jwt::forge::forge(&secret, &payload_str, &alg) {
                     Ok(token) => {
-                        modules::jwt::forge::print_forge_result(&token, &secret, &alg, &payload_str);
+                        modules::jwt::forge::print_forge_result(
+                            &token,
+                            &secret,
+                            &alg,
+                            &payload_str,
+                        );
                     }
                     Err(e) => {
                         println!("{} Failed to forge: {}", "[-]".red().bold(), e);
@@ -226,7 +236,10 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 base64,
             } => {
                 banner();
-                println!("{}", modules::shell::generate::generate(&shell_type, &ip, port, base64));
+                println!(
+                    "{}",
+                    modules::shell::generate::generate(&shell_type, &ip, port, base64)
+                );
             }
         },
 
@@ -269,7 +282,8 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             } => {
                 banner();
                 if let Err(e) =
-                    modules::api::fuzz::fuzz(&url, &wordlist, token.as_deref(), &value, timeout).await
+                    modules::api::fuzz::fuzz(&url, &wordlist, token.as_deref(), &value, timeout)
+                        .await
                 {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
@@ -305,9 +319,15 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 timeout,
             } => {
                 banner();
-                if let Err(e) =
-                    modules::api::auth::auth(&url, token.as_deref(), idor, no_auth, jwt_none, timeout)
-                        .await
+                if let Err(e) = modules::api::auth::auth(
+                    &url,
+                    token.as_deref(),
+                    idor,
+                    no_auth,
+                    jwt_none,
+                    timeout,
+                )
+                .await
                 {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
@@ -326,7 +346,13 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             } => {
                 banner();
                 if let Err(e) = modules::ratelimit::burst(
-                    &url, count, rate, workers, token.as_deref(), &method, timeout,
+                    &url,
+                    count,
+                    rate,
+                    workers,
+                    token.as_deref(),
+                    &method,
+                    timeout,
                 )
                 .await
                 {
@@ -344,7 +370,12 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             } => {
                 banner();
                 if let Err(e) = modules::ratelimit::distributed(
-                    &url, count, sources, rate, token.as_deref(), timeout,
+                    &url,
+                    count,
+                    sources,
+                    rate,
+                    token.as_deref(),
+                    timeout,
                 )
                 .await
                 {
@@ -360,10 +391,9 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 timeout,
             } => {
                 banner();
-                if let Err(e) = modules::ratelimit::report(
-                    &url, &endpoints, count, token.as_deref(), timeout,
-                )
-                .await
+                if let Err(e) =
+                    modules::ratelimit::report(&url, &endpoints, count, token.as_deref(), timeout)
+                        .await
                 {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
@@ -385,9 +415,7 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 workers,
             } => {
                 banner();
-                if let Err(e) =
-                    modules::tls::batch_scan(&file, output.as_deref(), workers).await
-                {
+                if let Err(e) = modules::tls::batch_scan(&file, output.as_deref(), workers).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -441,162 +469,340 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Sqli { action } => match action {
-            SqliAction::Error { url, param, token, timeout } => {
+            SqliAction::Error {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::sqli::error_scan(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::sqli::error_scan(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SqliAction::Blind { url, param, token, timeout } => {
+            SqliAction::Blind {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::sqli::blind_scan(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::sqli::blind_scan(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SqliAction::Time { url, param, token, timeout } => {
+            SqliAction::Time {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::sqli::time_scan(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::sqli::time_scan(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SqliAction::Dump { url, param, token, timeout, table } => {
+            SqliAction::Dump {
+                url,
+                param,
+                token,
+                timeout,
+                table,
+            } => {
                 banner();
-                if let Err(e) = modules::sqli::dump(&url, &param, token.as_deref(), timeout, &table).await {
+                if let Err(e) =
+                    modules::sqli::dump(&url, &param, token.as_deref(), timeout, &table).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Xss { action } => match action {
-            XssAction::Reflect { url, param, token, timeout } => {
+            XssAction::Reflect {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::xss::reflect(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) = modules::xss::reflect(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            XssAction::Store { url, param, token, timeout } => {
+            XssAction::Store {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::xss::store(&url, &param, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            XssAction::Dom { url, token, timeout } => {
+            XssAction::Dom {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::xss::dom(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            XssAction::Blind { url, param, callback_url, token, timeout } => {
+            XssAction::Blind {
+                url,
+                param,
+                callback_url,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::xss::blind(&url, &param, &callback_url, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::xss::blind(&url, &param, &callback_url, token.as_deref(), timeout)
+                        .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Cmdi { action } => match action {
-            CmdiAction::Os { url, param, token, timeout } => {
+            CmdiAction::Os {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::cmdi::os_inject(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::cmdi::os_inject(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CmdiAction::Filter { url, param, token, timeout } => {
+            CmdiAction::Filter {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::cmdi::filter_bypass(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::cmdi::filter_bypass(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CmdiAction::Time { url, param, token, timeout } => {
+            CmdiAction::Time {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::cmdi::time_based(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::cmdi::time_based(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CmdiAction::Oob { url, param, callback_host, token, timeout } => {
+            CmdiAction::Oob {
+                url,
+                param,
+                callback_host,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::cmdi::oob(&url, &param, &callback_host, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::cmdi::oob(&url, &param, &callback_host, token.as_deref(), timeout)
+                        .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Xxe { action } => match action {
-            XxeAction::File { url, token, timeout, file } => {
+            XxeAction::File {
+                url,
+                token,
+                timeout,
+                file,
+            } => {
                 banner();
-                if let Err(e) = modules::xxe::file_read(&url, token.as_deref(), timeout, &file).await {
+                if let Err(e) =
+                    modules::xxe::file_read(&url, token.as_deref(), timeout, &file).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            XxeAction::Ssrf { url, token, timeout, target_url } => {
+            XxeAction::Ssrf {
+                url,
+                token,
+                timeout,
+                target_url,
+            } => {
                 banner();
-                if let Err(e) = modules::xxe::ssrf(&url, token.as_deref(), timeout, &target_url).await {
+                if let Err(e) =
+                    modules::xxe::ssrf(&url, token.as_deref(), timeout, &target_url).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            XxeAction::Blind { url, token, timeout, callback_host } => {
+            XxeAction::Blind {
+                url,
+                token,
+                timeout,
+                callback_host,
+            } => {
                 banner();
-                if let Err(e) = modules::xxe::blind(&url, token.as_deref(), timeout, &callback_host).await {
+                if let Err(e) =
+                    modules::xxe::blind(&url, token.as_deref(), timeout, &callback_host).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            XxeAction::Oob { url, token, timeout, callback_host, file } => {
+            XxeAction::Oob {
+                url,
+                token,
+                timeout,
+                callback_host,
+                file,
+            } => {
                 banner();
-                if let Err(e) = modules::xxe::oob(&url, token.as_deref(), timeout, &callback_host, &file).await {
+                if let Err(e) =
+                    modules::xxe::oob(&url, token.as_deref(), timeout, &callback_host, &file).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Lfi { action } => match action {
-            LfiAction::Read { url, param, token, timeout, file } => {
+            LfiAction::Read {
+                url,
+                param,
+                token,
+                timeout,
+                file,
+            } => {
                 banner();
-                if let Err(e) = modules::lfi::read(&url, &param, token.as_deref(), timeout, &file).await {
+                if let Err(e) =
+                    modules::lfi::read(&url, &param, token.as_deref(), timeout, &file).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LfiAction::Include { url, param, token, timeout, remote_url } => {
+            LfiAction::Include {
+                url,
+                param,
+                token,
+                timeout,
+                remote_url,
+            } => {
                 banner();
-                if let Err(e) = modules::lfi::include(&url, &param, token.as_deref(), timeout, &remote_url).await {
+                if let Err(e) =
+                    modules::lfi::include(&url, &param, token.as_deref(), timeout, &remote_url)
+                        .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LfiAction::Wrapper { url, param, token, timeout } => {
+            LfiAction::Wrapper {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::lfi::wrapper(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) = modules::lfi::wrapper(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LfiAction::Log { url, param, token, timeout } => {
+            LfiAction::Log {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::lfi::log_poison(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::lfi::log_poison(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::SsrfChain { action } => match action {
-            SsrfChainAction::Metadata { url, param, token, timeout } => {
+            SsrfChainAction::Metadata {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::ssrf_chain::metadata(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::ssrf_chain::metadata(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SsrfChainAction::Gopher { url, param, token, timeout } => {
+            SsrfChainAction::Gopher {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::ssrf_chain::gopher(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::ssrf_chain::gopher(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SsrfChainAction::Blind { url, param, callback_host, token, timeout } => {
+            SsrfChainAction::Blind {
+                url,
+                param,
+                callback_host,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::ssrf_chain::blind(&url, &param, &callback_host, token.as_deref(), timeout).await {
+                if let Err(e) = modules::ssrf_chain::blind(
+                    &url,
+                    &param,
+                    &callback_host,
+                    token.as_deref(),
+                    timeout,
+                )
+                .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SsrfChainAction::Scan { url, param, token, timeout, ports } => {
+            SsrfChainAction::Scan {
+                url,
+                param,
+                token,
+                timeout,
+                ports,
+            } => {
                 banner();
-                if let Err(e) = modules::ssrf_chain::scan(&url, &param, token.as_deref(), timeout, &ports).await {
+                if let Err(e) =
+                    modules::ssrf_chain::scan(&url, &param, token.as_deref(), timeout, &ports).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -630,25 +836,47 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Crlf { action } => match action {
-            CrlfAction::Header { url, param, token, timeout } => {
+            CrlfAction::Header {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::crlf::header(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) = modules::crlf::header(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CrlfAction::Body { url, param, token, timeout } => {
+            CrlfAction::Body {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::crlf::body(&url, &param, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CrlfAction::Split { url, param, token, timeout } => {
+            CrlfAction::Split {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::crlf::split(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) = modules::crlf::split(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CrlfAction::Log { url, param, token, timeout } => {
+            CrlfAction::Log {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::crlf::log(&url, &param, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -657,40 +885,70 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Redirect { action } => match action {
-            RedirectAction::Scan { url, token, timeout } => {
+            RedirectAction::Scan {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::redirect::scan(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            RedirectAction::Bypass { url, param, token, timeout } => {
+            RedirectAction::Bypass {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::redirect::bypass(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::redirect::bypass(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            RedirectAction::Chain { url, param, token, timeout } => {
+            RedirectAction::Chain {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::redirect::chain(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::redirect::chain(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Cache { action } => match action {
-            CacheAction::Poison { url, token, timeout } => {
+            CacheAction::Poison {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::cache::poison(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CacheAction::Deceive { url, token, timeout } => {
+            CacheAction::Deceive {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::cache::deceive(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CacheAction::Key { url, token, timeout } => {
+            CacheAction::Key {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::cache::key(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -699,25 +957,41 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Smuggle { action } => match action {
-            SmuggleAction::Clte { url, token, timeout } => {
+            SmuggleAction::Clte {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::smuggle::clte(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SmuggleAction::Tecl { url, token, timeout } => {
+            SmuggleAction::Tecl {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::smuggle::tecl(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SmuggleAction::Cl0 { url, token, timeout } => {
+            SmuggleAction::Cl0 {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::smuggle::cl0(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SmuggleAction::Detect { url, token, timeout } => {
+            SmuggleAction::Detect {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::smuggle::detect(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -726,25 +1000,44 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Ws { action } => match action {
-            WsAction::Fuzz { url, token, timeout, message } => {
+            WsAction::Fuzz {
+                url,
+                token,
+                timeout,
+                message,
+            } => {
                 banner();
                 if let Err(e) = modules::ws::fuzz(&url, token.as_deref(), timeout, &message).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            WsAction::Inject { url, token, timeout, payload } => {
+            WsAction::Inject {
+                url,
+                token,
+                timeout,
+                payload,
+            } => {
                 banner();
-                if let Err(e) = modules::ws::inject(&url, token.as_deref(), timeout, &payload).await {
+                if let Err(e) = modules::ws::inject(&url, token.as_deref(), timeout, &payload).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            WsAction::Cswssh { url, token, timeout } => {
+            WsAction::Cswssh {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::ws::cswssh(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            WsAction::Auth { url, token, timeout } => {
+            WsAction::Auth {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::ws::auth(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -753,211 +1046,424 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::GraphqlAttack { action } => match action {
-            GraphqlAttackAction::Introspect { url, token, timeout } => {
+            GraphqlAttackAction::Introspect {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::graphql_attack::introspect(&url, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::graphql_attack::introspect(&url, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            GraphqlAttackAction::Batch { url, token, timeout, count } => {
+            GraphqlAttackAction::Batch {
+                url,
+                token,
+                timeout,
+                count,
+            } => {
                 banner();
-                if let Err(e) = modules::graphql_attack::batch(&url, token.as_deref(), timeout, count).await {
+                if let Err(e) =
+                    modules::graphql_attack::batch(&url, token.as_deref(), timeout, count).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            GraphqlAttackAction::Suggest { url, token, timeout, wordlist } => {
+            GraphqlAttackAction::Suggest {
+                url,
+                token,
+                timeout,
+                wordlist,
+            } => {
                 banner();
-                if let Err(e) = modules::graphql_attack::suggest(&url, token.as_deref(), timeout, wordlist.as_deref()).await {
+                if let Err(e) = modules::graphql_attack::suggest(
+                    &url,
+                    token.as_deref(),
+                    timeout,
+                    wordlist.as_deref(),
+                )
+                .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            GraphqlAttackAction::Depth { url, token, timeout, max_depth } => {
+            GraphqlAttackAction::Depth {
+                url,
+                token,
+                timeout,
+                max_depth,
+            } => {
                 banner();
-                if let Err(e) = modules::graphql_attack::depth(&url, token.as_deref(), timeout, max_depth).await {
+                if let Err(e) =
+                    modules::graphql_attack::depth(&url, token.as_deref(), timeout, max_depth).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Oauth { action } => match action {
-            OauthAction::Redirect { auth_url, token, timeout } => {
+            OauthAction::Redirect {
+                auth_url,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::oauth::redirect(&auth_url, token.as_deref(), timeout).await {
+                if let Err(e) = modules::oauth::redirect(&auth_url, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            OauthAction::State { auth_url, token, timeout } => {
+            OauthAction::State {
+                auth_url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::oauth::state(&auth_url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            OauthAction::Token { token_url, client_id, token, timeout } => {
+            OauthAction::Token {
+                token_url,
+                client_id,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::oauth::token(&token_url, &client_id, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::oauth::token(&token_url, &client_id, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            OauthAction::Scope { token_url, client_id, token, timeout } => {
+            OauthAction::Scope {
+                token_url,
+                client_id,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::oauth::scope(&token_url, &client_id, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::oauth::scope(&token_url, &client_id, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Ssti { action } => match action {
-            SstiAction::Detect { url, param, token, timeout } => {
+            SstiAction::Detect {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::ssti::detect(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) = modules::ssti::detect(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SstiAction::Jinja { url, param, token, timeout, cmd } => {
+            SstiAction::Jinja {
+                url,
+                param,
+                token,
+                timeout,
+                cmd,
+            } => {
                 banner();
-                if let Err(e) = modules::ssti::jinja(&url, &param, token.as_deref(), timeout, &cmd).await {
+                if let Err(e) =
+                    modules::ssti::jinja(&url, &param, token.as_deref(), timeout, &cmd).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SstiAction::Twig { url, param, token, timeout, cmd } => {
+            SstiAction::Twig {
+                url,
+                param,
+                token,
+                timeout,
+                cmd,
+            } => {
                 banner();
-                if let Err(e) = modules::ssti::twig(&url, &param, token.as_deref(), timeout, &cmd).await {
+                if let Err(e) =
+                    modules::ssti::twig(&url, &param, token.as_deref(), timeout, &cmd).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SstiAction::Freemarker { url, param, token, timeout, cmd } => {
+            SstiAction::Freemarker {
+                url,
+                param,
+                token,
+                timeout,
+                cmd,
+            } => {
                 banner();
-                if let Err(e) = modules::ssti::freemarker(&url, &param, token.as_deref(), timeout, &cmd).await {
+                if let Err(e) =
+                    modules::ssti::freemarker(&url, &param, token.as_deref(), timeout, &cmd).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Proto { action } => match action {
-            ProtoAction::Scan { url, token, timeout } => {
+            ProtoAction::Scan {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::proto::scan(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            ProtoAction::Gadget { url, token, timeout } => {
+            ProtoAction::Gadget {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::proto::gadget(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            ProtoAction::Exploit { url, token, timeout, cmd } => {
+            ProtoAction::Exploit {
+                url,
+                token,
+                timeout,
+                cmd,
+            } => {
                 banner();
-                if let Err(e) = modules::proto::exploit(&url, token.as_deref(), timeout, &cmd).await {
+                if let Err(e) = modules::proto::exploit(&url, token.as_deref(), timeout, &cmd).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Race { action } => match action {
-            RaceAction::Race { url, method, body, token, timeout, workers, count } => {
+            RaceAction::Race {
+                url,
+                method,
+                body,
+                token,
+                timeout,
+                workers,
+                count,
+            } => {
                 banner();
-                if let Err(e) = modules::race::race(&url, &method, body.as_deref(), token.as_deref(), timeout, workers, count).await {
+                if let Err(e) = modules::race::race(
+                    &url,
+                    &method,
+                    body.as_deref(),
+                    token.as_deref(),
+                    timeout,
+                    workers,
+                    count,
+                )
+                .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            RaceAction::Toctou { url, token, timeout } => {
+            RaceAction::Toctou {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::race::toctou(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            RaceAction::Balance { url, account, token, timeout, workers, amount } => {
+            RaceAction::Balance {
+                url,
+                account,
+                token,
+                timeout,
+                workers,
+                amount,
+            } => {
                 banner();
-                if let Err(e) = modules::race::balance(&url, &account, token.as_deref(), timeout, workers, &amount).await {
+                if let Err(e) = modules::race::balance(
+                    &url,
+                    &account,
+                    token.as_deref(),
+                    timeout,
+                    workers,
+                    &amount,
+                )
+                .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            RaceAction::Coupon { url, coupon, token, timeout, workers } => {
+            RaceAction::Coupon {
+                url,
+                coupon,
+                token,
+                timeout,
+                workers,
+            } => {
                 banner();
-                if let Err(e) = modules::race::coupon(&url, &coupon, token.as_deref(), timeout, workers).await {
+                if let Err(e) =
+                    modules::race::coupon(&url, &coupon, token.as_deref(), timeout, workers).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Host { action } => match action {
-            HostAction::Password { url, token, timeout, email } => {
+            HostAction::Password {
+                url,
+                token,
+                timeout,
+                email,
+            } => {
                 banner();
-                if let Err(e) = modules::host::password(&url, token.as_deref(), timeout, &email).await {
+                if let Err(e) =
+                    modules::host::password(&url, token.as_deref(), timeout, &email).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            HostAction::Cache { url, token, timeout } => {
+            HostAction::Cache {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::host::cache(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            HostAction::Access { url, token, timeout } => {
+            HostAction::Access {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::host::access(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            HostAction::Ssrf { url, token, timeout, target } => {
+            HostAction::Ssrf {
+                url,
+                token,
+                timeout,
+                target,
+            } => {
                 banner();
-                if let Err(e) = modules::host::ssrf(&url, token.as_deref(), timeout, &target).await {
+                if let Err(e) = modules::host::ssrf(&url, token.as_deref(), timeout, &target).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Acl { action } => match action {
-            AclAction::Idor { url, token, timeout, start_id, count } => {
+            AclAction::Idor {
+                url,
+                token,
+                timeout,
+                start_id,
+                count,
+            } => {
                 banner();
-                if let Err(e) = modules::acl::idor(&url, token.as_deref(), timeout, start_id, count).await {
+                if let Err(e) =
+                    modules::acl::idor(&url, token.as_deref(), timeout, start_id, count).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            AclAction::Bfla { url, token, timeout } => {
+            AclAction::Bfla {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::acl::bfla(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            AclAction::Privilege { url, token, timeout, low_token } => {
+            AclAction::Privilege {
+                url,
+                token,
+                timeout,
+                low_token,
+            } => {
                 banner();
-                if let Err(e) = modules::acl::privilege(&url, token.as_deref(), timeout, &low_token).await {
+                if let Err(e) =
+                    modules::acl::privilege(&url, token.as_deref(), timeout, &low_token).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            AclAction::Path { url, token, timeout, wordlist } => {
+            AclAction::Path {
+                url,
+                token,
+                timeout,
+                wordlist,
+            } => {
                 banner();
-                if let Err(e) = modules::acl::path(&url, token.as_deref(), timeout, wordlist.as_deref()).await {
+                if let Err(e) =
+                    modules::acl::path(&url, token.as_deref(), timeout, wordlist.as_deref()).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Takeover { action } => match action {
-            TakeoverAction::Scan { domains_file, token, timeout } => {
+            TakeoverAction::Scan {
+                domains_file,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::takeover::scan(&domains_file, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::takeover::scan(&domains_file, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            TakeoverAction::Verify { domain, token, timeout } => {
+            TakeoverAction::Verify {
+                domain,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::takeover::verify(&domain, token.as_deref(), timeout).await {
+                if let Err(e) = modules::takeover::verify(&domain, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            TakeoverAction::Fingerprint { domain, token, timeout } => {
+            TakeoverAction::Fingerprint {
+                domain,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::takeover::fingerprint(&domain, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::takeover::fingerprint(&domain, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::Cloud { action } => match action {
-            CloudAction::S3 { bucket, token, timeout } => {
+            CloudAction::S3 {
+                bucket,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::cloud::s3(&bucket, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -969,40 +1475,69 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CloudAction::Lambda { function_url, token, timeout } => {
+            CloudAction::Lambda {
+                function_url,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::cloud::lambda(&function_url, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::cloud::lambda(&function_url, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CloudAction::Metadata { target_url, token, timeout } => {
+            CloudAction::Metadata {
+                target_url,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::cloud::metadata(&target_url, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::cloud::metadata(&target_url, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
         },
 
         Commands::K8s { action } => match action {
-            K8sAction::Pods { api_server, token, timeout } => {
+            K8sAction::Pods {
+                api_server,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::k8s::pods(&api_server, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            K8sAction::Rbac { api_server, token, timeout } => {
+            K8sAction::Rbac {
+                api_server,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::k8s::rbac(&api_server, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            K8sAction::Secrets { api_server, token, timeout } => {
+            K8sAction::Secrets {
+                api_server,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::k8s::secrets(&api_server, token.as_deref(), timeout).await {
+                if let Err(e) = modules::k8s::secrets(&api_server, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            K8sAction::Escape { api_server, token, timeout } => {
+            K8sAction::Escape {
+                api_server,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::k8s::escape(&api_server, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1011,19 +1546,36 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Rebind { action } => match action {
-            RebindAction::Attack { target, token, timeout, interval, count } => {
+            RebindAction::Attack {
+                target,
+                token,
+                timeout,
+                interval,
+                count,
+            } => {
                 banner();
-                if let Err(e) = modules::rebind::attack(&target, token.as_deref(), timeout, interval, count).await {
+                if let Err(e) =
+                    modules::rebind::attack(&target, token.as_deref(), timeout, interval, count)
+                        .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            RebindAction::Listen { port, token, timeout } => {
+            RebindAction::Listen {
+                port,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::rebind::listen(port, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            RebindAction::Bypass { target, token, timeout } => {
+            RebindAction::Bypass {
+                target,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::rebind::bypass(&target, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1032,13 +1584,26 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Spray { action } => match action {
-            SprayAction::Spray { url, users_file, password, timeout, delay } => {
+            SprayAction::Spray {
+                url,
+                users_file,
+                password,
+                timeout,
+                delay,
+            } => {
                 banner();
-                if let Err(e) = modules::spray::spray(&url, &users_file, &password, timeout, delay).await {
+                if let Err(e) =
+                    modules::spray::spray(&url, &users_file, &password, timeout, delay).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SprayAction::Lockout { url, user, timeout, count } => {
+            SprayAction::Lockout {
+                url,
+                user,
+                timeout,
+                count,
+            } => {
                 banner();
                 if let Err(e) = modules::spray::lockout(&url, &user, timeout, count).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1050,7 +1615,12 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SprayAction::Round { url, users_file, timeout, delay } => {
+            SprayAction::Round {
+                url,
+                users_file,
+                timeout,
+                delay,
+            } => {
                 banner();
                 if let Err(e) = modules::spray::round(&url, &users_file, timeout, delay).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1059,27 +1629,75 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Brute { action } => match action {
-            BruteAction::Http { url, users_file, pass_file, timeout, workers } => {
+            BruteAction::Http {
+                url,
+                users_file,
+                pass_file,
+                timeout,
+                workers,
+            } => {
                 banner();
-                if let Err(e) = modules::brute::http(&url, &users_file, &pass_file, timeout, workers).await {
+                if let Err(e) =
+                    modules::brute::http(&url, &users_file, &pass_file, timeout, workers).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            BruteAction::Ssh { host, port, users_file, pass_file, timeout, workers } => {
+            BruteAction::Ssh {
+                host,
+                port,
+                users_file,
+                pass_file,
+                timeout,
+                workers,
+            } => {
                 banner();
-                if let Err(e) = modules::brute::ssh(&host, port, &users_file, &pass_file, timeout, workers).await {
+                if let Err(e) =
+                    modules::brute::ssh(&host, port, &users_file, &pass_file, timeout, workers)
+                        .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            BruteAction::Ftp { host, port, users_file, pass_file, timeout, workers } => {
+            BruteAction::Ftp {
+                host,
+                port,
+                users_file,
+                pass_file,
+                timeout,
+                workers,
+            } => {
                 banner();
-                if let Err(e) = modules::brute::ftp(&host, port, &users_file, &pass_file, timeout, workers).await {
+                if let Err(e) =
+                    modules::brute::ftp(&host, port, &users_file, &pass_file, timeout, workers)
+                        .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            BruteAction::Form { url, users_file, pass_file, timeout, workers, user_field, pass_field, fail_text } => {
+            BruteAction::Form {
+                url,
+                users_file,
+                pass_file,
+                timeout,
+                workers,
+                user_field,
+                pass_field,
+                fail_text,
+            } => {
                 banner();
-                if let Err(e) = modules::brute::form(&url, &users_file, &pass_file, timeout, workers, &user_field, &pass_field, &fail_text).await {
+                if let Err(e) = modules::brute::form(
+                    &url,
+                    &users_file,
+                    &pass_file,
+                    timeout,
+                    workers,
+                    &user_field,
+                    &pass_field,
+                    &fail_text,
+                )
+                .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -1113,13 +1731,21 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Exfil { action } => match action {
-            ExfilAction::Dns { domain, data, timeout } => {
+            ExfilAction::Dns {
+                domain,
+                data,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::exfil::dns(&domain, &data, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            ExfilAction::Icmp { host, data, timeout } => {
+            ExfilAction::Icmp {
+                host,
+                data,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::exfil::icmp(&host, &data, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1140,25 +1766,41 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Wfuzz { action } => match action {
-            WfuzzAction::Param { url, wordlist, timeout } => {
+            WfuzzAction::Param {
+                url,
+                wordlist,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::wfuzz::param(&url, wordlist.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            WfuzzAction::Header { url, wordlist, timeout } => {
+            WfuzzAction::Header {
+                url,
+                wordlist,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::wfuzz::header(&url, wordlist.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            WfuzzAction::Body { url, wordlist, timeout } => {
+            WfuzzAction::Body {
+                url,
+                wordlist,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::wfuzz::body(&url, wordlist.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            WfuzzAction::Cookie { url, wordlist, timeout } => {
+            WfuzzAction::Cookie {
+                url,
+                wordlist,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::wfuzz::cookie(&url, wordlist.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1167,25 +1809,44 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Deser { action } => match action {
-            DeserAction::Detect { url, token, timeout } => {
+            DeserAction::Detect {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::deser::detect(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            DeserAction::Java { url, token, timeout, cmd } => {
+            DeserAction::Java {
+                url,
+                token,
+                timeout,
+                cmd,
+            } => {
                 banner();
                 if let Err(e) = modules::deser::java(&url, token.as_deref(), timeout, &cmd).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            DeserAction::Net { url, token, timeout, cmd } => {
+            DeserAction::Net {
+                url,
+                token,
+                timeout,
+                cmd,
+            } => {
                 banner();
                 if let Err(e) = modules::deser::net(&url, token.as_deref(), timeout, &cmd).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            DeserAction::Php { url, token, timeout, cmd } => {
+            DeserAction::Php {
+                url,
+                token,
+                timeout,
+                cmd,
+            } => {
                 banner();
                 if let Err(e) = modules::deser::php(&url, token.as_deref(), timeout, &cmd).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1206,25 +1867,41 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            ExploitAction::Recent { start, end, severity } => {
+            ExploitAction::Recent {
+                start,
+                end,
+                severity,
+            } => {
                 banner();
                 if let Err(e) = modules::exploit::recent(&start, &end, severity.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            ExploitAction::Run { cve, target, timeout } => {
+            ExploitAction::Run {
+                cve,
+                target,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::exploit::run(&cve, &target, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            ExploitAction::Verify { cve, target, timeout } => {
+            ExploitAction::Verify {
+                cve,
+                target,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::exploit::verify(&cve, &target, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            ExploitAction::Chain { cves, target, timeout } => {
+            ExploitAction::Chain {
+                cves,
+                target,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::exploit::chain(&cves, &target, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1232,25 +1909,41 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Llm { action } => match action {
-            LlmAction::Inject { url, timeout, token } => {
+            LlmAction::Inject {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::llm::inject(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LlmAction::Jailbreak { url, timeout, token } => {
+            LlmAction::Jailbreak {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::llm::jailbreak(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LlmAction::Leak { url, timeout, token } => {
+            LlmAction::Leak {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::llm::leak(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LlmAction::Hijack { url, timeout, token } => {
+            LlmAction::Hijack {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::llm::hijack(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1258,25 +1951,41 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Agent { action } => match action {
-            AgentAction::Tool { url, timeout, token } => {
+            AgentAction::Tool {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::agent::tool(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            AgentAction::Rag { url, timeout, token } => {
+            AgentAction::Rag {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::agent::rag(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            AgentAction::Memory { url, timeout, token } => {
+            AgentAction::Memory {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::agent::memory(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            AgentAction::Plugin { url, timeout, token } => {
+            AgentAction::Plugin {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::agent::plugin(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1284,19 +1993,36 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Mfa { action } => match action {
-            MfaAction::Fatigue { url, user, count, delay, timeout } => {
+            MfaAction::Fatigue {
+                url,
+                user,
+                count,
+                delay,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::mfa::fatigue(&url, &user, count, delay, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            MfaAction::Race { url, user, otp, count, timeout } => {
+            MfaAction::Race {
+                url,
+                user,
+                otp,
+                count,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::mfa::race(&url, &user, &otp, count, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            MfaAction::Otp { url, user, timeout, count } => {
+            MfaAction::Otp {
+                url,
+                user,
+                timeout,
+                count,
+            } => {
                 banner();
                 if let Err(e) = modules::mfa::otp(&url, &user, timeout, count).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1310,13 +2036,21 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Saml { action } => match action {
-            SamlAction::Xsw { url, timeout, token } => {
+            SamlAction::Xsw {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::saml::xsw(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SamlAction::Response { url, timeout, token } => {
+            SamlAction::Response {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::saml::response(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1328,7 +2062,11 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SamlAction::Assertion { url, timeout, token } => {
+            SamlAction::Assertion {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::saml::assertion(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1368,19 +2106,31 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CspAction::Bypass { url, timeout, callback } => {
+            CspAction::Bypass {
+                url,
+                timeout,
+                callback,
+            } => {
                 banner();
                 if let Err(e) = modules::csp::bypass(&url, timeout, &callback).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CspAction::Inline { url, timeout, callback } => {
+            CspAction::Inline {
+                url,
+                timeout,
+                callback,
+            } => {
                 banner();
                 if let Err(e) = modules::csp::inline(&url, timeout, &callback).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CspAction::Exfil { url, timeout, callback } => {
+            CspAction::Exfil {
+                url,
+                timeout,
+                callback,
+            } => {
                 banner();
                 if let Err(e) = modules::csp::exfil(&url, timeout, &callback).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1388,13 +2138,22 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::H2 { action } => match action {
-            H2Action::Rapidreset { url, count, rate, timeout } => {
+            H2Action::Rapidreset {
+                url,
+                count,
+                rate,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::h2::rapidreset(&url, count, rate, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            H2Action::Stream { url, count, timeout } => {
+            H2Action::Stream {
+                url,
+                count,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::h2::stream(&url, count, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1414,25 +2173,42 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Jndi { action } => match action {
-            JndiAction::Ldap { url, callback, timeout } => {
+            JndiAction::Ldap {
+                url,
+                callback,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::jndi::ldap(&url, &callback, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            JndiAction::Rmi { url, callback, timeout } => {
+            JndiAction::Rmi {
+                url,
+                callback,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::jndi::rmi(&url, &callback, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            JndiAction::Dns { url, callback, timeout } => {
+            JndiAction::Dns {
+                url,
+                callback,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::jndi::dns(&url, &callback, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            JndiAction::Gadget { url, callback, timeout, cmd } => {
+            JndiAction::Gadget {
+                url,
+                callback,
+                timeout,
+                cmd,
+            } => {
                 banner();
                 if let Err(e) = modules::jndi::gadget(&url, &callback, timeout, &cmd).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1466,19 +2242,31 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Cicd { action } => match action {
-            CicdAction::Inject { url, timeout, token } => {
+            CicdAction::Inject {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::cicd::inject(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CicdAction::Poison { url, timeout, token } => {
+            CicdAction::Poison {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::cicd::poison(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            CicdAction::Runner { url, timeout, token } => {
+            CicdAction::Runner {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::cicd::runner(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1492,25 +2280,41 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Supply { action } => match action {
-            SupplyAction::Typosquat { url, timeout, token } => {
+            SupplyAction::Typosquat {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::supply::typosquat(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SupplyAction::Confusion { url, timeout, token } => {
+            SupplyAction::Confusion {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::supply::confusion(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SupplyAction::Poison { url, timeout, token } => {
+            SupplyAction::Poison {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::supply::poison(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SupplyAction::Audit { url, timeout, token } => {
+            SupplyAction::Audit {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::supply::audit(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1518,9 +2322,14 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Subdom { action } => match action {
-            SubdomAction::Brute { domain, timeout, wordlist } => {
+            SubdomAction::Brute {
+                domain,
+                timeout,
+                wordlist,
+            } => {
                 banner();
-                if let Err(e) = modules::subdom::brute(&domain, timeout, wordlist.as_deref()).await {
+                if let Err(e) = modules::subdom::brute(&domain, timeout, wordlist.as_deref()).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -1550,19 +2359,31 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SecretAction::Repo { url, timeout, token } => {
+            SecretAction::Repo {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::secret::repo(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SecretAction::Response { url, timeout, token } => {
+            SecretAction::Response {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::secret::response(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SecretAction::Docker { url, timeout, token } => {
+            SecretAction::Docker {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::secret::docker(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1570,25 +2391,41 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Web3 { action } => match action {
-            Web3Action::Reentrancy { url, timeout, token } => {
+            Web3Action::Reentrancy {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::web3::reentrancy(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            Web3Action::Overflow { url, timeout, token } => {
+            Web3Action::Overflow {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::web3::overflow(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            Web3Action::Access { url, timeout, token } => {
+            Web3Action::Access {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::web3::access(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            Web3Action::Delegatecall { url, timeout, token } => {
+            Web3Action::Delegatecall {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::web3::delegatecall(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1635,13 +2472,21 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            GitAction::Hook { url, timeout, token } => {
+            GitAction::Hook {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::git::hook(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            GitAction::Actions { url, timeout, token } => {
+            GitAction::Actions {
+                url,
+                timeout,
+                token,
+            } => {
                 banner();
                 if let Err(e) = modules::git::actions(&url, timeout, token.as_deref()).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1650,27 +2495,55 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Nosqli { action } => match action {
-            NosqliAction::Mongo { url, param, token, timeout } => {
+            NosqliAction::Mongo {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::nosqli::mongo(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::nosqli::mongo(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            NosqliAction::Redis { url, param, token, timeout } => {
+            NosqliAction::Redis {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::nosqli::redis(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::nosqli::redis(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            NosqliAction::Cassandra { url, param, token, timeout } => {
+            NosqliAction::Cassandra {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::nosqli::cassandra(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::nosqli::cassandra(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            NosqliAction::Blind { url, param, token, timeout } => {
+            NosqliAction::Blind {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::nosqli::blind(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::nosqli::blind(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -1695,7 +2568,11 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            GrpcAction::Stream { url, count, timeout } => {
+            GrpcAction::Stream {
+                url,
+                count,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::grpc::stream(&url, count, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1731,25 +2608,46 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Ldapi { action } => match action {
-            LdapiAction::Filter { url, param, token, timeout } => {
+            LdapiAction::Filter {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::ldapi::filter(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::ldapi::filter(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LdapiAction::Blind { url, param, token, timeout } => {
+            LdapiAction::Blind {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::ldapi::blind(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) = modules::ldapi::blind(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LdapiAction::Enum { url, token, timeout } => {
+            LdapiAction::Enum {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::ldapi::enum_ldap(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            LdapiAction::Ad { url, token, timeout } => {
+            LdapiAction::Ad {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::ldapi::ad(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1893,27 +2791,66 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
         },
 
         Commands::Padoracle { action } => match action {
-            PadoracleAction::Detect { url, param, token, timeout } => {
+            PadoracleAction::Detect {
+                url,
+                param,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::padoracle::detect(&url, &param, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::padoracle::detect(&url, &param, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            PadoracleAction::Decrypt { url, param, ciphertext, token, timeout } => {
+            PadoracleAction::Decrypt {
+                url,
+                param,
+                ciphertext,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::padoracle::decrypt(&url, &param, &ciphertext, token.as_deref(), timeout).await {
+                if let Err(e) = modules::padoracle::decrypt(
+                    &url,
+                    &param,
+                    &ciphertext,
+                    token.as_deref(),
+                    timeout,
+                )
+                .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            PadoracleAction::Encrypt { url, param, plaintext, token, timeout } => {
+            PadoracleAction::Encrypt {
+                url,
+                param,
+                plaintext,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::padoracle::encrypt(&url, &param, &plaintext, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::padoracle::encrypt(&url, &param, &plaintext, token.as_deref(), timeout)
+                        .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            PadoracleAction::Bit { url, param, ciphertext, token, timeout } => {
+            PadoracleAction::Bit {
+                url,
+                param,
+                ciphertext,
+                token,
+                timeout,
+            } => {
                 banner();
-                if let Err(e) = modules::padoracle::bit(&url, &param, &ciphertext, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::padoracle::bit(&url, &param, &ciphertext, token.as_deref(), timeout)
+                        .await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -1926,7 +2863,11 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            SseAction::Exhaust { url, count, timeout } => {
+            SseAction::Exhaust {
+                url,
+                count,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::sse::exhaust(&url, count, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);

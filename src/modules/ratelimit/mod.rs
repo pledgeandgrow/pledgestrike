@@ -1,6 +1,6 @@
 use colored::Colorize;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
@@ -19,7 +19,15 @@ pub async fn burst(
     println!("{} URL:     {}", "[*]".cyan().bold(), url.green());
     println!("{} Requests: {}", "[*]".cyan().bold(), count);
     println!("{} Workers:  {}", "[*]".cyan().bold(), workers);
-    println!("{} Rate:    {} req/s", "[*]".cyan().bold(), if rate == 0 { "max".to_string() } else { rate.to_string() });
+    println!(
+        "{} Rate:    {} req/s",
+        "[*]".cyan().bold(),
+        if rate == 0 {
+            "max".to_string()
+        } else {
+            rate.to_string()
+        }
+    );
     println!("{} Method:  {}", "[*]".cyan().bold(), method.yellow());
     println!("{}", "─".repeat(60).dimmed());
 
@@ -46,7 +54,6 @@ pub async fn burst(
         let throttled = throttled.clone();
         let errors = errors.clone();
         let status_counts = status_counts.clone();
-        let rate = rate;
 
         handles.push(tokio::spawn(async move {
             for _ in 0..worker_count {
@@ -76,8 +83,8 @@ pub async fn burst(
                     }
                 }
 
-                if rate > 0 {
-                    sleep(Duration::from_millis(1000 / rate)).await;
+                if let Some(delay) = (1000u64).checked_div(rate) {
+                    sleep(Duration::from_millis(delay)).await;
                 }
             }
         }));
@@ -115,10 +122,21 @@ pub async fn burst(
     println!("{} Results", "[*]".cyan().bold());
     println!("{}", "─".repeat(60).dimmed());
     println!("{} Total sent:     {}", "[*]".cyan().bold(), total_sent);
-    println!("{} Throttled (429/503): {}", "[*]".cyan().bold(),
-        if total_throttled > 0 { total_throttled.to_string().red().bold().to_string() } else { "0".green().to_string() });
+    println!(
+        "{} Throttled (429/503): {}",
+        "[*]".cyan().bold(),
+        if total_throttled > 0 {
+            total_throttled.to_string().red().bold().to_string()
+        } else {
+            "0".green().to_string()
+        }
+    );
     println!("{} Errors:         {}", "[*]".cyan().bold(), total_errors);
-    println!("{} Time:           {:.2}s", "[*]".cyan().bold(), elapsed.as_secs_f64());
+    println!(
+        "{} Time:           {:.2}s",
+        "[*]".cyan().bold(),
+        elapsed.as_secs_f64()
+    );
     println!("{} Effective rate: {} req/s", "[*]".cyan().bold(), rps);
 
     // Status code breakdown
@@ -143,15 +161,27 @@ pub async fn burst(
     // Verdict
     println!("\n{}", "═".repeat(60).cyan());
     if total_throttled == 0 && total_errors == 0 && total_sent == count as u64 {
-        println!("{} NO RATE LIMITING DETECTED — all {} requests succeeded",
-            "[!]".red().bold().blink(), total_sent);
+        println!(
+            "{} NO RATE LIMITING DETECTED — all {} requests succeeded",
+            "[!]".red().bold().blink(),
+            total_sent
+        );
     } else if total_throttled > 0 {
         let throttle_pct = (total_throttled as f64 / total_sent as f64 * 100.0).round();
-        println!("{} Rate limiting detected — {}% of requests throttled",
-            "[+]".yellow().bold(), throttle_pct);
-        println!("    Throttling started after ~{} requests", total_sent - total_throttled);
+        println!(
+            "{} Rate limiting detected — {}% of requests throttled",
+            "[+]".yellow().bold(),
+            throttle_pct
+        );
+        println!(
+            "    Throttling started after ~{} requests",
+            total_sent - total_throttled
+        );
     } else {
-        println!("{} Inconclusive — some errors occurred", "[-]".yellow().bold());
+        println!(
+            "{} Inconclusive — some errors occurred",
+            "[-]".yellow().bold()
+        );
     }
 
     Ok(())
@@ -170,7 +200,11 @@ pub async fn distributed(
     println!("{} URL:     {}", "[*]".cyan().bold(), url.green());
     println!("{} Sources: {} (simulated)", "[*]".cyan().bold(), sources);
     println!("{} Reqs/src: {}", "[*]".cyan().bold(), count);
-    println!("{} Total:   {} requests", "[*]".cyan().bold(), count * sources);
+    println!(
+        "{} Total:   {} requests",
+        "[*]".cyan().bold(),
+        count * sources
+    );
     println!("{}", "─".repeat(60).dimmed());
 
     let user_agents = vec![
@@ -224,8 +258,8 @@ pub async fn distributed(
                     }
                 }
 
-                if rate > 0 {
-                    sleep(Duration::from_millis(1000 / rate)).await;
+                if let Some(delay) = (1000u64).checked_div(rate) {
+                    sleep(Duration::from_millis(delay)).await;
                 }
             }
         }));
@@ -244,20 +278,36 @@ pub async fn distributed(
     println!("\n{}", "═".repeat(60).cyan());
     println!("{} Results", "[*]".cyan().bold());
     println!("{} Total sent:     {}", "[*]".cyan().bold(), total_sent);
-    println!("{} Throttled:      {}", "[*]".cyan().bold(),
-        if total_throttled > 0 { total_throttled.to_string().red().bold().to_string() } else { "0".green().to_string() });
+    println!(
+        "{} Throttled:      {}",
+        "[*]".cyan().bold(),
+        if total_throttled > 0 {
+            total_throttled.to_string().red().bold().to_string()
+        } else {
+            "0".green().to_string()
+        }
+    );
     println!("{} Errors:         {}", "[*]".cyan().bold(), total_errors);
-    println!("{} Time:           {:.2}s", "[*]".cyan().bold(), elapsed.as_secs_f64());
+    println!(
+        "{} Time:           {:.2}s",
+        "[*]".cyan().bold(),
+        elapsed.as_secs_f64()
+    );
     println!("{} Effective rate: {} req/s", "[*]".cyan().bold(), rps);
 
     println!("\n{}", "═".repeat(60).cyan());
     if total_throttled == 0 {
-        println!("{} NO RATE LIMITING DETECTED — distributed requests bypassed throttling",
-            "[!]".red().bold().blink());
+        println!(
+            "{} NO RATE LIMITING DETECTED — distributed requests bypassed throttling",
+            "[!]".red().bold().blink()
+        );
     } else {
         let pct = (total_throttled as f64 / total_sent as f64 * 100.0).round();
-        println!("{} Rate limiting detected even with distributed sources ({}% throttled)",
-            "[+]".yellow().bold(), pct);
+        println!(
+            "{} Rate limiting detected even with distributed sources ({}% throttled)",
+            "[+]".yellow().bold(),
+            pct
+        );
     }
 
     Ok(())
@@ -294,15 +344,12 @@ pub async fn report(
         let mut sent = 0u64;
 
         for _ in 0..count {
-            match client.get(&url).send().await {
-                Ok(resp) => {
-                    sent += 1;
-                    let status = resp.status().as_u16();
-                    if status == 429 || status == 503 {
-                        throttled += 1;
-                    }
+            if let Ok(resp) = client.get(&url).send().await {
+                sent += 1;
+                let status = resp.status().as_u16();
+                if status == 429 || status == 503 {
+                    throttled += 1;
                 }
-                Err(_) => {}
             }
         }
 
@@ -339,13 +386,29 @@ pub async fn report(
     }
 
     // Summary
-    let no_limit = results.iter().filter(|r| r.verdict == "NO RATE LIMITING").count();
-    let limited = results.iter().filter(|r| r.verdict == "RATE LIMITED").count();
+    let no_limit = results
+        .iter()
+        .filter(|r| r.verdict == "NO RATE LIMITING")
+        .count();
+    let limited = results
+        .iter()
+        .filter(|r| r.verdict == "RATE LIMITED")
+        .count();
 
     println!("\n{}", "═".repeat(60).cyan());
     println!("{} Summary", "[*]".cyan().bold());
-    println!("{} Rate limited:     {}/{}", "[*]".cyan().bold(), limited.to_string().green(), paths.len());
-    println!("{} No rate limiting: {}/{}", "[*]".cyan().bold(), no_limit.to_string().red().bold(), paths.len());
+    println!(
+        "{} Rate limited:     {}/{}",
+        "[*]".cyan().bold(),
+        limited.to_string().green(),
+        paths.len()
+    );
+    println!(
+        "{} No rate limiting: {}/{}",
+        "[*]".cyan().bold(),
+        no_limit.to_string().red().bold(),
+        paths.len()
+    );
 
     if no_limit > 0 {
         println!("\n{} Endpoints WITHOUT rate limiting:", "[!]".red().bold());
@@ -369,7 +432,10 @@ struct EndpointReport {
 
 fn build_client(timeout: u64, token: Option<&str>) -> anyhow::Result<reqwest::Client> {
     let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert("User-Agent", reqwest::header::HeaderValue::from_static("PledgeStrike/0.1"));
+    headers.insert(
+        "User-Agent",
+        reqwest::header::HeaderValue::from_static("PledgeStrike/0.1"),
+    );
 
     if let Some(t) = token {
         headers.insert(

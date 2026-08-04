@@ -54,18 +54,22 @@ const WAF_SIGNATURES: &[(&str, &str, &str)] = &[
 
 /// Malicious payloads to trigger WAF responses
 const WAF_PAYLOADS: &[(&str, &str, &str)] = &[
-    ("SQLi",       "q", "' OR '1'='1' --"),
+    ("SQLi", "q", "' OR '1'='1' --"),
     ("SQLi union", "q", "' UNION SELECT NULL,NULL,NULL --"),
-    ("XSS",        "q", "<script>alert(1)</script>"),
-    ("XSS img",    "q", "<img src=x onerror=alert(1)>"),
-    ("LFI",        "file", "../../../etc/passwd"),
-    ("LFI win",    "file", "..\\..\\..\\windows\\win.ini"),
-    ("RCE",        "cmd", "; cat /etc/passwd"),
-    ("RCE pipe",   "cmd", "| id"),
-    ("XSS svg",    "q", "<svg onload=alert(1)>"),
+    ("XSS", "q", "<script>alert(1)</script>"),
+    ("XSS img", "q", "<img src=x onerror=alert(1)>"),
+    ("LFI", "file", "../../../etc/passwd"),
+    ("LFI win", "file", "..\\..\\..\\windows\\win.ini"),
+    ("RCE", "cmd", "; cat /etc/passwd"),
+    ("RCE pipe", "cmd", "| id"),
+    ("XSS svg", "q", "<svg onload=alert(1)>"),
     ("SQLi sleep", "q", "'; SLEEP(5) --"),
-    ("CMDi",       "cmd", "$(whoami)"),
-    ("XSS script", "q", "<script>fetch('http://evil.com')</script>"),
+    ("CMDi", "cmd", "$(whoami)"),
+    (
+        "XSS script",
+        "q",
+        "<script>fetch('http://evil.com')</script>",
+    ),
 ];
 
 pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -82,7 +86,12 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
     let baseline_size = baseline_resp.text().await?.len();
     let baseline_headers = client.get(url).send().await?.headers().clone();
 
-    println!("{} Baseline: status={}, {} bytes", "[*]".cyan().bold(), baseline_status, baseline_size);
+    println!(
+        "{} Baseline: status={}, {} bytes",
+        "[*]".cyan().bold(),
+        baseline_status,
+        baseline_size
+    );
     println!();
 
     // Check for WAF signatures in headers
@@ -102,7 +111,11 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
     }
 
     // Step 2: Send malicious payloads and compare responses
-    println!("{} Sending {} malicious payloads...", "[*]".cyan().bold(), WAF_PAYLOADS.len());
+    println!(
+        "{} Sending {} malicious payloads...",
+        "[*]".cyan().bold(),
+        WAF_PAYLOADS.len()
+    );
     println!("{}", "─".repeat(60).dimmed());
 
     let mut blocked_count = 0;
@@ -126,7 +139,14 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
             "passed".green().to_string()
         };
 
-        println!("  {} {:14} status={} {} bytes  {}", "•".cyan(), name, status, size, status_str);
+        println!(
+            "  {} {:14} status={} {} bytes  {}",
+            "•".cyan(),
+            name,
+            status,
+            size,
+            status_str
+        );
     }
 
     println!();
@@ -149,7 +169,11 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
     if !header_findings.is_empty() {
         println!("{} Header signatures found:", "[*]".cyan().bold());
         for (name, value) in &header_findings {
-            let display_value = if value.len() > 60 { &value[..60] } else { value };
+            let display_value = if value.len() > 60 {
+                &value[..60]
+            } else {
+                value
+            };
             println!("  {} {}: {}", "•".cyan(), name, display_value);
         }
         println!();
@@ -157,12 +181,25 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     // Print WAF identification
     if !detected_wafs.is_empty() {
-        println!("{} WAF identified: {}", "[!]".yellow().bold(), detected_wafs.join(", "));
+        println!(
+            "{} WAF identified: {}",
+            "[!]".yellow().bold(),
+            detected_wafs.join(", ")
+        );
     }
 
     // Print verdict
-    println!("{} WAF Confidence: {}", "[!]".yellow().bold(), waf_confidence);
-    println!("  {} Payloads blocked: {}/{}", "•".cyan(), blocked_count, WAF_PAYLOADS.len());
+    println!(
+        "{} WAF Confidence: {}",
+        "[!]".yellow().bold(),
+        waf_confidence
+    );
+    println!(
+        "  {} Payloads blocked: {}/{}",
+        "•".cyan(),
+        blocked_count,
+        WAF_PAYLOADS.len()
+    );
 
     if !waf_blocked_statuses.is_empty() {
         let statuses: Vec<String> = waf_blocked_statuses.iter().map(|s| s.to_string()).collect();
@@ -171,21 +208,42 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     match waf_confidence {
         "VERY HIGH" => {
-            println!("  {} A WAF is actively filtering malicious requests.", "*".red().bold());
-            println!("  {} Expect payloads to be blocked. Consider WAF bypass techniques.", "*".yellow());
+            println!(
+                "  {} A WAF is actively filtering malicious requests.",
+                "*".red().bold()
+            );
+            println!(
+                "  {} Expect payloads to be blocked. Consider WAF bypass techniques.",
+                "*".yellow()
+            );
         }
         "HIGH" => {
-            println!("  {} A WAF is likely present and blocking most attacks.", "*".yellow().bold());
+            println!(
+                "  {} A WAF is likely present and blocking most attacks.",
+                "*".yellow().bold()
+            );
         }
         "MEDIUM" => {
-            println!("  {} A WAF may be present — some payloads were blocked.", "*".yellow());
+            println!(
+                "  {} A WAF may be present — some payloads were blocked.",
+                "*".yellow()
+            );
         }
         "LOW" => {
-            println!("  {} Minimal WAF protection detected — most payloads passed through.", "*".green());
+            println!(
+                "  {} Minimal WAF protection detected — most payloads passed through.",
+                "*".green()
+            );
         }
         "NONE" => {
-            println!("  {} No WAF detected — all payloads were processed by the backend.", "*".green().bold());
-            println!("  {} The target is directly exposed to injection attacks.", "*".red().bold());
+            println!(
+                "  {} No WAF detected — all payloads were processed by the backend.",
+                "*".green().bold()
+            );
+            println!(
+                "  {} The target is directly exposed to injection attacks.",
+                "*".red().bold()
+            );
         }
         _ => {}
     }

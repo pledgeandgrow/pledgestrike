@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn access(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -28,7 +32,12 @@ pub async fn access(url: &str, timeout: u64) -> anyhow::Result<()> {
             let s = r.status().as_u16();
             let text = r.text().await.unwrap_or_default();
             if s == 200 && !text.is_empty() {
-                println!("  {} {:15} — {} bytes", "[+]".green().bold(), ep, text.len());
+                println!(
+                    "  {} {:15} — {} bytes",
+                    "[+]".green().bold(),
+                    ep,
+                    text.len()
+                );
             }
         }
     }
@@ -43,7 +52,13 @@ pub async fn stats(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let stat_endpoints = ["/stats", "/stats/settings", "/stats/items", "/stats/slabs", "/stats/conns"];
+    let stat_endpoints = [
+        "/stats",
+        "/stats/settings",
+        "/stats/items",
+        "/stats/slabs",
+        "/stats/conns",
+    ];
     for ep in &stat_endpoints {
         let target = format!("{}{}", url.trim_end_matches('/'), ep);
         match client.get(&target).send().await {
@@ -51,7 +66,12 @@ pub async fn stats(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 && !text.is_empty() {
-                    println!("  {} {:25} — {} bytes", "[+]".green().bold(), ep, text.len());
+                    println!(
+                        "  {} {:25} — {} bytes",
+                        "[+]".green().bold(),
+                        ep,
+                        text.len()
+                    );
                     if text.contains("version") {
                         println!("    {} Server version info leaked", "[!]".red().bold());
                     }
@@ -76,18 +96,23 @@ pub async fn dump(url: &str, timeout: u64) -> anyhow::Result<()> {
     let dump_endpoints = ["/items", "/slabs", "/dump"];
     for ep in &dump_endpoints {
         let target = format!("{}{}", url.trim_end_matches('/'), ep);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} {:15} — {} bytes of data retrieved", "[+]".green().bold(), ep, text.len());
-                    if text.contains("key") || text.contains("value") {
-                        println!("    {} Cached data exposed — potential sensitive info leak", "[!]".red().bold());
-                    }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!(
+                    "  {} {:15} — {} bytes of data retrieved",
+                    "[+]".green().bold(),
+                    ep,
+                    text.len()
+                );
+                if text.contains("key") || text.contains("value") {
+                    println!(
+                        "    {} Cached data exposed — potential sensitive info leak",
+                        "[!]".red().bold()
+                    );
                 }
             }
-            Err(_) => {}
         }
     }
 
@@ -104,15 +129,17 @@ pub async fn slab(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     for slab_id in 1..=5 {
         let target = format!("{}/slabs/{}", url.trim_end_matches('/'), slab_id);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} Slab {} — {} bytes", "[+]".green().bold(), slab_id, text.len());
-                }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!(
+                    "  {} Slab {} — {} bytes",
+                    "[+]".green().bold(),
+                    slab_id,
+                    text.len()
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -121,7 +148,11 @@ pub async fn slab(url: &str, timeout: u64) -> anyhow::Result<()> {
         let status = r.status().as_u16();
         let text = r.text().await.unwrap_or_default();
         if status == 200 && !text.is_empty() {
-            println!("\n  {} Cachedump retrieved — {} bytes of key data", "[!]".red().bold(), text.len());
+            println!(
+                "\n  {} Cachedump retrieved — {} bytes of key data",
+                "[!]".red().bold(),
+                text.len()
+            );
         }
     }
 

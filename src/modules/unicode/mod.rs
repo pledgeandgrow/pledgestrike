@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn homoglyph(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -81,7 +85,10 @@ pub async fn overlong(url: &str, timeout: u64) -> anyhow::Result<()> {
 }
 
 pub async fn bidi(url: &str, timeout: u64) -> anyhow::Result<()> {
-    println!("{} Unicode Bidi (Trojan Source) Attack", "[*]".cyan().bold());
+    println!(
+        "{} Unicode Bidi (Trojan Source) Attack",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} Target: {}", "[*]".cyan().bold(), url);
     println!("{}", "-".repeat(60).dimmed());
@@ -105,7 +112,12 @@ pub async fn bidi(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 && !text.is_empty() {
-                    println!("  {} {:20} — accepted ({} bytes)", "[!]".red().bold(), name, text.len());
+                    println!(
+                        "  {} {:20} — accepted ({} bytes)",
+                        "[!]".red().bold(),
+                        name,
+                        text.len()
+                    );
                 } else {
                     println!("  {} {:20} — status={}", "[-]".dimmed(), name, status);
                 }
@@ -141,7 +153,9 @@ pub async fn normalize(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
-                if status == 200 && (text.contains("admin") || text.contains("root") || text.contains("welcome")) {
+                if status == 200
+                    && (text.contains("admin") || text.contains("root") || text.contains("welcome"))
+                {
                     println!("  {} {:20} — NORMALIZED", "[!]".red().bold(), name);
                 } else {
                     println!("  {} {:20} — status={}", "[-]".dimmed(), name, status);

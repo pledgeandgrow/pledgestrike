@@ -2462,602 +2462,2252 @@ pub enum ExploitAction {
 
 #[derive(Subcommand)]
 pub enum LlmAction {
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Jailbreak { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Leak { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Hijack { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Jailbreak {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Leak {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Hijack {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum AgentAction {
-    Tool { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Rag { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Memory { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Plugin { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
+    Tool {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Rag {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Memory {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Plugin {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum MfaAction {
-    Fatigue { #[arg(short, long)] url: String, #[arg(short = 'u', long)] user: String, #[arg(short = 'n', long, default_value = "100")] count: u32, #[arg(short = 'd', long, default_value = "1")] delay: u64, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Race { #[arg(short, long)] url: String, #[arg(short = 'u', long)] user: String, #[arg(short = 'o', long)] otp: String, #[arg(short = 'n', long, default_value = "10")] count: u32, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Otp { #[arg(short, long)] url: String, #[arg(short = 'u', long)] user: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 'n', long, default_value = "10")] count: u32 },
-    Fallback { #[arg(short, long)] url: String, #[arg(short = 'u', long)] user: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Fatigue {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'u', long)]
+        user: String,
+        #[arg(short = 'n', long, default_value = "100")]
+        count: u32,
+        #[arg(short = 'd', long, default_value = "1")]
+        delay: u64,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Race {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'u', long)]
+        user: String,
+        #[arg(short = 'o', long)]
+        otp: String,
+        #[arg(short = 'n', long, default_value = "10")]
+        count: u32,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Otp {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'u', long)]
+        user: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 'n', long, default_value = "10")]
+        count: u32,
+    },
+    Fallback {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'u', long)]
+        user: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SamlAction {
-    Xsw { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Response { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Cert { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Assertion { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
+    Xsw {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Response {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Cert {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Assertion {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum WebauthnAction {
-    Origin { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Resident { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Relay { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Downgrade { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Origin {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Resident {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Relay {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Downgrade {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum CspAction {
-    Analyze { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bypass { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 'c', long)] callback: String },
-    Inline { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 'c', long)] callback: String },
-    Exfil { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 'c', long)] callback: String },
+    Analyze {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bypass {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 'c', long)]
+        callback: String,
+    },
+    Inline {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 'c', long)]
+        callback: String,
+    },
+    Exfil {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 'c', long)]
+        callback: String,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum H2Action {
-    Rapidreset { #[arg(short, long)] url: String, #[arg(short = 'n', long, default_value = "1000")] count: u32, #[arg(short = 'r', long, default_value = "100")] rate: u32, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Stream { #[arg(short, long)] url: String, #[arg(short = 'n', long, default_value = "100")] count: u32, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Header { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Priority { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Rapidreset {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'n', long, default_value = "1000")]
+        count: u32,
+        #[arg(short = 'r', long, default_value = "100")]
+        rate: u32,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Stream {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'n', long, default_value = "100")]
+        count: u32,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Header {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Priority {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum JndiAction {
-    Ldap { #[arg(short, long)] url: String, #[arg(short = 'c', long)] callback: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Rmi { #[arg(short, long)] url: String, #[arg(short = 'c', long)] callback: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dns { #[arg(short, long)] url: String, #[arg(short = 'c', long)] callback: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Gadget { #[arg(short, long)] url: String, #[arg(short = 'c', long)] callback: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short, long, default_value = "id")] cmd: String },
+    Ldap {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'c', long)]
+        callback: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Rmi {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'c', long)]
+        callback: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dns {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'c', long)]
+        callback: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Gadget {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'c', long)]
+        callback: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short, long, default_value = "id")]
+        cmd: String,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum ContainerAction {
-    Docker { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Kubelet { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Cap { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Mount { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Docker {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Kubelet {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Cap {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Mount {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum CicdAction {
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Poison { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Runner { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Webhook { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Poison {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Runner {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Webhook {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SupplyAction {
-    Typosquat { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Confusion { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Poison { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Audit { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
+    Typosquat {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Confusion {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Poison {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Audit {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SubdomAction {
-    Brute { #[arg(short, long)] domain: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 'w', long)] wordlist: Option<String> },
-    Ct { #[arg(short, long)] domain: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Passive { #[arg(short, long)] domain: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Permutate { #[arg(short, long)] domain: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Brute {
+        #[arg(short, long)]
+        domain: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 'w', long)]
+        wordlist: Option<String>,
+    },
+    Ct {
+        #[arg(short, long)]
+        domain: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Passive {
+        #[arg(short, long)]
+        domain: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Permutate {
+        #[arg(short, long)]
+        domain: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SecretAction {
-    Js { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Repo { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Response { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Docker { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
+    Js {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Repo {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Response {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Docker {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum Web3Action {
-    Reentrancy { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Overflow { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Delegatecall { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
+    Reentrancy {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Overflow {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Delegatecall {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum WebrtcAction {
-    Leak { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Stun { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Relay { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Fingerprint { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Leak {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Stun {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Relay {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Fingerprint {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum GitAction {
-    Expose { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Hook { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
-    Actions { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64, #[arg(short = 't', long)] token: Option<String> },
+    Expose {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Hook {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Actions {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum NosqliAction {
-    Mongo { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Redis { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Cassandra { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Blind { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Mongo {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Redis {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Cassandra {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Blind {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum GrpcAction {
-    Reflect { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Method { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Meta { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Stream { #[arg(short, long)] url: String, #[arg(short = 'n', long, default_value = "100")] count: u32, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Reflect {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Method {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Meta {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Stream {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'n', long, default_value = "100")]
+        count: u32,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum KerbAction {
-    Roast { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Asrep { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Diamond { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    S4u { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Roast {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Asrep {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Diamond {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    S4u {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum LdapiAction {
-    Filter { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Blind { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Ad { #[arg(short, long)] url: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Filter {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Blind {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Ad {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum PostmsgAction {
-    Origin { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Fuzz { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Chain { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Origin {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Fuzz {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Chain {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SwAction {
-    Register { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Hijack { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Persist { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Fetch { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Register {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Hijack {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Persist {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Fetch {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum WasmAction {
-    Analyze { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Memory { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Import { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Reverse { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Analyze {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Memory {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Import {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Reverse {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum MqttAction {
-    Connect { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Topic { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Retain { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Will { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Connect {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Topic {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Retain {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Will {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum OtAction {
-    Modbus { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Write { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Hmi { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Modbus {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Write {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Hmi {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum PadoracleAction {
-    Detect { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Decrypt { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short, long)] ciphertext: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Encrypt { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short, long)] plaintext: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bit { #[arg(short, long)] url: String, #[arg(short, long)] param: String, #[arg(short, long)] ciphertext: String, #[arg(short = 't', long)] token: Option<String>, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Detect {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Decrypt {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short, long)]
+        ciphertext: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Encrypt {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short, long)]
+        plaintext: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bit {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short, long)]
+        ciphertext: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SseAction {
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Exhaust { #[arg(short, long)] url: String, #[arg(short = 'n', long, default_value = "100")] count: u32, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Exfil { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Replay { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Exhaust {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'n', long, default_value = "100")]
+        count: u32,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Exfil {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Replay {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum BleAction {
-    Scan { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Gatt { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Write { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Mitm { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Scan {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Gatt {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Write {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Mitm {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum NtpAction {
-    Monlist { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Amplify { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Time { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Peek { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Monlist {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Amplify {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Time {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Peek {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum WebdavAction {
-    Methods { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Propfind { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Upload { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Copy { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Methods {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Propfind {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Upload {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Copy {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum DnsenumAction {
-    Axfr { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Records { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Nsec { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Snoop { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Axfr {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Records {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Nsec {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Snoop {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum CsrfAction {
-    Token { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Samesite { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Json { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Method { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Token {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Samesite {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Json {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Method {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum ClickAction {
-    Frame { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Overlay { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Pointer { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Cursor { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Frame {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Overlay {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Pointer {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Cursor {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum HppAction {
-    Detect { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bypass { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Auth { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Logic { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Detect {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bypass {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Auth {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Logic {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SmtpAction {
-    Relay { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Spf { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Command { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Relay {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Spf {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Command {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum FtpAction {
-    Anon { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bounce { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Traverse { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Backdoor { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Anon {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bounce {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Traverse {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Backdoor {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SmbAction {
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Null { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Eternal { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Relay { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Null {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Eternal {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Relay {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum RdpAction {
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bluekeep { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Cred { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Nla { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bluekeep {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Cred {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Nla {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SshAction {
-    Audit { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Cipher { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Agent { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Audit {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Cipher {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Agent {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SnmpAction {
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Write { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Amplify { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Write {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Amplify {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum RedisxAction {
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Rce { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Lua { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Exfil { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Rce {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Lua {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Exfil {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum ElasticAction {
-    Expose { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Script { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Reindex { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Expose {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Script {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Reindex {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum AmqpAction {
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Flood { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Mgmt { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Flood {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Mgmt {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum IpmiAction {
-    Cipher0 { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Default { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bmc { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Cipher0 {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Default {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bmc {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum CoapAction {
-    Discover { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Amplify { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Cache { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Discover {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Amplify {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Cache {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum MemcacheAction {
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Stats { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Slab { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Stats {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Slab {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum MongoAction {
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum VncAction {
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bypass { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bypass {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum TelnetAction {
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Banner { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Banner {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SipAction {
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Register { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Invite { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Register {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Invite {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum RtspAction {
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Stream { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Cred { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Stream {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Cred {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum NfsAction {
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Mount { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Export { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Mount {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Export {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum X11Action {
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Keylog { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Screenshot { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bypass { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Keylog {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Screenshot {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bypass {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum StompAction {
-    Connect { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Flood { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Connect {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Flood {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum TftpAction {
-    Read { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Write { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Read {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Write {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum WhoisAction {
-    Lookup { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Reverse { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Abuse { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Lookup {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Reverse {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Abuse {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum FingerAction {
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Redirect { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bomb { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Redirect {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bomb {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum ZookeeperAction {
-    Env { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Srvr { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Env {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Srvr {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum EtcdAction {
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Dump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Keys { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Auth { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Dump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Keys {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Auth {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum UpnpAction {
-    Discover { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Expose { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Flood { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Discover {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Expose {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Flood {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum IdorAction {
-    Test { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Predict { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Chain { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Test {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Predict {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Chain {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum MassAction {
-    Check { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Escalate { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Check {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Escalate {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum CookieAction {
-    Fixation { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Tamper { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Overflow { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Fixation {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Tamper {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Overflow {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SessionAction {
-    Fixation { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Predict { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Hijack { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Puzzle { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Fixation {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Predict {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Hijack {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Puzzle {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum RceAction {
-    Detect { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Chain { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Oob { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Detect {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Chain {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Oob {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum ActuatorAction {
-    Env { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Heapdump { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Jolokia { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Shutdown { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Env {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Heapdump {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Jolokia {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Shutdown {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum DebugAction {
-    Scan { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Trace { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Stack { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Source { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Scan {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Trace {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Stack {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Source {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum OpenapiAction {
-    Spec { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Fuzz { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Auth { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Spec {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Fuzz {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Auth {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum UnicodeAction {
-    Homoglyph { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Overlong { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Bidi { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Normalize { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Homoglyph {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Overlong {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Bidi {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Normalize {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum WsdlAction {
-    Parse { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Xxe { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Fuzz { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Parse {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Xxe {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Fuzz {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum NtlmAction {
-    Relay { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Pass { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Relay {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Pass {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum WinrmAction {
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Exec { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Lateral { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Exec {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Lateral {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum ExchangeAction {
-    Proxylogon { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Proxyshell { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Proxynotshell { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Proxylogon {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Proxyshell {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Proxynotshell {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum OwaAction {
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Spray { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Rule { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Spray {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Rule {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum SharepointAction {
-    Enum { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Brute { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Access { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
-    Inject { #[arg(short, long)] url: String, #[arg(short = 'T', long, default_value = "10")] timeout: u64 },
+    Enum {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Brute {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Access {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    Inject {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]

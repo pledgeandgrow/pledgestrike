@@ -16,12 +16,10 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
@@ -64,22 +62,25 @@ pub async fn reflect(
     let mut findings = Vec::new();
 
     for payload in REFLECT_PAYLOADS.iter().chain(ENCODED_PAYLOADS.iter()) {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
-        match client.get(&test_url).send().await {
-            Ok(resp) => {
-                let body = resp.text().await.unwrap_or_default();
-                if body.contains(payload) {
-                    findings.push(XssFinding {
-                        payload: payload.to_string(),
-                        xss_type: "Reflected".to_string(),
-                        evidence: "Payload reflected unescaped in response".to_string(),
-                        severity: "HIGH".to_string(),
-                    });
-                    println!("{} [HIGH] Reflected XSS found!", "[!]".red().bold());
-                    println!("  {} Payload: {}", "•".cyan(), payload);
-                }
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
+        if let Ok(resp) = client.get(&test_url).send().await {
+            let body = resp.text().await.unwrap_or_default();
+            if body.contains(payload) {
+                findings.push(XssFinding {
+                    payload: payload.to_string(),
+                    xss_type: "Reflected".to_string(),
+                    evidence: "Payload reflected unescaped in response".to_string(),
+                    severity: "HIGH".to_string(),
+                });
+                println!("{} [HIGH] Reflected XSS found!", "[!]".red().bold());
+                println!("  {} Payload: {}", "•".cyan(), payload);
             }
-            Err(_) => {}
         }
     }
 
@@ -110,26 +111,35 @@ pub async fn store(
     let form = [(param, &payload[..])];
     println!("{} Injecting payload via POST...", "[*]".cyan().bold());
     let resp = client.post(url).form(&form).send().await?;
-    println!("{} Injected. Status: {}", "[*]".cyan().bold(), resp.status());
+    println!(
+        "{} Injected. Status: {}",
+        "[*]".cyan().bold(),
+        resp.status()
+    );
 
-    println!("{} Checking if payload is stored and reflected...", "[*]".cyan().bold());
+    println!(
+        "{} Checking if payload is stored and reflected...",
+        "[*]".cyan().bold()
+    );
     let check_resp = client.get(url).send().await?;
     let body = check_resp.text().await.unwrap_or_default();
 
     if body.contains(marker) {
         println!("{} [HIGH] Stored XSS confirmed!", "[!]".red().bold());
-        println!("  {} Payload persisted and reflected on page load", "•".cyan());
+        println!(
+            "  {} Payload persisted and reflected on page load",
+            "•".cyan()
+        );
     } else {
-        println!("{} Payload not reflected on this page. Check other pages that display user content.", "[-]".yellow().bold());
+        println!(
+            "{} Payload not reflected on this page. Check other pages that display user content.",
+            "[-]".yellow().bold()
+        );
     }
     Ok(())
 }
 
-pub async fn dom(
-    url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn dom(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} XSS DOM-Based Scan", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
@@ -189,10 +199,19 @@ pub async fn dom(
     }
 
     if !found_sinks.is_empty() && !found_sources.is_empty() {
-        println!("\n{} [HIGH] Potential DOM-based XSS — source-to-sink flow possible", "[!]".red().bold());
-        println!("  {} Review JavaScript for data flow from source to sink", "•".cyan());
+        println!(
+            "\n{} [HIGH] Potential DOM-based XSS — source-to-sink flow possible",
+            "[!]".red().bold()
+        );
+        println!(
+            "  {} Review JavaScript for data flow from source to sink",
+            "•".cyan()
+        );
     } else {
-        println!("\n{} No obvious DOM XSS patterns detected.", "[-]".yellow().bold());
+        println!(
+            "\n{} No obvious DOM XSS patterns detected.",
+            "[-]".yellow().bold()
+        );
     }
     Ok(())
 }
@@ -224,7 +243,13 @@ pub async fn blind(
         println!("{} Injected: {}", "•".cyan(), payload);
     }
 
-    println!("\n{} Payloads injected. Monitor callback server for hits.", "[*]".cyan().bold());
-    println!("{} If the payload executes in an admin panel, you'll see a callback.", "[*]".cyan().bold());
+    println!(
+        "\n{} Payloads injected. Monitor callback server for hits.",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "{} If the payload executes in an admin panel, you'll see a callback.",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }

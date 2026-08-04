@@ -9,10 +9,7 @@ pub fn build_client(
 ) -> anyhow::Result<reqwest::Client> {
     let mut headers = HeaderMap::new();
 
-    headers.insert(
-        "User-Agent",
-        HeaderValue::from_static("PledgeStrike/0.1"),
-    );
+    headers.insert("User-Agent", HeaderValue::from_static("PledgeStrike/0.1"));
 
     if let Some(t) = token {
         headers.insert(
@@ -21,13 +18,13 @@ pub fn build_client(
         );
     }
 
-    if let Some(key) = api_key {
-        if let Some((name, value)) = key.split_once(':') {
-            headers.insert(
-                HeaderName::from_bytes(name.as_bytes())?,
-                HeaderValue::from_str(value)?,
-            );
-        }
+    if let Some(key) = api_key
+        && let Some((name, value)) = key.split_once(':')
+    {
+        headers.insert(
+            HeaderName::from_bytes(name.as_bytes())?,
+            HeaderValue::from_str(value)?,
+        );
     }
 
     if let Some(custom) = custom_headers {

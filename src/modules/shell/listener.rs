@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{Mutex, mpsc};
 
 #[derive(Clone)]
 pub struct Session {
@@ -28,8 +28,14 @@ pub struct SessionManager {
 
 pub enum SessionCommand {
     Send(String),
-    Download { remote_path: String, local_path: String },
-    Upload { local_path: String, remote_path: String },
+    Download {
+        remote_path: String,
+        local_path: String,
+    },
+    Upload {
+        local_path: String,
+        remote_path: String,
+    },
     Kill,
 }
 
@@ -44,7 +50,13 @@ impl SessionManager {
         }
     }
 
-    pub async fn listen(&self, bind: &str, port: u16, encrypt: bool, key: Option<&str>) -> anyhow::Result<()> {
+    pub async fn listen(
+        &self,
+        bind: &str,
+        port: u16,
+        encrypt: bool,
+        key: Option<&str>,
+    ) -> anyhow::Result<()> {
         let listener = TcpListener::bind(format!("{}:{}", bind, port)).await?;
         let actual_port = listener.local_addr()?.port();
 
@@ -53,16 +65,28 @@ impl SessionManager {
             "[*]".cyan().bold()
         );
         println!("{}", "═".repeat(60).cyan());
-        println!("{} Listening on {}:{}", "[*]".cyan().bold(), bind, actual_port);
+        println!(
+            "{} Listening on {}:{}",
+            "[*]".cyan().bold(),
+            bind,
+            actual_port
+        );
 
         if encrypt {
             let key_display = key.unwrap_or("auto-generated");
-            println!("{} Encryption: enabled (key: {})", "[*]".cyan().bold(), key_display);
+            println!(
+                "{} Encryption: enabled (key: {})",
+                "[*]".cyan().bold(),
+                key_display
+            );
         } else {
             println!("{} Encryption: disabled", "[*]".cyan().bold());
         }
 
-        println!("{} Waiting for connections... Press Ctrl+C to stop", "[*]".cyan().bold());
+        println!(
+            "{} Waiting for connections... Press Ctrl+C to stop",
+            "[*]".cyan().bold()
+        );
         println!("{}", "─".repeat(60).dimmed());
 
         let enc_key = if encrypt {
@@ -120,7 +144,16 @@ impl SessionManager {
                     let key_clone = enc_key.clone();
 
                     tokio::spawn(async move {
-                        handle_session(stream, id, addr, key_clone, &mut cmd_rx, session_info, log_writer).await;
+                        handle_session(
+                            stream,
+                            id,
+                            addr,
+                            key_clone,
+                            &mut cmd_rx,
+                            session_info,
+                            log_writer,
+                        )
+                        .await;
                     });
                 }
                 Err(e) => {

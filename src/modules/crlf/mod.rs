@@ -7,12 +7,10 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
@@ -42,38 +40,45 @@ pub async fn header(
     let client = build_client(timeout, token);
 
     for payload in CRLF_PAYLOADS {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
-        match client.get(&test_url).send().await {
-            Ok(resp) => {
-                let headers = resp.headers().clone();
-                if headers.contains_key("x-ps-injected") {
-                    println!("{} [HIGH] CRLF header injection confirmed!", "[!]".red().bold());
-                    println!("  {} Payload: {}", "•".cyan(), payload);
-                    println!("  {} Injected header found in response", "•".cyan());
-                    return Ok(());
-                }
-                if let Some(set_cookie) = headers.get("set-cookie") {
-                    if set_cookie.to_str().unwrap_or("").contains("ps=injected") {
-                        println!("{} [HIGH] CRLF Set-Cookie injection confirmed!", "[!]".red().bold());
-                        println!("  {} Payload: {}", "•".cyan(), payload);
-                        return Ok(());
-                    }
-                }
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
+        if let Ok(resp) = client.get(&test_url).send().await {
+            let headers = resp.headers().clone();
+            if headers.contains_key("x-ps-injected") {
+                println!(
+                    "{} [HIGH] CRLF header injection confirmed!",
+                    "[!]".red().bold()
+                );
+                println!("  {} Payload: {}", "•".cyan(), payload);
+                println!("  {} Injected header found in response", "•".cyan());
+                return Ok(());
             }
-            Err(_) => {}
+            if let Some(set_cookie) = headers.get("set-cookie")
+                && set_cookie.to_str().unwrap_or("").contains("ps=injected")
+            {
+                println!(
+                    "{} [HIGH] CRLF Set-Cookie injection confirmed!",
+                    "[!]".red().bold()
+                );
+                println!("  {} Payload: {}", "•".cyan(), payload);
+                return Ok(());
+            }
         }
     }
 
-    println!("{} No CRLF header injection detected.", "[-]".yellow().bold());
+    println!(
+        "{} No CRLF header injection detected.",
+        "[-]".yellow().bold()
+    );
     Ok(())
 }
 
-pub async fn body(
-    url: &str,
-    param: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn body(url: &str, param: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} CRLF Body Injection", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} URL:   {}", "[*]".cyan().bold(), url);
@@ -83,18 +88,24 @@ pub async fn body(
     let client = build_client(timeout, token);
 
     for payload in CRLF_PAYLOADS {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
-        match client.get(&test_url).send().await {
-            Ok(resp) => {
-                let body = resp.text().await.unwrap_or_default();
-                if body.contains("<script>alert(1)</script>") {
-                    println!("{} [HIGH] CRLF body injection confirmed!", "[!]".red().bold());
-                    println!("  {} Payload: {}", "•".cyan(), payload);
-                    println!("  {} Script tag reflected in response body", "•".cyan());
-                    return Ok(());
-                }
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
+        if let Ok(resp) = client.get(&test_url).send().await {
+            let body = resp.text().await.unwrap_or_default();
+            if body.contains("<script>alert(1)</script>") {
+                println!(
+                    "{} [HIGH] CRLF body injection confirmed!",
+                    "[!]".red().bold()
+                );
+                println!("  {} Payload: {}", "•".cyan(), payload);
+                println!("  {} Script tag reflected in response body", "•".cyan());
+                return Ok(());
             }
-            Err(_) => {}
         }
     }
 
@@ -122,20 +133,26 @@ pub async fn split(
     ];
 
     for payload in &payloads {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
-        match client.get(&test_url).send().await {
-            Ok(resp) => {
-                let status = resp.status();
-                if status.as_u16() == 200 {
-                    let body = resp.text().await.unwrap_or_default();
-                    if body.contains("<script>") {
-                        println!("{} [CRITICAL] Response splitting confirmed!", "[!]".red().bold());
-                        println!("  {} Payload: {}", "•".cyan(), payload);
-                        return Ok(());
-                    }
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
+        if let Ok(resp) = client.get(&test_url).send().await {
+            let status = resp.status();
+            if status.as_u16() == 200 {
+                let body = resp.text().await.unwrap_or_default();
+                if body.contains("<script>") {
+                    println!(
+                        "{} [CRITICAL] Response splitting confirmed!",
+                        "[!]".red().bold()
+                    );
+                    println!("  {} Payload: {}", "•".cyan(), payload);
+                    return Ok(());
                 }
             }
-            Err(_) => {}
         }
     }
 
@@ -143,12 +160,7 @@ pub async fn split(
     Ok(())
 }
 
-pub async fn log(
-    url: &str,
-    param: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn log(url: &str, param: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} CRLF Log Injection", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} URL:   {}", "[*]".cyan().bold(), url);
@@ -164,11 +176,20 @@ pub async fn log(
     ];
 
     for payload in &payloads {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
         let _ = client.get(&test_url).send().await;
         println!("  {} Sent: {}", "•".cyan(), payload);
     }
 
-    println!("\n{} Payloads sent. Check server logs for injected entries.", "[*]".cyan().bold());
+    println!(
+        "\n{} Payloads sent. Check server logs for injected entries.",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }

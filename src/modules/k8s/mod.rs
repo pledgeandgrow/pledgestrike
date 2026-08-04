@@ -7,21 +7,15 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
 
-pub async fn pods(
-    api_server: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn pods(api_server: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Kubernetes Pod Enumeration", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} API Server: {}", "[*]".cyan().bold(), api_server);
@@ -49,11 +43,22 @@ pub async fn pods(
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
                 let accessible = status == 200;
-                let status_str = if accessible { "ACCESSIBLE".red().bold().to_string() }
-                    else if status == 401 { "unauthorized".to_string() }
-                    else if status == 403 { "forbidden".to_string() }
-                    else { format!("status {}", status) };
-                println!("  {} {:30} status={} {}", "*".cyan(), name, status, status_str);
+                let status_str = if accessible {
+                    "ACCESSIBLE".red().bold().to_string()
+                } else if status == 401 {
+                    "unauthorized".to_string()
+                } else if status == 403 {
+                    "forbidden".to_string()
+                } else {
+                    format!("status {}", status)
+                };
+                println!(
+                    "  {} {:30} status={} {}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    status_str
+                );
 
                 if accessible {
                     let count = body.matches("\"name\"").count();
@@ -73,11 +78,7 @@ pub async fn pods(
     Ok(())
 }
 
-pub async fn rbac(
-    api_server: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn rbac(api_server: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Kubernetes RBAC Analysis", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} API Server: {}", "[*]".cyan().bold(), api_server);
@@ -86,12 +87,27 @@ pub async fn rbac(
     let client = build_client(timeout, token);
 
     let endpoints = [
-        ("ClusterRoles", "/apis/rbac.authorization.k8s.io/v1/clusterroles"),
-        ("ClusterRoleBindings", "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings"),
+        (
+            "ClusterRoles",
+            "/apis/rbac.authorization.k8s.io/v1/clusterroles",
+        ),
+        (
+            "ClusterRoleBindings",
+            "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings",
+        ),
         ("Roles", "/apis/rbac.authorization.k8s.io/v1/roles"),
-        ("RoleBindings", "/apis/rbac.authorization.k8s.io/v1/rolebindings"),
-        ("SelfSubjectAccessReview", "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews"),
-        ("SelfSubjectRulesReview", "/apis/authorization.k8s.io/v1/selfsubjectrulesreviews"),
+        (
+            "RoleBindings",
+            "/apis/rbac.authorization.k8s.io/v1/rolebindings",
+        ),
+        (
+            "SelfSubjectAccessReview",
+            "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews",
+        ),
+        (
+            "SelfSubjectRulesReview",
+            "/apis/authorization.k8s.io/v1/selfsubjectrulesreviews",
+        ),
     ];
 
     for (name, path) in &endpoints {
@@ -101,16 +117,28 @@ pub async fn rbac(
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
                 let accessible = status == 200;
-                let status_str = if accessible { "ACCESSIBLE".red().bold().to_string() }
-                    else { format!("status {}", status) };
-                println!("  {} {:35} status={} {}", "*".cyan(), name, status, status_str);
+                let status_str = if accessible {
+                    "ACCESSIBLE".red().bold().to_string()
+                } else {
+                    format!("status {}", status)
+                };
+                println!(
+                    "  {} {:35} status={} {}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    status_str
+                );
 
                 if accessible {
                     if body.contains("cluster-admin") {
                         println!("    {} [HIGH] cluster-admin role found!", ">".red().bold());
                     }
                     if body.contains("wildcard") || body.contains("\"*\"") {
-                        println!("    {} [HIGH] Wildcard permissions found!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Wildcard permissions found!",
+                            ">".red().bold()
+                        );
                     }
                     if body.contains("secrets") {
                         println!("    {} [WARN] Secret access granted", ">".yellow().bold());
@@ -130,11 +158,7 @@ pub async fn rbac(
     Ok(())
 }
 
-pub async fn secrets(
-    api_server: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn secrets(api_server: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Kubernetes Secret Extraction", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} API Server: {}", "[*]".cyan().bold(), api_server);
@@ -144,8 +168,14 @@ pub async fn secrets(
 
     let endpoints = [
         ("All secrets", "/api/v1/secrets"),
-        ("Default namespace secrets", "/api/v1/namespaces/default/secrets"),
-        ("Kube-system secrets", "/api/v1/namespaces/kube-system/secrets"),
+        (
+            "Default namespace secrets",
+            "/api/v1/namespaces/default/secrets",
+        ),
+        (
+            "Kube-system secrets",
+            "/api/v1/namespaces/kube-system/secrets",
+        ),
         ("Service accounts", "/api/v1/serviceaccounts"),
         ("ConfigMaps", "/api/v1/configmaps"),
     ];
@@ -157,25 +187,46 @@ pub async fn secrets(
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
                 let accessible = status == 200;
-                let status_str = if accessible { "EXPOSED".red().bold().to_string() }
-                    else { format!("status {}", status) };
-                println!("  {} {:35} status={} {}", "*".cyan(), name, status, status_str);
+                let status_str = if accessible {
+                    "EXPOSED".red().bold().to_string()
+                } else {
+                    format!("status {}", status)
+                };
+                println!(
+                    "  {} {:35} status={} {}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    status_str
+                );
 
                 if accessible {
                     let secret_count = body.matches("\"name\"").count();
                     println!("    {} Found {} items", "*".cyan(), secret_count);
 
                     if body.contains("token") {
-                        println!("    {} [HIGH] Service account tokens found!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Service account tokens found!",
+                            ">".red().bold()
+                        );
                     }
                     if body.contains("dockerconfigjson") || body.contains(".dockerconfigjson") {
-                        println!("    {} [HIGH] Docker registry credentials found!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Docker registry credentials found!",
+                            ">".red().bold()
+                        );
                     }
                     if body.contains("tls.crt") || body.contains("tls.key") {
                         println!("    {} [HIGH] TLS certificates found!", ">".red().bold());
                     }
-                    if body.contains("password") || body.contains("apikey") || body.contains("api_key") {
-                        println!("    {} [HIGH] Credentials found in secrets!", ">".red().bold());
+                    if body.contains("password")
+                        || body.contains("apikey")
+                        || body.contains("api_key")
+                    {
+                        println!(
+                            "    {} [HIGH] Credentials found in secrets!",
+                            ">".red().bold()
+                        );
                     }
                 }
             }
@@ -189,11 +240,7 @@ pub async fn secrets(
     Ok(())
 }
 
-pub async fn escape(
-    api_server: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn escape(api_server: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Kubernetes Pod Escape Test", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} API Server: {}", "[*]".cyan().bold(), api_server);
@@ -202,12 +249,30 @@ pub async fn escape(
     let client = build_client(timeout, token);
 
     let checks = [
-        ("Host PID access", "/api/v1/pods?fieldSelector=spec.hostPID=true"),
-        ("Host network access", "/api/v1/pods?fieldSelector=spec.hostNetwork=true"),
-        ("Privileged pods", "/api/v1/pods?fieldSelector=spec.containers.securityContext.privileged=true"),
-        ("Host path mounts", "/api/v1/pods?fieldSelector=spec.volumes.hostPath.path=/"),
-        ("Service account token", "/api/v1/namespaces/default/serviceaccounts/default"),
-        ("Exec permissions", "/api/v1/namespaces/default/pods?fieldSelector=status.phase=Running"),
+        (
+            "Host PID access",
+            "/api/v1/pods?fieldSelector=spec.hostPID=true",
+        ),
+        (
+            "Host network access",
+            "/api/v1/pods?fieldSelector=spec.hostNetwork=true",
+        ),
+        (
+            "Privileged pods",
+            "/api/v1/pods?fieldSelector=spec.containers.securityContext.privileged=true",
+        ),
+        (
+            "Host path mounts",
+            "/api/v1/pods?fieldSelector=spec.volumes.hostPath.path=/",
+        ),
+        (
+            "Service account token",
+            "/api/v1/namespaces/default/serviceaccounts/default",
+        ),
+        (
+            "Exec permissions",
+            "/api/v1/namespaces/default/pods?fieldSelector=status.phase=Running",
+        ),
     ];
 
     for (name, path) in &checks {
@@ -217,25 +282,49 @@ pub async fn escape(
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
                 let accessible = status == 200;
-                let status_str = if accessible { "FOUND".red().bold().to_string() }
-                    else { format!("status {}", status) };
-                println!("  {} {:30} status={} {}", "*".cyan(), name, status, status_str);
+                let status_str = if accessible {
+                    "FOUND".red().bold().to_string()
+                } else {
+                    format!("status {}", status)
+                };
+                println!(
+                    "  {} {:30} status={} {}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    status_str
+                );
 
                 if accessible {
                     if body.contains("hostPID") {
-                        println!("    {} [HIGH] Pod with hostPID found — potential escape!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Pod with hostPID found — potential escape!",
+                            ">".red().bold()
+                        );
                     }
                     if body.contains("hostNetwork") {
-                        println!("    {} [HIGH] Pod with hostNetwork found — network escape!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Pod with hostNetwork found — network escape!",
+                            ">".red().bold()
+                        );
                     }
                     if body.contains("privileged") {
-                        println!("    {} [HIGH] Privileged pod found — full host access!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Privileged pod found — full host access!",
+                            ">".red().bold()
+                        );
                     }
                     if body.contains("hostPath") {
-                        println!("    {} [HIGH] Host path mount found — filesystem escape!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Host path mount found — filesystem escape!",
+                            ">".red().bold()
+                        );
                     }
                     if body.contains("token") {
-                        println!("    {} [HIGH] Service account token accessible!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Service account token accessible!",
+                            ">".red().bold()
+                        );
                     }
                 }
             }

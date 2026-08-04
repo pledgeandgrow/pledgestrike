@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn test(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -15,7 +19,12 @@ pub async fn test(url: &str, timeout: u64) -> anyhow::Result<()> {
     let client = build_client(timeout);
     let id_patterns = [
         ("Numeric ID", "1", "2", "3"),
-        ("UUID v1", "550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"),
+        (
+            "UUID v1",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "550e8400-e29b-41d4-a716-446655440001",
+            "550e8400-e29b-41d4-a716-446655440002",
+        ),
         ("Sequential", "100", "101", "102"),
         ("Hex", "0x1a2b", "0x1a2c", "0x1a2d"),
     ];
@@ -35,7 +44,11 @@ pub async fn test(url: &str, timeout: u64) -> anyhow::Result<()> {
             }
         }
         if responses.iter().all(|(s, _)| *s == 200) {
-            println!("  {} {:15} — all IDs accessible (potential IDOR)", "[!]".red().bold(), name);
+            println!(
+                "  {} {:15} — all IDs accessible (potential IDOR)",
+                "[!]".red().bold(),
+                name
+            );
         } else {
             println!("  {} {:15} — mixed responses", "[-]".dimmed(), name);
         }
@@ -55,24 +68,28 @@ pub async fn enumerate(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     for i in 1..=50 {
         let target = format!("{}{}", url, i);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let body = r.text().await.unwrap_or_default();
-                if status == 200 && !body.is_empty() {
-                    found += 1;
-                    if i <= 10 || i % 10 == 0 {
-                        println!("  {} ID={} — {} bytes", "[+]".green().bold(), i, body.len());
-                    }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let body = r.text().await.unwrap_or_default();
+            if status == 200 && !body.is_empty() {
+                found += 1;
+                if i <= 10 || i % 10 == 0 {
+                    println!("  {} ID={} — {} bytes", "[+]".green().bold(), i, body.len());
                 }
             }
-            Err(_) => {}
         }
     }
 
-    println!("\n  {} {} resources accessible out of 50 tested", "[*]".cyan().bold(), found);
+    println!(
+        "\n  {} {} resources accessible out of 50 tested",
+        "[*]".cyan().bold(),
+        found
+    );
     if found > 20 {
-        println!("  {} Widespread IDOR — mass data exposure likely", "[!]".red().bold());
+        println!(
+            "  {} Widespread IDOR — mass data exposure likely",
+            "[!]".red().bold()
+        );
     }
 
     Ok(())
@@ -93,15 +110,28 @@ pub async fn predict(url: &str, timeout: u64) -> anyhow::Result<()> {
             let status = r.status().as_u16();
             let body = r.text().await.unwrap_or_default();
             sizes.push((status, body.len()));
-            println!("  {} ID={:2} — status={} size={}", "*".cyan(), i, status, body.len());
+            println!(
+                "  {} ID={:2} — status={} size={}",
+                "*".cyan(),
+                i,
+                status,
+                body.len()
+            );
         }
     }
 
     if !sizes.is_empty() {
         let avg_size: usize = sizes.iter().map(|(_, s)| s).sum::<usize>() / sizes.len();
-        println!("\n  {} Average response size: {} bytes", "[*]".cyan().bold(), avg_size);
+        println!(
+            "\n  {} Average response size: {} bytes",
+            "[*]".cyan().bold(),
+            avg_size
+        );
         if sizes.iter().all(|(s, _)| *s == 200) {
-            println!("  {} All IDs return 200 — predictable pattern confirmed", "[!]".red().bold());
+            println!(
+                "  {} All IDs return 200 — predictable pattern confirmed",
+                "[!]".red().bold()
+            );
         }
     }
 
@@ -133,7 +163,12 @@ pub async fn chain(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 && !text.is_empty() {
-                    println!("  {} {:20} — {} bytes", "[!]".red().bold(), name, text.len());
+                    println!(
+                        "  {} {:20} — {} bytes",
+                        "[!]".red().bold(),
+                        name,
+                        text.len()
+                    );
                 } else {
                     println!("  {} {:20} — status={}", "[-]".dimmed(), name, status);
                 }

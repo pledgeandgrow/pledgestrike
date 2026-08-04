@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use colored::Colorize;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -22,15 +22,27 @@ pub async fn auth(
 
     // 1. Baseline with valid token (if provided)
     let baseline = if let Some(t) = token {
-        println!("\n{} Establishing baseline with valid token...", "[*]".cyan().bold());
+        println!(
+            "\n{} Establishing baseline with valid token...",
+            "[*]".cyan().bold()
+        );
         let client = build_client(timeout, Some(t), None, None)?;
         match client.get(target_url).send().await {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let body = r.text().await.unwrap_or_default();
                 let len = body.len();
-                println!("{} Baseline: HTTP {} ({} bytes)", "[*]".cyan().bold(), status, len);
-                Some(BaselineResponse { status, len, body_hash: simple_hash(&body) })
+                println!(
+                    "{} Baseline: HTTP {} ({} bytes)",
+                    "[*]".cyan().bold(),
+                    status,
+                    len
+                );
+                Some(BaselineResponse {
+                    status,
+                    len,
+                    body_hash: simple_hash(&body),
+                })
             }
             Err(e) => {
                 println!("{} Baseline request failed: {}", "[-]".red().bold(), e);
@@ -57,8 +69,12 @@ pub async fn auth(
                 };
 
                 if bypassed {
-                    println!("{} AUTH BYPASS: endpoint accessible without auth! (HTTP {}, {} bytes)",
-                        "[!]".red().bold().blink(), status, len);
+                    println!(
+                        "{} AUTH BYPASS: endpoint accessible without auth! (HTTP {}, {} bytes)",
+                        "[!]".red().bold().blink(),
+                        status,
+                        len
+                    );
                     findings.push(AuthFinding {
                         test: "No auth headers".to_string(),
                         status,
@@ -66,7 +82,12 @@ pub async fn auth(
                         severity: "CRITICAL".to_string(),
                     });
                 } else {
-                    println!("{} No auth: HTTP {} ({} bytes) — properly rejected", "[-]".dimmed(), status, len);
+                    println!(
+                        "{} No auth: HTTP {} ({} bytes) — properly rejected",
+                        "[-]".dimmed(),
+                        status,
+                        len
+                    );
                 }
             }
             Err(e) => println!("{} Request failed: {}", "[-]".red().bold(), e),
@@ -103,8 +124,11 @@ pub async fn auth(
                         };
 
                         if bypassed {
-                            println!("{} JWT alg=none BYPASS: server accepted unsigned token! (HTTP {})",
-                                "[!]".red().bold().blink(), status);
+                            println!(
+                                "{} JWT alg=none BYPASS: server accepted unsigned token! (HTTP {})",
+                                "[!]".red().bold().blink(),
+                                status
+                            );
                             findings.push(AuthFinding {
                                 test: "JWT alg=none".to_string(),
                                 status,
@@ -112,7 +136,11 @@ pub async fn auth(
                                 severity: "CRITICAL".to_string(),
                             });
                         } else {
-                            println!("{} JWT alg=none: HTTP {} — properly rejected", "[-]".dimmed(), status);
+                            println!(
+                                "{} JWT alg=none: HTTP {} — properly rejected",
+                                "[-]".dimmed(),
+                                status
+                            );
                         }
                     }
                     Err(e) => println!("{} Request failed: {}", "[-]".red().bold(), e),
@@ -131,8 +159,11 @@ pub async fn auth(
                 Ok(r) => {
                     let status = r.status().as_u16();
                     if status == 200 {
-                        println!("{} JWT alg=none BYPASS: server accepted unsigned token! (HTTP {})",
-                            "[!]".red().bold().blink(), status);
+                        println!(
+                            "{} JWT alg=none BYPASS: server accepted unsigned token! (HTTP {})",
+                            "[!]".red().bold().blink(),
+                            status
+                        );
                         findings.push(AuthFinding {
                             test: "JWT alg=none".to_string(),
                             status,
@@ -140,7 +171,11 @@ pub async fn auth(
                             severity: "CRITICAL".to_string(),
                         });
                     } else {
-                        println!("{} JWT alg=none: HTTP {} — rejected", "[-]".dimmed(), status);
+                        println!(
+                            "{} JWT alg=none: HTTP {} — rejected",
+                            "[-]".dimmed(),
+                            status
+                        );
                     }
                 }
                 Err(e) => println!("{} Request failed: {}", "[-]".red().bold(), e),
@@ -150,13 +185,19 @@ pub async fn auth(
 
     // 4. IDOR testing
     if idor {
-        println!("\n{} Testing IDOR (Insecure Direct Object Reference)...", "[*]".cyan().bold());
+        println!(
+            "\n{} Testing IDOR (Insecure Direct Object Reference)...",
+            "[*]".cyan().bold()
+        );
 
         // Find numeric IDs in the URL and try incrementing/decrementing
         let ids = extract_numeric_ids(target_url);
 
         if ids.is_empty() {
-            println!("{} No numeric IDs found in URL. Try: http://target.com/api/users/123", "[-]".yellow().bold());
+            println!(
+                "{} No numeric IDs found in URL. Try: http://target.com/api/users/123",
+                "[-]".yellow().bold()
+            );
         } else {
             for (placeholder, original_id) in &ids {
                 println!("{} Found ID: {} in URL", "[*]".cyan().bold(), original_id);
@@ -178,37 +219,40 @@ pub async fn auth(
                     let new_id = (*original_id as i64 + delta) as u64;
                     let test_url = target_url.replace(placeholder, &new_id.to_string());
 
-                    match client.get(&test_url).send().await {
-                        Ok(r) => {
-                            let status = r.status().as_u16();
-                            let body = r.text().await.unwrap_or_default();
-                            let len = body.len();
+                    if let Ok(r) = client.get(&test_url).send().await {
+                        let status = r.status().as_u16();
+                        let body = r.text().await.unwrap_or_default();
+                        let len = body.len();
 
-                            let same_as_baseline = baseline_data.as_ref().map(|(s, l, _h)| {
-                                status == *s && len.abs_diff(*l) < 50
-                            }).unwrap_or(false);
+                        let same_as_baseline = baseline_data
+                            .as_ref()
+                            .map(|(s, l, _h)| status == *s && len.abs_diff(*l) < 50)
+                            .unwrap_or(false);
 
-                            let is_200 = status == 200;
+                        let is_200 = status == 200;
 
-                            if is_200 && (same_as_baseline || delta.abs() > 1) {
-                                let severity = if same_as_baseline { "HIGH" } else { "MEDIUM" };
-                                println!("{} IDOR: ID {} -> {} returned HTTP {} ({} bytes) — {}",
-                                    "[!]".yellow().bold(),
-                                    original_id,
-                                    new_id,
-                                    status,
-                                    len,
-                                    if same_as_baseline { "same as original!" } else { "accessible" },
-                                );
-                                findings.push(AuthFinding {
-                                    test: format!("IDOR: {} -> {}", original_id, new_id),
-                                    status,
-                                    result: format!("ID {} accessible (delta: {})", new_id, delta),
-                                    severity: severity.to_string(),
-                                });
-                            }
+                        if is_200 && (same_as_baseline || delta.abs() > 1) {
+                            let severity = if same_as_baseline { "HIGH" } else { "MEDIUM" };
+                            println!(
+                                "{} IDOR: ID {} -> {} returned HTTP {} ({} bytes) — {}",
+                                "[!]".yellow().bold(),
+                                original_id,
+                                new_id,
+                                status,
+                                len,
+                                if same_as_baseline {
+                                    "same as original!"
+                                } else {
+                                    "accessible"
+                                },
+                            );
+                            findings.push(AuthFinding {
+                                test: format!("IDOR: {} -> {}", original_id, new_id),
+                                status,
+                                result: format!("ID {} accessible (delta: {})", new_id, delta),
+                                severity: severity.to_string(),
+                            });
                         }
-                        Err(_) => {}
                     }
 
                     sleep(Duration::from_millis(100)).await;
@@ -231,21 +275,22 @@ pub async fn auth(
                 _ => continue,
             };
 
-            match req.send().await {
-                Ok(r) => {
-                    let status = r.status().as_u16();
-                    if status != 401 && status != 403 && status != 405 {
-                        println!("{} Method {} without auth: HTTP {} — not properly protected!",
-                            "[!]".yellow().bold(), method, status);
-                        findings.push(AuthFinding {
-                            test: format!("Method {} no auth", method),
-                            status,
-                            result: format!("{} without auth returned {}", method, status),
-                            severity: "MEDIUM".to_string(),
-                        });
-                    }
+            if let Ok(r) = req.send().await {
+                let status = r.status().as_u16();
+                if status != 401 && status != 403 && status != 405 {
+                    println!(
+                        "{} Method {} without auth: HTTP {} — not properly protected!",
+                        "[!]".yellow().bold(),
+                        method,
+                        status
+                    );
+                    findings.push(AuthFinding {
+                        test: format!("Method {} no auth", method),
+                        status,
+                        result: format!("{} without auth returned {}", method, status),
+                        severity: "MEDIUM".to_string(),
+                    });
                 }
-                Err(_) => {}
             }
         }
     }
@@ -267,7 +312,12 @@ pub async fn auth(
                 _ => f.severity.cyan(),
             };
             println!("  {} [{}] {}", "•".cyan(), sev, f.test.white().bold());
-            println!("    {} HTTP {} — {}", "Result:".dimmed(), f.status, f.result);
+            println!(
+                "    {} HTTP {} — {}",
+                "Result:".dimmed(),
+                f.status,
+                f.result
+            );
         }
     } else {
         println!("{} No auth bypass vulnerabilities found.", "[-]".dimmed());

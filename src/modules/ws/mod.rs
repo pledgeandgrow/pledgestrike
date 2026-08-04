@@ -7,12 +7,10 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
@@ -29,10 +27,12 @@ pub async fn fuzz(
     println!("{} Message: {}", "[*]".cyan().bold(), message);
     println!("{}", "─".repeat(60).dimmed());
 
-    let ws_url = url.replace("http://", "ws://").replace("https://", "wss://");
+    let ws_url = url
+        .replace("http://", "ws://")
+        .replace("https://", "wss://");
     println!("{} WebSocket URL: {}", "[*]".cyan().bold(), ws_url);
 
-    let client = build_client(timeout, token);
+    let _client = build_client(timeout, token);
 
     let fuzz_payloads = [
         ("Long string", "A".repeat(10000)),
@@ -51,8 +51,14 @@ pub async fn fuzz(
         println!("  {} {:20} len={}", "•".cyan(), name, payload.len());
     }
 
-    println!("\n{} Note: WebSocket fuzzing requires a raw socket connection.", "[*]".cyan().bold());
-    println!("{} Use 'inject' subcommand for targeted payload delivery.", "[*]".cyan().bold());
+    println!(
+        "\n{} Note: WebSocket fuzzing requires a raw socket connection.",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "{} Use 'inject' subcommand for targeted payload delivery.",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }
 
@@ -68,29 +74,35 @@ pub async fn inject(
     println!("{} Payload: {}", "[*]".cyan().bold(), payload);
     println!("{}", "─".repeat(60).dimmed());
 
-    let ws_url = url.replace("http://", "ws://").replace("https://", "wss://");
+    let ws_url = url
+        .replace("http://", "ws://")
+        .replace("https://", "wss://");
 
     println!("{} Target WebSocket: {}", "[*]".cyan().bold(), ws_url);
     println!("{} Payload to inject: {}", "[*]".cyan().bold(), payload);
-    println!("{} Note: Use a WebSocket client (e.g. websocat) to send payload:", "[*]".cyan().bold());
+    println!(
+        "{} Note: Use a WebSocket client (e.g. websocat) to send payload:",
+        "[*]".cyan().bold()
+    );
     println!("  websocat {} -1 '{}'", ws_url, payload);
 
     Ok(())
 }
 
-pub async fn cswssh(
-    url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
-    println!("{} Cross-Site WebSocket Hijacking (CSWSH)", "[*]".cyan().bold());
+pub async fn cswssh(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
+    println!(
+        "{} Cross-Site WebSocket Hijacking (CSWSH)",
+        "[*]".cyan().bold()
+    );
     println!("{}", "═".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
     println!("{}", "─".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
 
-    let ws_url = url.replace("http://", "ws://").replace("https://", "wss://");
+    let _ws_url = url
+        .replace("http://", "ws://")
+        .replace("https://", "wss://");
 
     println!("{} Testing CSWSH conditions:", "[*]".cyan().bold());
 
@@ -98,28 +110,59 @@ pub async fn cswssh(
     let headers = resp.headers().clone();
 
     let has_origin_check = headers.get("sec-websocket-protocol").is_some();
-    let has_csrf_token = headers.keys().any(|k| k.as_str().to_lowercase().contains("csrf"));
+    let has_csrf_token = headers
+        .keys()
+        .any(|k| k.as_str().to_lowercase().contains("csrf"));
     let has_cookie = headers.get("set-cookie").is_some();
 
-    println!("  {} Origin validation:    {}", "•".cyan(), if has_origin_check { "present".green().to_string() } else { "MISSING".red().bold().to_string() });
-    println!("  {} CSRF token:           {}", "•".cyan(), if has_csrf_token { "present".green().to_string() } else { "MISSING".red().bold().to_string() });
-    println!("  {} Cookie-based session: {}", "•".cyan(), if has_cookie { "YES — vulnerable if no origin check".yellow().to_string() } else { "no".green().to_string() });
+    println!(
+        "  {} Origin validation:    {}",
+        "•".cyan(),
+        if has_origin_check {
+            "present".green().to_string()
+        } else {
+            "MISSING".red().bold().to_string()
+        }
+    );
+    println!(
+        "  {} CSRF token:           {}",
+        "•".cyan(),
+        if has_csrf_token {
+            "present".green().to_string()
+        } else {
+            "MISSING".red().bold().to_string()
+        }
+    );
+    println!(
+        "  {} Cookie-based session: {}",
+        "•".cyan(),
+        if has_cookie {
+            "YES — vulnerable if no origin check".yellow().to_string()
+        } else {
+            "no".green().to_string()
+        }
+    );
 
     if !has_origin_check && has_cookie {
-        println!("\n{} [HIGH] Potential CSWSH — no origin validation with cookie-based auth!", "[!]".red().bold());
-        println!("  {} Attack: Cross-origin WebSocket from malicious page", "•".cyan());
+        println!(
+            "\n{} [HIGH] Potential CSWSH — no origin validation with cookie-based auth!",
+            "[!]".red().bold()
+        );
+        println!(
+            "  {} Attack: Cross-origin WebSocket from malicious page",
+            "•".cyan()
+        );
     } else {
-        println!("\n{} CSWSH not likely (origin check or no cookies).", "[-]".green().bold());
+        println!(
+            "\n{} CSWSH not likely (origin check or no cookies).",
+            "[-]".green().bold()
+        );
     }
 
     Ok(())
 }
 
-pub async fn auth(
-    url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn auth(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} WebSocket Auth Bypass", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
@@ -127,7 +170,10 @@ pub async fn auth(
 
     let client = build_client(timeout, token);
 
-    println!("{} Testing WebSocket authentication mechanisms:", "[*]".cyan().bold());
+    println!(
+        "{} Testing WebSocket authentication mechanisms:",
+        "[*]".cyan().bold()
+    );
 
     let tests = [
         ("No auth headers", None),
@@ -142,13 +188,20 @@ pub async fn auth(
         if let Some(auth) = auth_header {
             req = req.header("Authorization", *auth);
         }
-        match req.send().await {
-            Ok(resp) => {
-                let status = resp.status();
-                let ws_upgrade = resp.headers().get("upgrade").and_then(|v| v.to_str().ok()).unwrap_or("none");
-                println!("  {} {:25} status={} upgrade={}", "•".cyan(), name, status, ws_upgrade);
-            }
-            Err(_) => {}
+        if let Ok(resp) = req.send().await {
+            let status = resp.status();
+            let ws_upgrade = resp
+                .headers()
+                .get("upgrade")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("none");
+            println!(
+                "  {} {:25} status={} upgrade={}",
+                "•".cyan(),
+                name,
+                status,
+                ws_upgrade
+            );
         }
     }
 

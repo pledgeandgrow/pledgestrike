@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn enum_rdp(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -24,17 +28,35 @@ pub async fn enum_rdp(url: &str, timeout: u64) -> anyhow::Result<()> {
             println!("    {}", line);
         }
     } else {
-        println!("  {} RDP enumeration failed (status={})", "[-]".dimmed(), status);
+        println!(
+            "  {} RDP enumeration failed (status={})",
+            "[-]".dimmed(),
+            status
+        );
     }
 
-    let info_items = ["OS version", "NetBIOS name", "NLA support", "Security protocol", "Color depth", "Resolution", "Keyboard layout", "Build number"];
+    let info_items = [
+        "OS version",
+        "NetBIOS name",
+        "NLA support",
+        "Security protocol",
+        "Color depth",
+        "Resolution",
+        "Keyboard layout",
+        "Build number",
+    ];
     println!("\n  {} Extracted info:", "[*]".cyan().bold());
     for item in &info_items {
         let ibody = serde_json::json!({"action": "rdp_info", "host": url, "field": item});
         if let Ok(r) = client.post(url).json(&ibody).send().await {
             let t = r.text().await.unwrap_or_default();
             if !t.is_empty() && !t.contains("error") {
-                println!("    {} {:20}: {}", "*".cyan(), item, t.chars().take(50).collect::<String>());
+                println!(
+                    "    {} {:20}: {}",
+                    "*".cyan(),
+                    item,
+                    t.chars().take(50).collect::<String>()
+                );
             }
         }
     }
@@ -54,13 +76,28 @@ pub async fn bluekeep(url: &str, timeout: u64) -> anyhow::Result<()> {
     let status = resp.status().as_u16();
     let text = resp.text().await.unwrap_or_default();
 
-    if text.contains("vulnerable") || text.contains("VULNERABLE") || (status == 200 && text.contains("0708")) {
-        println!("  {} Target is VULNERABLE to BlueKeep (CVE-2019-0708)!", "[!]".red().bold());
-        println!("  {} This allows remote code execution via RDP.", "[!]".red().bold());
+    if text.contains("vulnerable")
+        || text.contains("VULNERABLE")
+        || (status == 200 && text.contains("0708"))
+    {
+        println!(
+            "  {} Target is VULNERABLE to BlueKeep (CVE-2019-0708)!",
+            "[!]".red().bold()
+        );
+        println!(
+            "  {} This allows remote code execution via RDP.",
+            "[!]".red().bold()
+        );
     } else if text.contains("safe") || text.contains("patched") || text.contains("not vulnerable") {
-        println!("  {} Target is patched against CVE-2019-0708.", "[-]".green().bold());
+        println!(
+            "  {} Target is patched against CVE-2019-0708.",
+            "[-]".green().bold()
+        );
     } else {
-        println!("  {} Could not determine vulnerability status.", "[*]".yellow().bold());
+        println!(
+            "  {} Could not determine vulnerability status.",
+            "[*]".yellow().bold()
+        );
     }
 
     let other_rdp_vulns = [
@@ -71,7 +108,10 @@ pub async fn bluekeep(url: &str, timeout: u64) -> anyhow::Result<()> {
         ("CVE-2022-21893", "RDP DoS via RDPEFS"),
     ];
 
-    println!("\n  {} Other RDP vulnerabilities to check:", "[*]".cyan().bold());
+    println!(
+        "\n  {} Other RDP vulnerabilities to check:",
+        "[*]".cyan().bold()
+    );
     for (cve, name) in &other_rdp_vulns {
         println!("    {} {} — {}", "*".cyan(), cve, name);
     }
@@ -101,20 +141,32 @@ pub async fn cred(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     for (user, pass) in &creds {
         let body = serde_json::json!({"action": "rdp_login", "host": url, "username": user, "password": pass});
-        match client.post(url).json(&body).send().await {
-            Ok(r) => {
-                let text = r.text().await.unwrap_or_default();
-                let success = text.contains("success") || text.contains("logged in") || text.contains("authenticated");
-                let locked = text.contains("locked") || text.contains("lockout");
-                if success {
-                    println!("  {} {:20}:{:20} — LOGIN SUCCESS", "[+]".green().bold(), user, pass);
-                } else if locked {
-                    println!("  {} {:20}:{:20} — ACCOUNT LOCKED", "[!]".red().bold(), user, pass);
-                    println!("  {} Account lockout detected — stopping to prevent lockout.", "[!]".red().bold());
-                    break;
-                }
+        if let Ok(r) = client.post(url).json(&body).send().await {
+            let text = r.text().await.unwrap_or_default();
+            let success = text.contains("success")
+                || text.contains("logged in")
+                || text.contains("authenticated");
+            let locked = text.contains("locked") || text.contains("lockout");
+            if success {
+                println!(
+                    "  {} {:20}:{:20} — LOGIN SUCCESS",
+                    "[+]".green().bold(),
+                    user,
+                    pass
+                );
+            } else if locked {
+                println!(
+                    "  {} {:20}:{:20} — ACCOUNT LOCKED",
+                    "[!]".red().bold(),
+                    user,
+                    pass
+                );
+                println!(
+                    "  {} Account lockout detected — stopping to prevent lockout.",
+                    "[!]".red().bold()
+                );
+                break;
             }
-            Err(_) => {}
         }
     }
 
@@ -141,8 +193,15 @@ pub async fn nla(url: &str, timeout: u64) -> anyhow::Result<()> {
         match client.post(url).json(&body).send().await {
             Ok(r) => {
                 let text = r.text().await.unwrap_or_default();
-                let enabled = text.contains("enabled") || text.contains("true") || text.contains("yes");
-                let tag = if enabled { "enabled".green().to_string() } else if text.contains("disabled") || text.contains("false") { "disabled".red().bold().to_string() } else { text.chars().take(30).collect() };
+                let enabled =
+                    text.contains("enabled") || text.contains("true") || text.contains("yes");
+                let tag = if enabled {
+                    "enabled".green().to_string()
+                } else if text.contains("disabled") || text.contains("false") {
+                    "disabled".red().bold().to_string()
+                } else {
+                    text.chars().take(30).collect()
+                };
                 println!("  {} {:25} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:25} error", "[-]".dimmed(), name),
@@ -150,10 +209,22 @@ pub async fn nla(url: &str, timeout: u64) -> anyhow::Result<()> {
     }
 
     let bypass_vectors = [
-        ("CredSSP downgrade", "Force older CredSSP version to bypass NLA"),
-        ("Restricted admin", "Use restricted admin mode with pass-the-hash"),
-        ("NLA bypass via gateway", "Connect through RDP gateway without NLA"),
-        ("Guest account", "Guest accounts may bypass NLA on some configs"),
+        (
+            "CredSSP downgrade",
+            "Force older CredSSP version to bypass NLA",
+        ),
+        (
+            "Restricted admin",
+            "Use restricted admin mode with pass-the-hash",
+        ),
+        (
+            "NLA bypass via gateway",
+            "Connect through RDP gateway without NLA",
+        ),
+        (
+            "Guest account",
+            "Guest accounts may bypass NLA on some configs",
+        ),
     ];
 
     println!("\n  {} NLA bypass vectors:", "[*]".cyan().bold());

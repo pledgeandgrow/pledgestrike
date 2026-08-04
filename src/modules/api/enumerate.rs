@@ -27,9 +27,8 @@ pub async fn enumerate(
         .collect();
 
     let methods: Vec<&str> = methods.split(',').map(|m| m.trim()).collect();
-    let filter_codes: Option<HashSet<u16>> = status_filter.map(|f| {
-        parse_status_filter(f).into_iter().collect()
-    });
+    let filter_codes: Option<HashSet<u16>> =
+        status_filter.map(|f| parse_status_filter(f).into_iter().collect());
 
     let client = build_client(timeout, token, api_key, custom_headers)?;
 
@@ -37,8 +36,17 @@ pub async fn enumerate(
     println!("{} API Endpoint Enumeration", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} Base URL:  {}", "[*]".cyan().bold(), base.green());
-    println!("{} Wordlist:  {} ({} paths)", "[*]".cyan().bold(), wordlist_path, paths.len());
-    println!("{} Methods:   {}", "[*]".cyan().bold(), methods.join(", ").yellow());
+    println!(
+        "{} Wordlist:  {} ({} paths)",
+        "[*]".cyan().bold(),
+        wordlist_path,
+        paths.len()
+    );
+    println!(
+        "{} Methods:   {}",
+        "[*]".cyan().bold(),
+        methods.join(", ").yellow()
+    );
     println!("{} Total req: {}", "[*]".cyan().bold(), total);
     if let Some(f) = &filter_codes {
         println!("{} Filter:    {:?}", "[*]".cyan().bold(), f);
@@ -74,58 +82,55 @@ pub async fn enumerate(
                 _ => continue,
             };
 
-            match req.send().await {
-                Ok(resp) => {
-                    let status = resp.status().as_u16();
-                    let len = resp.content_length().unwrap_or(0);
-                    let headers = resp.headers().clone();
+            if let Ok(resp) = req.send().await {
+                let status = resp.status().as_u16();
+                let len = resp.content_length().unwrap_or(0);
+                let headers = resp.headers().clone();
 
-                    // Apply filter
-                    let passes = match &filter_codes {
-                        Some(codes) => codes.contains(&status),
-                        None => status != 404,
+                // Apply filter
+                let passes = match &filter_codes {
+                    Some(codes) => codes.contains(&status),
+                    None => status != 404,
+                };
+
+                if passes {
+                    let server = headers
+                        .get("server")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("-")
+                        .to_string();
+
+                    let content_type = headers
+                        .get("content-type")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("-")
+                        .to_string();
+
+                    let allow = headers
+                        .get("allow")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("")
+                        .to_string();
+
+                    let result = EndpointResult {
+                        method: method.to_string(),
+                        path: clean_path.clone(),
+                        url: url.clone(),
+                        status,
+                        content_length: len,
+                        server,
+                        content_type,
+                        allow,
                     };
 
-                    if passes {
-                        let server = headers
-                            .get("server")
-                            .and_then(|v| v.to_str().ok())
-                            .unwrap_or("-")
-                            .to_string();
-
-                        let content_type = headers
-                            .get("content-type")
-                            .and_then(|v| v.to_str().ok())
-                            .unwrap_or("-")
-                            .to_string();
-
-                        let allow = headers
-                            .get("allow")
-                            .and_then(|v| v.to_str().ok())
-                            .unwrap_or("")
-                            .to_string();
-
-                        let result = EndpointResult {
-                            method: method.to_string(),
-                            path: clean_path.clone(),
-                            url: url.clone(),
-                            status,
-                            content_length: len,
-                            server,
-                            content_type,
-                            allow,
-                        };
-
-                        print_result(&result);
-                        found.push(result);
-                    }
+                    print_result(&result);
+                    found.push(result);
                 }
-                Err(_) => {}
             }
 
             // Rate limiting
-            if rate > 0 {
-                sleep(Duration::from_millis(1000 / rate)).await;
+            if let Some(delay) = (1000u64).checked_div(rate) {
+                sleep(Duration::from_millis(delay)).await;
             }
         }
     }
@@ -134,7 +139,11 @@ pub async fn enumerate(
     println!("\n{}", "═".repeat(60).cyan());
     println!("{} Enumeration complete", "[*]".cyan().bold());
     println!("{} Requests sent: {}", "[*]".cyan().bold(), sent);
-    println!("{} Endpoints found: {}", "[*]".cyan().bold(), found.len().to_string().green().bold());
+    println!(
+        "{} Endpoints found: {}",
+        "[*]".cyan().bold(),
+        found.len().to_string().green().bold()
+    );
 
     if !found.is_empty() {
         println!("\n{} Discovered endpoints:", "[+]".green().bold());
@@ -148,8 +157,16 @@ pub async fn enumerate(
         }
 
         for (path, results) in &by_path {
-            let methods: Vec<String> = results.iter().map(|r| format!("{}({})", r.method, r.status)).collect();
-            println!("  {} {} — {}", "•".cyan(), path.white().bold(), methods.join(", ").yellow());
+            let methods: Vec<String> = results
+                .iter()
+                .map(|r| format!("{}({})", r.method, r.status))
+                .collect();
+            println!(
+                "  {} {} — {}",
+                "•".cyan(),
+                path.white().bold(),
+                methods.join(", ").yellow()
+            );
         }
     }
 

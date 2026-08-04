@@ -7,12 +7,10 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
@@ -45,14 +43,24 @@ pub async fn idor(
                 let body_len = body.len();
 
                 if status.as_u16() == 200 && body_len > 50 {
-                    println!("  {} ID={} status={} len={} [ACCESSIBLE]", "*".cyan(), test_id, status, body_len);
+                    println!(
+                        "  {} ID={} status={} len={} [ACCESSIBLE]",
+                        "*".cyan(),
+                        test_id,
+                        status,
+                        body_len
+                    );
                     found.push((test_id, body_len));
                 } else if status.as_u16() == 403 {
                     println!("  {} ID={} status=403 (forbidden)", "*".dimmed(), test_id);
                 } else if status.as_u16() == 404 {
                     println!("  {} ID={} status=404 (not found)", "*".dimmed(), test_id);
                 } else if status.as_u16() == 401 {
-                    println!("  {} ID={} status=401 (unauthorized)", "*".dimmed(), test_id);
+                    println!(
+                        "  {} ID={} status=401 (unauthorized)",
+                        "*".dimmed(),
+                        test_id
+                    );
                 } else {
                     println!("  {} ID={} status={}", "*".cyan(), test_id, status);
                 }
@@ -64,9 +72,16 @@ pub async fn idor(
     }
 
     if found.is_empty() {
-        println!("\n{} No IDOR detected — all resources properly protected.", "[-]".yellow().bold());
+        println!(
+            "\n{} No IDOR detected — all resources properly protected.",
+            "[-]".yellow().bold()
+        );
     } else {
-        println!("\n{} [HIGH] {} resource(s) accessible via IDOR:", "[!]".red().bold(), found.len());
+        println!(
+            "\n{} [HIGH] {} resource(s) accessible via IDOR:",
+            "[!]".red().bold(),
+            found.len()
+        );
         for (id, len) in &found {
             println!("  {} ID={} ({} bytes)", "*".red(), id, len);
         }
@@ -74,12 +89,11 @@ pub async fn idor(
     Ok(())
 }
 
-pub async fn bfla(
-    url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
-    println!("{} BFLA (Broken Function Level Authorization) Test", "[*]".cyan().bold());
+pub async fn bfla(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
+    println!(
+        "{} BFLA (Broken Function Level Authorization) Test",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
     println!("{}", "-".repeat(60).dimmed());
@@ -91,9 +105,18 @@ pub async fn bfla(
     for method in &methods {
         let req = match *method {
             "GET" => client.get(url),
-            "POST" => client.post(url).header("Content-Type", "application/json").body("{}"),
-            "PUT" => client.put(url).header("Content-Type", "application/json").body("{}"),
-            "PATCH" => client.patch(url).header("Content-Type", "application/json").body("{}"),
+            "POST" => client
+                .post(url)
+                .header("Content-Type", "application/json")
+                .body("{}"),
+            "PUT" => client
+                .put(url)
+                .header("Content-Type", "application/json")
+                .body("{}"),
+            "PATCH" => client
+                .patch(url)
+                .header("Content-Type", "application/json")
+                .body("{}"),
             "DELETE" => client.delete(url),
             "HEAD" => client.head(url),
             "OPTIONS" => client.request(reqwest::Method::OPTIONS, url),
@@ -103,21 +126,40 @@ pub async fn bfla(
         match req.send().await {
             Ok(resp) => {
                 let status = resp.status();
-                let allow_header = resp.headers().get("allow").and_then(|v| v.to_str().ok()).map(|s| s.to_string());
+                let allow_header = resp
+                    .headers()
+                    .get("allow")
+                    .and_then(|v| v.to_str().ok())
+                    .map(|s| s.to_string());
                 let body = resp.text().await.unwrap_or_default();
                 let body_len = body.len();
                 let allowed = status.as_u16() < 400;
-                let status_str = if allowed { "ALLOWED".red().bold().to_string() } else { format!("{}", status.as_u16()) };
-                println!("  {} {:8} status={} len={} {}", "*".cyan(), method, status, body_len, status_str);
+                let status_str = if allowed {
+                    "ALLOWED".red().bold().to_string()
+                } else {
+                    format!("{}", status.as_u16())
+                };
+                println!(
+                    "  {} {:8} status={} len={} {}",
+                    "*".cyan(),
+                    method,
+                    status,
+                    body_len,
+                    status_str
+                );
 
                 if allowed && (*method == "DELETE" || *method == "PUT" || *method == "PATCH") {
-                    println!("    {} [HIGH] Privileged method {} accessible without proper auth!", ">".red().bold(), method);
+                    println!(
+                        "    {} [HIGH] Privileged method {} accessible without proper auth!",
+                        ">".red().bold(),
+                        method
+                    );
                 }
 
-                if *method == "OPTIONS" {
-                    if let Some(allow) = allow_header {
-                        println!("    {} Allow: {}", ">".cyan(), allow);
-                    }
+                if *method == "OPTIONS"
+                    && let Some(allow) = allow_header
+                {
+                    println!("    {} Allow: {}", ">".cyan(), allow);
                 }
             }
             Err(_) => {
@@ -164,7 +206,13 @@ pub async fn privilege(
                 if name == &"High-priv token" {
                     baseline_len = body_len;
                     baseline_status = status;
-                    println!("  {} {:20} status={} len={} (baseline)", "*".cyan(), name, status, body_len);
+                    println!(
+                        "  {} {:20} status={} len={} (baseline)",
+                        "*".cyan(),
+                        name,
+                        status,
+                        body_len
+                    );
                 } else {
                     let matches_baseline = status == baseline_status && body_len == baseline_len;
                     let status_str = if status == 200 && !matches_baseline {
@@ -174,10 +222,20 @@ pub async fn privilege(
                     } else {
                         format!("blocked ({})", status)
                     };
-                    println!("  {} {:20} status={} len={} {}", "*".cyan(), name, status, body_len, status_str);
+                    println!(
+                        "  {} {:20} status={} len={} {}",
+                        "*".cyan(),
+                        name,
+                        status,
+                        body_len,
+                        status_str
+                    );
 
                     if status == 200 && body_len > 50 && !matches_baseline {
-                        println!("    {} [HIGH] Low-priv/no-auth access returns different data!", ">".red().bold());
+                        println!(
+                            "    {} [HIGH] Low-priv/no-auth access returns different data!",
+                            ">".red().bold()
+                        );
                     }
                 }
             }
@@ -187,7 +245,10 @@ pub async fn privilege(
         }
     }
 
-    println!("\n{} Privilege escalation test complete.", "[*]".cyan().bold());
+    println!(
+        "\n{} Privilege escalation test complete.",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }
 
@@ -205,56 +266,137 @@ pub async fn path(
     let client = build_client(timeout, token);
 
     let paths: Vec<String> = if let Some(wl) = wordlist {
-        std::fs::read_to_string(wl)?.lines().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+        std::fs::read_to_string(wl)?
+            .lines()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
     } else {
         vec![
-            "/admin", "/admin/", "/admin/login", "/admin/dashboard", "/admin/users",
-            "/administrator", "/panel", "/dashboard", "/console", "/debug",
-            "/internal", "/private", "/secret", "/hidden", "/backup",
-            "/api/admin", "/api/internal", "/api/users", "/api/config", "/api/debug",
-            "/config", "/configuration", "/settings", "/env", "/environment",
-            "/.env", "/.git/config", "/.git/HEAD", "/backup.sql", "/dump.sql",
-            "/phpinfo.php", "/info.php", "/test", "/dev", "/staging",
-            "/wp-admin", "/wp-login.php", "/cms", "/manage", "/management",
-            "/system", "/control", "/monitor", "/status", "/health",
-            "/v1/admin", "/v2/admin", "/graphql", "/graphiql", "/playground",
-            "/swagger", "/swagger-ui", "/api-docs", "/openapi", "/redoc",
-            "/robots.txt", "/sitemap.xml", "/.well-known/security.txt",
-            "/server-status", "/server-info", "/metrics", "/actuator",
-            "/actuator/env", "/actuator/health", "/actuator/metrics",
-        ].iter().map(|s| s.to_string()).collect()
+            "/admin",
+            "/admin/",
+            "/admin/login",
+            "/admin/dashboard",
+            "/admin/users",
+            "/administrator",
+            "/panel",
+            "/dashboard",
+            "/console",
+            "/debug",
+            "/internal",
+            "/private",
+            "/secret",
+            "/hidden",
+            "/backup",
+            "/api/admin",
+            "/api/internal",
+            "/api/users",
+            "/api/config",
+            "/api/debug",
+            "/config",
+            "/configuration",
+            "/settings",
+            "/env",
+            "/environment",
+            "/.env",
+            "/.git/config",
+            "/.git/HEAD",
+            "/backup.sql",
+            "/dump.sql",
+            "/phpinfo.php",
+            "/info.php",
+            "/test",
+            "/dev",
+            "/staging",
+            "/wp-admin",
+            "/wp-login.php",
+            "/cms",
+            "/manage",
+            "/management",
+            "/system",
+            "/control",
+            "/monitor",
+            "/status",
+            "/health",
+            "/v1/admin",
+            "/v2/admin",
+            "/graphql",
+            "/graphiql",
+            "/playground",
+            "/swagger",
+            "/swagger-ui",
+            "/api-docs",
+            "/openapi",
+            "/redoc",
+            "/robots.txt",
+            "/sitemap.xml",
+            "/.well-known/security.txt",
+            "/server-status",
+            "/server-info",
+            "/metrics",
+            "/actuator",
+            "/actuator/env",
+            "/actuator/health",
+            "/actuator/metrics",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
     };
 
     let mut found = Vec::new();
 
     for path in &paths {
         let test_url = format!("{}{}", url.trim_end_matches('/'), path);
-        match client.get(&test_url).send().await {
-            Ok(resp) => {
-                let status = resp.status();
-                let body_len = resp.text().await.unwrap_or_default().len();
+        if let Ok(resp) = client.get(&test_url).send().await {
+            let status = resp.status();
+            let body_len = resp.text().await.unwrap_or_default().len();
 
-                if status.as_u16() == 200 && body_len > 0 {
-                    println!("  {} {:40} status={} len={} [FOUND]", "*".green(), path, status, body_len);
-                    found.push((path.clone(), status.as_u16(), body_len));
-                } else if status.as_u16() == 401 || status.as_u16() == 403 {
-                    println!("  {} {:40} status={} [PROTECTED]", "*".yellow(), path, status);
-                    found.push((path.clone(), status.as_u16(), body_len));
-                } else if status.as_u16() == 301 || status.as_u16() == 302 {
-                    println!("  {} {:40} status={} [REDIRECT]", "*".cyan(), path, status);
-                }
+            if status.as_u16() == 200 && body_len > 0 {
+                println!(
+                    "  {} {:40} status={} len={} [FOUND]",
+                    "*".green(),
+                    path,
+                    status,
+                    body_len
+                );
+                found.push((path.clone(), status.as_u16(), body_len));
+            } else if status.as_u16() == 401 || status.as_u16() == 403 {
+                println!(
+                    "  {} {:40} status={} [PROTECTED]",
+                    "*".yellow(),
+                    path,
+                    status
+                );
+                found.push((path.clone(), status.as_u16(), body_len));
+            } else if status.as_u16() == 301 || status.as_u16() == 302 {
+                println!("  {} {:40} status={} [REDIRECT]", "*".cyan(), path, status);
             }
-            Err(_) => {}
         }
     }
 
     if found.is_empty() {
         println!("\n{} No interesting paths found.", "[-]".yellow().bold());
     } else {
-        println!("\n{} {} interesting path(s) found:", "[*]".cyan().bold(), found.len());
+        println!(
+            "\n{} {} interesting path(s) found:",
+            "[*]".cyan().bold(),
+            found.len()
+        );
         for (path, status, len) in &found {
-            let tag = if *status == 200 { "ACCESSIBLE".green().to_string() } else { "PROTECTED".yellow().to_string() };
-            println!("  {} {:40} status={} len={} {}", "*".cyan(), path, status, len, tag);
+            let tag = if *status == 200 {
+                "ACCESSIBLE".green().to_string()
+            } else {
+                "PROTECTED".yellow().to_string()
+            };
+            println!(
+                "  {} {:40} status={} len={} {}",
+                "*".cyan(),
+                path,
+                status,
+                len,
+                tag
+            );
         }
     }
     Ok(())

@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn access(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -21,14 +25,26 @@ pub async fn access(url: &str, timeout: u64) -> anyhow::Result<()> {
         println!("  {} etcd service exposed!", "[!]".red().bold());
     }
 
-    let endpoints = ["/v2/keys", "/v2/keys/", "/v3/kv/range", "/v3/maintenance/status", "/health", "/version"];
+    let endpoints = [
+        "/v2/keys",
+        "/v2/keys/",
+        "/v3/kv/range",
+        "/v3/maintenance/status",
+        "/health",
+        "/version",
+    ];
     for ep in &endpoints {
         let target = format!("{}{}", url.trim_end_matches('/'), ep);
         if let Ok(r) = client.get(&target).send().await {
             let s = r.status().as_u16();
             let text = r.text().await.unwrap_or_default();
             if s == 200 && !text.is_empty() {
-                println!("  {} {:30} — {} bytes", "[+]".green().bold(), ep, text.len());
+                println!(
+                    "  {} {:30} — {} bytes",
+                    "[+]".green().bold(),
+                    ep,
+                    text.len()
+                );
             }
         }
     }
@@ -59,8 +75,16 @@ pub async fn dump(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 && !text.is_empty() {
-                    println!("  {} {:25} — {} bytes", "[+]".green().bold(), name, text.len());
-                    if text.contains("password") || text.contains("secret") || text.contains("token") {
+                    println!(
+                        "  {} {:25} — {} bytes",
+                        "[+]".green().bold(),
+                        name,
+                        text.len()
+                    );
+                    if text.contains("password")
+                        || text.contains("secret")
+                        || text.contains("token")
+                    {
                         println!("    {} Sensitive data detected in etcd", "[!]".red().bold());
                     }
                 }
@@ -80,23 +104,31 @@ pub async fn keys(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let key_paths = [
-        "/v2/keys/", "/v2/keys/config", "/v2/keys/secrets",
-        "/v2/keys/services", "/v2/keys/registry", "/v2/keys/cluster",
-        "/v2/keys/network", "/v2/keys/calico", "/v2/keys/credentials",
+        "/v2/keys/",
+        "/v2/keys/config",
+        "/v2/keys/secrets",
+        "/v2/keys/services",
+        "/v2/keys/registry",
+        "/v2/keys/cluster",
+        "/v2/keys/network",
+        "/v2/keys/calico",
+        "/v2/keys/credentials",
     ];
 
     for path in &key_paths {
         let target = format!("{}{}", url.trim_end_matches('/'), path);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    let key_count = text.matches("\"key\"").count();
-                    println!("  {} {:30} — {} entries", "[+]".green().bold(), path, key_count);
-                }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                let key_count = text.matches("\"key\"").count();
+                println!(
+                    "  {} {:30} — {} entries",
+                    "[+]".green().bold(),
+                    path,
+                    key_count
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -110,20 +142,23 @@ pub async fn auth(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let auth_endpoints = ["/v2/auth", "/v2/auth/roles", "/v2/auth/users", "/v3/auth/user/list", "/v3/auth/role/list"];
+    let auth_endpoints = [
+        "/v2/auth",
+        "/v2/auth/roles",
+        "/v2/auth/users",
+        "/v3/auth/user/list",
+        "/v3/auth/role/list",
+    ];
     for ep in &auth_endpoints {
         let target = format!("{}{}", url.trim_end_matches('/'), ep);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} {:25} — {} bytes", "[!]".red().bold(), ep, text.len());
-                } else if status == 401 {
-                    println!("  {} {:25} — auth required", "[-]".dimmed(), ep);
-                }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!("  {} {:25} — {} bytes", "[!]".red().bold(), ep, text.len());
+            } else if status == 401 {
+                println!("  {} {:25} — auth required", "[-]".dimmed(), ep);
             }
-            Err(_) => {}
         }
     }
 

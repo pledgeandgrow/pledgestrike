@@ -7,21 +7,15 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
 
-pub async fn redirect(
-    auth_url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn redirect(auth_url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} OAuth Redirect URI Manipulation", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Auth URL: {}", "[*]".cyan().bold(), auth_url);
@@ -47,9 +41,17 @@ pub async fn redirect(
         match client.get(&test_url).send().await {
             Ok(resp) => {
                 let status = resp.status();
-                let location = resp.headers().get("location").and_then(|v| v.to_str().ok()).unwrap_or("");
+                let location = resp
+                    .headers()
+                    .get("location")
+                    .and_then(|v| v.to_str().ok())
+                    .unwrap_or("");
                 let accepted = status.is_redirection() && !location.is_empty();
-                let status_str = if accepted { "ACCEPTED".red().bold().to_string() } else { "rejected".green().to_string() };
+                let status_str = if accepted {
+                    "ACCEPTED".red().bold().to_string()
+                } else {
+                    "rejected".green().to_string()
+                };
                 println!("  {} {:20} {} {}", "*".cyan(), name, status, status_str);
                 if accepted && location.contains("evil") {
                     println!("    {} Redirects to: {}", ">".red().bold(), location);
@@ -65,11 +67,7 @@ pub async fn redirect(
     Ok(())
 }
 
-pub async fn state(
-    auth_url: &str,
-    token: Option<&str>,
-    timeout: u64,
-) -> anyhow::Result<()> {
+pub async fn state(auth_url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} OAuth State Parameter Test", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Auth URL: {}", "[*]".cyan().bold(), auth_url);
@@ -78,11 +76,38 @@ pub async fn state(
     let client = build_client(timeout, token);
 
     let tests = [
-        ("No state param", format!("{}&redirect_uri=https://target.com/callback", auth_url)),
-        ("Empty state", format!("{}&state=&redirect_uri=https://target.com/callback", auth_url)),
-        ("Weak state (1 char)", format!("{}&state=a&redirect_uri=https://target.com/callback", auth_url)),
-        ("Predictable state", format!("{}&state=12345&redirect_uri=https://target.com/callback", auth_url)),
-        ("State reuse", format!("{}&state=fixedstate123&redirect_uri=https://target.com/callback", auth_url)),
+        (
+            "No state param",
+            format!("{}&redirect_uri=https://target.com/callback", auth_url),
+        ),
+        (
+            "Empty state",
+            format!(
+                "{}&state=&redirect_uri=https://target.com/callback",
+                auth_url
+            ),
+        ),
+        (
+            "Weak state (1 char)",
+            format!(
+                "{}&state=a&redirect_uri=https://target.com/callback",
+                auth_url
+            ),
+        ),
+        (
+            "Predictable state",
+            format!(
+                "{}&state=12345&redirect_uri=https://target.com/callback",
+                auth_url
+            ),
+        ),
+        (
+            "State reuse",
+            format!(
+                "{}&state=fixedstate123&redirect_uri=https://target.com/callback",
+                auth_url
+            ),
+        ),
     ];
 
     for (name, test_url) in &tests {
@@ -92,8 +117,18 @@ pub async fn state(
                 let status = r.status();
                 let body = r.text().await.unwrap_or_default();
                 let has_state_check = body.contains("state") && body.contains("error");
-                let status_str = if has_state_check { "VALIDATED".green().to_string() } else { "NOT VALIDATED".red().bold().to_string() };
-                println!("  {} {:25} status={} {}", "*".cyan(), name, status, status_str);
+                let status_str = if has_state_check {
+                    "VALIDATED".green().to_string()
+                } else {
+                    "NOT VALIDATED".red().bold().to_string()
+                };
+                println!(
+                    "  {} {:25} status={} {}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    status_str
+                );
             }
             Err(_) => {
                 println!("  {} {:25} error", "*".cyan(), name);
@@ -119,28 +154,52 @@ pub async fn token(
 
     let client = build_client(timeout, token);
 
-    println!("{} Step 1: Requesting initial token...", "[*]".cyan().bold());
-    let form1 = [("grant_type", "authorization_code"), ("code", "test_code"), ("client_id", client_id), ("redirect_uri", "https://target.com/callback")];
+    println!(
+        "{} Step 1: Requesting initial token...",
+        "[*]".cyan().bold()
+    );
+    let form1 = [
+        ("grant_type", "authorization_code"),
+        ("code", "test_code"),
+        ("client_id", client_id),
+        ("redirect_uri", "https://target.com/callback"),
+    ];
     let resp1 = client.post(token_url).form(&form1).send().await;
     let token1 = if let Ok(r) = resp1 {
         let body = r.text().await.unwrap_or_default();
         let parsed: serde_json::Value = serde_json::from_str(&body).unwrap_or_default();
         parsed["access_token"].as_str().unwrap_or("").to_string()
-    } else { String::new() };
+    } else {
+        String::new()
+    };
 
     if token1.is_empty() {
-        println!("{} Could not obtain initial token. Testing token endpoint behavior anyway.", "[-]".yellow().bold());
+        println!(
+            "{} Could not obtain initial token. Testing token endpoint behavior anyway.",
+            "[-]".yellow().bold()
+        );
     } else {
-        println!("{} Got token: {}...", "[+]".green().bold(), &token1[..token1.len().min(20)]);
+        println!(
+            "{} Got token: {}...",
+            "[+]".green().bold(),
+            &token1[..token1.len().min(20)]
+        );
     }
 
-    println!("{} Step 2: Replaying same authorization code...", "[*]".cyan().bold());
+    println!(
+        "{} Step 2: Replaying same authorization code...",
+        "[*]".cyan().bold()
+    );
     let resp2 = client.post(token_url).form(&form1).send().await;
     if let Ok(r) = resp2 {
         let status = r.status();
         let body = r.text().await.unwrap_or_default();
         let has_new_token = body.contains("access_token");
-        let status_str = if has_new_token { "TOKEN REUSED - VULN".red().bold().to_string() } else { "rejected".green().to_string() };
+        let status_str = if has_new_token {
+            "TOKEN REUSED - VULN".red().bold().to_string()
+        } else {
+            "rejected".green().to_string()
+        };
         println!("  {} Replay status: {} {}", "*".cyan(), status, status_str);
     }
 
@@ -172,7 +231,11 @@ pub async fn scope(
     ];
 
     for (name, scope) in &scopes {
-        let form = [("grant_type", "client_credentials"), ("client_id", client_id), ("scope", scope)];
+        let form = [
+            ("grant_type", "client_credentials"),
+            ("client_id", client_id),
+            ("scope", scope),
+        ];
         let resp = client.post(token_url).form(&form).send().await;
         if let Ok(r) = resp {
             let status = r.status();
@@ -181,13 +244,22 @@ pub async fn scope(
             let granted_scope = parsed["scope"].as_str().unwrap_or("");
             let has_token = parsed["access_token"].is_string();
             let status_str = if has_token && !granted_scope.is_empty() {
-                format!("GRANTED scope={}", granted_scope).red().bold().to_string()
+                format!("GRANTED scope={}", granted_scope)
+                    .red()
+                    .bold()
+                    .to_string()
             } else if has_token {
                 "TOKEN GRANTED".yellow().to_string()
             } else {
                 "rejected".green().to_string()
             };
-            println!("  {} {:15} status={} {}", "*".cyan(), name, status, status_str);
+            println!(
+                "  {} {:15} status={} {}",
+                "*".cyan(),
+                name,
+                status,
+                status_str
+            );
         }
     }
 

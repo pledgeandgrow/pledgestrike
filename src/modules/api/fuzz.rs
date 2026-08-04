@@ -24,7 +24,11 @@ pub async fn fuzz(
     println!("{} Parameter Fuzzing", "[*]".cyan().bold());
     println!("{}", "═".repeat(60).cyan());
     println!("{} Target:    {}", "[*]".cyan().bold(), target_url.green());
-    println!("{} Params:    {} from wordlist", "[*]".cyan().bold(), params.len());
+    println!(
+        "{} Params:    {} from wordlist",
+        "[*]".cyan().bold(),
+        params.len()
+    );
     println!("{} Fuzz val:  {}", "[*]".cyan().bold(), fuzz_value.yellow());
     println!("{}", "─".repeat(60).dimmed());
 
@@ -56,60 +60,68 @@ pub async fn fuzz(
 
         let req_url = url.as_str();
 
-        match client.get(req_url).send().await {
-            Ok(resp) => {
-                let status = resp.status().as_u16();
-                let body = resp.text().await.unwrap_or_default();
-                let len = body.len();
-                let hash = simple_hash(&body);
+        if let Ok(resp) = client.get(req_url).send().await {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            let len = body.len();
+            let hash = simple_hash(&body);
 
-                // Compare with baseline
-                let status_diff = status != baseline_status;
-                let len_diff = len.abs_diff(baseline_len);
-                let hash_diff = hash != baseline_hash;
-                let significant_len_change = len_diff > 50;
+            // Compare with baseline
+            let status_diff = status != baseline_status;
+            let len_diff = len.abs_diff(baseline_len);
+            let hash_diff = hash != baseline_hash;
+            let significant_len_change = len_diff > 50;
 
-                if status_diff || significant_len_change {
-                    let reason = if status_diff {
-                        format!("status changed {} -> {}", baseline_status, status)
-                    } else if len_diff > 0 {
-                        format!("size changed {} -> {} (delta: {})", baseline_len, len, len_diff as i64 - baseline_len as i64)
-                    } else {
-                        "content changed".to_string()
-                    };
+            if status_diff || significant_len_change {
+                let reason = if status_diff {
+                    format!("status changed {} -> {}", baseline_status, status)
+                } else if len_diff > 0 {
+                    format!(
+                        "size changed {} -> {} (delta: {})",
+                        baseline_len,
+                        len,
+                        len_diff as i64 - baseline_len as i64
+                    )
+                } else {
+                    "content changed".to_string()
+                };
 
-                    let severity = if status_diff { "HIGH" } else if len_diff > 500 { "MEDIUM" } else { "LOW" };
+                let severity = if status_diff {
+                    "HIGH"
+                } else if len_diff > 500 {
+                    "MEDIUM"
+                } else {
+                    "LOW"
+                };
 
-                    eprintln!(
-                        "{} [{:>6}] {} = {} — {}",
-                        "[!]".yellow().bold(),
-                        severity.dimmed(),
-                        param.white().bold(),
-                        fuzz_value.cyan(),
-                        reason,
-                    );
+                eprintln!(
+                    "{} [{:>6}] {} = {} — {}",
+                    "[!]".yellow().bold(),
+                    severity.dimmed(),
+                    param.white().bold(),
+                    fuzz_value.cyan(),
+                    reason,
+                );
 
-                    interesting.push(FuzzResult {
-                        param: param.clone(),
-                        status,
-                        content_length: len,
-                        status_diff,
-                        len_diff: len_diff as i64 - baseline_len as i64,
-                        reason,
-                        severity: severity.to_string(),
-                    });
-                } else if hash_diff {
-                    // Subtle content change
-                    eprintln!(
-                        "{} [{:>6}] {} = {} — content changed (same status/size)",
-                        "[?]".dimmed(),
-                        "INFO",
-                        param,
-                        fuzz_value,
-                    );
-                }
+                interesting.push(FuzzResult {
+                    param: param.clone(),
+                    status,
+                    content_length: len,
+                    status_diff,
+                    len_diff: len_diff as i64 - baseline_len as i64,
+                    reason,
+                    severity: severity.to_string(),
+                });
+            } else if hash_diff {
+                // Subtle content change
+                eprintln!(
+                    "{} [{:>6}] {} = {} — content changed (same status/size)",
+                    "[?]".dimmed(),
+                    "INFO",
+                    param,
+                    fuzz_value,
+                );
             }
-            Err(_) => {}
         }
 
         sleep(Duration::from_millis(50)).await;
@@ -118,7 +130,11 @@ pub async fn fuzz(
     // Summary
     println!("\n{}", "═".repeat(60).cyan());
     println!("{} Fuzzing complete", "[*]".cyan().bold());
-    println!("{} Parameters tested: {}", "[*]".cyan().bold(), params.len());
+    println!(
+        "{} Parameters tested: {}",
+        "[*]".cyan().bold(),
+        params.len()
+    );
     println!(
         "{} Interesting params: {}",
         "[*]".cyan().bold(),

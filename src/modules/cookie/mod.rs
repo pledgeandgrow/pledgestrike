@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn fixation(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -13,22 +17,44 @@ pub async fn fixation(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let session_ids = ["FIXATED_SESSION_123", "attacker_session_id", "1234567890", "admin_session"];
+    let session_ids = [
+        "FIXATED_SESSION_123",
+        "attacker_session_id",
+        "1234567890",
+        "admin_session",
+    ];
 
     for sid in &session_ids {
         let cookie = format!("session={}; PHPSESSID={}", sid, sid);
         match client.get(url).header("Cookie", &cookie).send().await {
             Ok(r) => {
                 let status = r.status().as_u16();
-                let set_cookie = r.headers().get("set-cookie").map(|v| v.to_str().unwrap_or("")).unwrap_or("");
+                let set_cookie = r
+                    .headers()
+                    .get("set-cookie")
+                    .map(|v| v.to_str().unwrap_or(""))
+                    .unwrap_or("");
                 if status == 200 && !set_cookie.is_empty() {
                     if set_cookie.contains(sid) {
-                        println!("  {} Session {:25} — FIXATED (server accepted)", "[!]".red().bold(), sid);
+                        println!(
+                            "  {} Session {:25} — FIXATED (server accepted)",
+                            "[!]".red().bold(),
+                            sid
+                        );
                     } else {
-                        println!("  {} Session {:25} — new session issued", "[+]".green().bold(), sid);
+                        println!(
+                            "  {} Session {:25} — new session issued",
+                            "[+]".green().bold(),
+                            sid
+                        );
                     }
                 } else {
-                    println!("  {} Session {:25} — status={}", "[-]".dimmed(), sid, status);
+                    println!(
+                        "  {} Session {:25} — status={}",
+                        "[-]".dimmed(),
+                        sid,
+                        status
+                    );
                 }
             }
             Err(_) => println!("  {} Session {:25} — error", "[-]".dimmed(), sid),
@@ -61,7 +87,9 @@ pub async fn inject(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
-                if status == 200 && (text.contains("49") || text.contains("root:") || text.contains("alert")) {
+                if status == 200
+                    && (text.contains("49") || text.contains("root:") || text.contains("alert"))
+                {
                     println!("  {} {:20} — INJECTED", "[!]".red().bold(), name);
                 } else {
                     println!("  {} {:20} — status={}", "[-]".dimmed(), name, status);
@@ -97,7 +125,11 @@ pub async fn tamper(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(r) => {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
-                if status == 200 && (text.contains("admin") || text.contains("debug") || text.contains("development")) {
+                if status == 200
+                    && (text.contains("admin")
+                        || text.contains("debug")
+                        || text.contains("development"))
+                {
                     println!("  {} {:20} — TAMPERED", "[!]".red().bold(), name);
                 } else {
                     println!("  {} {:20} — status={}", "[-]".dimmed(), name, status);
@@ -126,11 +158,20 @@ pub async fn overflow(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(r) => {
                 let status = r.status().as_u16();
                 if status == 500 {
-                    println!("  {} Size {:6} — SERVER ERROR (crash?)", "[!]".red().bold(), size);
+                    println!(
+                        "  {} Size {:6} — SERVER ERROR (crash?)",
+                        "[!]".red().bold(),
+                        size
+                    );
                 } else if status == 413 {
                     println!("  {} Size {:6} — payload too large", "[-]".dimmed(), size);
                 } else {
-                    println!("  {} Size {:6} — status={}", "[+]".green().bold(), size, status);
+                    println!(
+                        "  {} Size {:6} — status={}",
+                        "[+]".green().bold(),
+                        size,
+                        status
+                    );
                 }
             }
             Err(_) => println!("  {} Size {:6} — connection error", "[-]".dimmed(), size),

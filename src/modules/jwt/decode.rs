@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde_json::Value;
 
 #[allow(dead_code)]
@@ -14,7 +14,10 @@ pub struct JwtParts {
 pub fn decode(token: &str) -> anyhow::Result<JwtParts> {
     let parts: Vec<&str> = token.trim().split('.').collect();
     if parts.len() != 3 {
-        anyhow::bail!("Invalid JWT: expected 3 parts separated by '.', got {}", parts.len());
+        anyhow::bail!(
+            "Invalid JWT: expected 3 parts separated by '.', got {}",
+            parts.len()
+        );
     }
 
     let header_raw = parts[0].to_string();

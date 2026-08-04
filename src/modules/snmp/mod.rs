@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn brute(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -14,22 +18,51 @@ pub async fn brute(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let communities = [
-        "public", "private", "cisco", "cisco-private", "community", "admin", "default",
-        "manager", "monitor", "guest", "test", "0", "1234", "access", "read", "write",
-        "router", "switch", "internal", "snmp", "snmpd", "telnet", "root", "operator",
-        "TANDBERG", "backup", "intel", "compaq", "private1", "public1", "secret",
+        "public",
+        "private",
+        "cisco",
+        "cisco-private",
+        "community",
+        "admin",
+        "default",
+        "manager",
+        "monitor",
+        "guest",
+        "test",
+        "0",
+        "1234",
+        "access",
+        "read",
+        "write",
+        "router",
+        "switch",
+        "internal",
+        "snmp",
+        "snmpd",
+        "telnet",
+        "root",
+        "operator",
+        "TANDBERG",
+        "backup",
+        "intel",
+        "compaq",
+        "private1",
+        "public1",
+        "secret",
     ];
 
     for comm in &communities {
         let body = serde_json::json!({"action": "snmp_query", "host": url, "community": comm, "oid": "1.3.6.1.2.1.1.1.0"});
-        match client.post(url).json(&body).send().await {
-            Ok(r) => {
-                let text = r.text().await.unwrap_or_default();
-                if !text.is_empty() && !text.contains("error") && !text.contains("timeout") {
-                    println!("  {} Community '{:20}' — VALID: {}", "[+]".green().bold(), comm, text.chars().take(50).collect::<String>());
-                }
+        if let Ok(r) = client.post(url).json(&body).send().await {
+            let text = r.text().await.unwrap_or_default();
+            if !text.is_empty() && !text.contains("error") && !text.contains("timeout") {
+                println!(
+                    "  {} Community '{:20}' — VALID: {}",
+                    "[+]".green().bold(),
+                    comm,
+                    text.chars().take(50).collect::<String>()
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -64,7 +97,12 @@ pub async fn dump(url: &str, timeout: u64) -> anyhow::Result<()> {
             Ok(r) => {
                 let text = r.text().await.unwrap_or_default();
                 if !text.is_empty() && !text.contains("error") && !text.contains("timeout") {
-                    println!("  {} {:20}: {}", "[+]".green().bold(), name, text.chars().take(60).collect::<String>());
+                    println!(
+                        "  {} {:20}: {}",
+                        "[+]".green().bold(),
+                        name,
+                        text.chars().take(60).collect::<String>()
+                    );
                 } else {
                     println!("  {} {:20}: no data", "[-]".dimmed(), name);
                 }
@@ -94,15 +132,23 @@ pub async fn write(url: &str, timeout: u64) -> anyhow::Result<()> {
         match client.post(url).json(&body).send().await {
             Ok(r) => {
                 let text = r.text().await.unwrap_or_default();
-                let success = text.contains("success") || text.contains("200") || text.contains("ok");
-                let tag = if success { "WRITE SUCCESS".red().bold().to_string() } else { "write denied".to_string() };
+                let success =
+                    text.contains("success") || text.contains("200") || text.contains("ok");
+                let tag = if success {
+                    "WRITE SUCCESS".red().bold().to_string()
+                } else {
+                    "write denied".to_string()
+                };
                 println!("  {} {:25} {}", "*".cyan(), name, tag);
             }
             Err(_) => println!("  {} {:25} error", "[-]".dimmed(), name),
         }
     }
 
-    println!("\n{} Writable SNMP allows configuration modification and potential RCE.", "[*]".yellow().bold());
+    println!(
+        "\n{} Writable SNMP allows configuration modification and potential RCE.",
+        "[*]".yellow().bold()
+    );
     Ok(())
 }
 
@@ -130,15 +176,33 @@ pub async fn amplify(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let text = r.text().await.unwrap_or_default();
                 let resp_size = text.len();
                 let req_size = 64;
-                let amplification = if req_size > 0 { resp_size as f64 / req_size as f64 } else { 0.0 };
+                let amplification = if req_size > 0 {
+                    resp_size as f64 / req_size as f64
+                } else {
+                    0.0
+                };
                 let tag = if amplification > 10.0 {
-                    format!("{} bytes, amplification={:.1}x — DANGEROUS", resp_size, amplification).red().bold().to_string()
+                    format!(
+                        "{} bytes, amplification={:.1}x — DANGEROUS",
+                        resp_size, amplification
+                    )
+                    .red()
+                    .bold()
+                    .to_string()
                 } else if amplification > 1.0 {
-                    format!("{} bytes, amplification={:.1}x", resp_size, amplification).yellow().to_string()
+                    format!("{} bytes, amplification={:.1}x", resp_size, amplification)
+                        .yellow()
+                        .to_string()
                 } else {
                     format!("{} bytes, amplification={:.1}x", resp_size, amplification)
                 };
-                println!("  {} {:25} {} ({}ms)", "*".cyan(), name, tag, elapsed.as_millis());
+                println!(
+                    "  {} {:25} {} ({}ms)",
+                    "*".cyan(),
+                    name,
+                    tag,
+                    elapsed.as_millis()
+                );
             }
             Err(_) => println!("  {} {:25} error", "[-]".dimmed(), name),
         }

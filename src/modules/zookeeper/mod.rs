@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn env(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -16,18 +20,20 @@ pub async fn env(url: &str, timeout: u64) -> anyhow::Result<()> {
     let endpoints = ["/env", "/environment", "/commands/env"];
     for ep in &endpoints {
         let target = format!("{}{}", url.trim_end_matches('/'), ep);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} {:20} — {} bytes", "[+]".green().bold(), ep, text.len());
-                    if text.contains("java.version") || text.contains("user.dir") {
-                        println!("    {} Environment variables exposed", "[!]".red().bold());
-                    }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!(
+                    "  {} {:20} — {} bytes",
+                    "[+]".green().bold(),
+                    ep,
+                    text.len()
+                );
+                if text.contains("java.version") || text.contains("user.dir") {
+                    println!("    {} Environment variables exposed", "[!]".red().bold());
                 }
             }
-            Err(_) => {}
         }
     }
 
@@ -41,18 +47,29 @@ pub async fn dump(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let paths = ["/", "/zookeeper", "/zookeeper/config", "/zookeeper/quota", "/app", "/config", "/services", "/brokers"];
+    let paths = [
+        "/",
+        "/zookeeper",
+        "/zookeeper/config",
+        "/zookeeper/quota",
+        "/app",
+        "/config",
+        "/services",
+        "/brokers",
+    ];
     for path in &paths {
         let target = format!("{}{}", url.trim_end_matches('/'), path);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} {:25} — {} bytes", "[+]".green().bold(), path, text.len());
-                }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!(
+                    "  {} {:25} — {} bytes",
+                    "[+]".green().bold(),
+                    path,
+                    text.len()
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -67,20 +84,28 @@ pub async fn brute(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let creds = [
-        ("admin", "admin"), ("admin", "password"), ("admin", ""),
-        ("super", "super"), ("guest", "guest"), ("test", "test"),
-        ("zookeeper", "zookeeper"), ("app", "app"), ("root", "root"),
+        ("admin", "admin"),
+        ("admin", "password"),
+        ("admin", ""),
+        ("super", "super"),
+        ("guest", "guest"),
+        ("test", "test"),
+        ("zookeeper", "zookeeper"),
+        ("app", "app"),
+        ("root", "root"),
     ];
 
     for (user, pass) in &creds {
-        match client.get(url).basic_auth(user, Some(pass)).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                if status == 200 {
-                    println!("  {} {:15}:{:15} — AUTH SUCCESS", "[+]".green().bold(), user, if pass.is_empty() { "(empty)" } else { pass });
-                }
+        if let Ok(r) = client.get(url).basic_auth(user, Some(pass)).send().await {
+            let status = r.status().as_u16();
+            if status == 200 {
+                println!(
+                    "  {} {:15}:{:15} — AUTH SUCCESS",
+                    "[+]".green().bold(),
+                    user,
+                    if pass.is_empty() { "(empty)" } else { pass }
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -94,7 +119,14 @@ pub async fn srvr(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let commands = ["/commands/srvr", "/commands/stat", "/commands/conf", "/commands/cons", "/commands/dirs", "/commands/ruok"];
+    let commands = [
+        "/commands/srvr",
+        "/commands/stat",
+        "/commands/conf",
+        "/commands/cons",
+        "/commands/dirs",
+        "/commands/ruok",
+    ];
     for cmd in &commands {
         let target = format!("{}{}", url.trim_end_matches('/'), cmd);
         match client.get(&target).send().await {
@@ -102,7 +134,12 @@ pub async fn srvr(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 && !text.is_empty() {
-                    println!("  {} {:25} — {} bytes", "[+]".green().bold(), cmd, text.len());
+                    println!(
+                        "  {} {:25} — {} bytes",
+                        "[+]".green().bold(),
+                        cmd,
+                        text.len()
+                    );
                     if cmd == &"/commands/ruok" && text.contains("imok") {
                         println!("    {} Server healthy and responding", "[+]".green().bold());
                     }

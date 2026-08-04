@@ -40,7 +40,10 @@ pub fn check(token: &str) -> anyhow::Result<Vec<VulnResult>> {
     }
 
     // Check for HS256 with weak key (we can't know without cracking, but we can warn)
-    if alg.eq_ignore_ascii_case("HS256") || alg.eq_ignore_ascii_case("HS384") || alg.eq_ignore_ascii_case("HS512") {
+    if alg.eq_ignore_ascii_case("HS256")
+        || alg.eq_ignore_ascii_case("HS384")
+        || alg.eq_ignore_ascii_case("HS512")
+    {
         results.push(VulnResult {
             name: "Symmetric algorithm (HMAC)".to_string(),
             severity: "INFO".to_string(),
@@ -138,8 +141,9 @@ pub fn check(token: &str) -> anyhow::Result<Vec<VulnResult>> {
         results.push(VulnResult {
             name: "No expiry claim".to_string(),
             severity: "LOW".to_string(),
-            description: "Token has no 'exp' claim — it may be valid forever if the server doesn't check."
-                .to_string(),
+            description:
+                "Token has no 'exp' claim — it may be valid forever if the server doesn't check."
+                    .to_string(),
         });
     }
 
@@ -150,7 +154,10 @@ pub fn format_results(results: &[VulnResult]) -> String {
     let mut out = String::new();
 
     if results.is_empty() {
-        out.push_str(&format!("{} No vulnerabilities found.\n", "[-]".green().bold()));
+        out.push_str(&format!(
+            "{} No vulnerabilities found.\n",
+            "[-]".green().bold()
+        ));
         return out;
     }
 

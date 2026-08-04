@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn lookup(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -18,11 +22,19 @@ pub async fn lookup(url: &str, timeout: u64) -> anyhow::Result<()> {
     let body = resp.text().await.unwrap_or_default();
 
     if status == 200 {
-        println!("  {} WHOIS data retrieved — {} bytes", "[+]".green().bold(), body.len());
+        println!(
+            "  {} WHOIS data retrieved — {} bytes",
+            "[+]".green().bold(),
+            body.len()
+        );
         let preview: String = body.chars().take(500).collect();
         println!("\n  {}", preview);
     } else {
-        println!("  {} WHOIS lookup failed — status={}", "[-]".dimmed(), status);
+        println!(
+            "  {} WHOIS lookup failed — status={}",
+            "[-]".dimmed(),
+            status
+        );
     }
 
     Ok(())
@@ -41,7 +53,11 @@ pub async fn reverse(url: &str, timeout: u64) -> anyhow::Result<()> {
             let status = r.status().as_u16();
             let text = r.text().await.unwrap_or_default();
             if status == 200 && !text.is_empty() {
-                println!("  {} Reverse lookup — {} results", "[+]".green().bold(), text.matches("domain").count());
+                println!(
+                    "  {} Reverse lookup — {} results",
+                    "[+]".green().bold(),
+                    text.matches("domain").count()
+                );
                 let preview: String = text.chars().take(500).collect();
                 println!("\n  {}", preview);
             } else {
@@ -66,7 +82,16 @@ pub async fn enumerate(url: &str, timeout: u64) -> anyhow::Result<()> {
     let body = resp.text().await.unwrap_or_default();
 
     if status == 200 {
-        let fields = ["Registrar", "Registrant", "Admin", "Tech", "Name Server", "Creation Date", "Expiration Date", "Status"];
+        let fields = [
+            "Registrar",
+            "Registrant",
+            "Admin",
+            "Tech",
+            "Name Server",
+            "Creation Date",
+            "Expiration Date",
+            "Status",
+        ];
         for field in &fields {
             if body.to_lowercase().contains(&field.to_lowercase()) {
                 println!("  {} {:20} — found", "[+]".green().bold(), field);
@@ -97,7 +122,12 @@ pub async fn abuse(url: &str, timeout: u64) -> anyhow::Result<()> {
             if body.contains(field) {
                 let idx = body.find(field).unwrap();
                 let snippet: String = body[idx..].chars().take(100).collect();
-                println!("  {} {:20} — {}", "[+]".green().bold(), "Abuse contact", snippet);
+                println!(
+                    "  {} {:20} — {}",
+                    "[+]".green().bold(),
+                    "Abuse contact",
+                    snippet
+                );
                 break;
             }
         }

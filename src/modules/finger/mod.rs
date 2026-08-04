@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn enumerate(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -13,18 +17,22 @@ pub async fn enumerate(url: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
-    let users = ["root", "admin", "guest", "user", "test", "daemon", "bin", "sys", "nobody", "operator"];
+    let users = [
+        "root", "admin", "guest", "user", "test", "daemon", "bin", "sys", "nobody", "operator",
+    ];
     for user in &users {
         let target = format!("{}?{}", url, user);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() {
-                    println!("  {} {:15} — {} bytes", "[+]".green().bold(), user, text.len());
-                }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() {
+                println!(
+                    "  {} {:15} — {} bytes",
+                    "[+]".green().bold(),
+                    user,
+                    text.len()
+                );
             }
-            Err(_) => {}
         }
     }
 
@@ -39,22 +47,36 @@ pub async fn brute(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let users = [
-        "root", "admin", "administrator", "operator", "guest", "user",
-        "test", "demo", "service", "ftp", "mail", "www", "nginx",
-        "postgres", "mysql", "redis", "git", "jenkins", "docker", "ansible",
+        "root",
+        "admin",
+        "administrator",
+        "operator",
+        "guest",
+        "user",
+        "test",
+        "demo",
+        "service",
+        "ftp",
+        "mail",
+        "www",
+        "nginx",
+        "postgres",
+        "mysql",
+        "redis",
+        "git",
+        "jenkins",
+        "docker",
+        "ansible",
     ];
 
     for user in &users {
         let target = format!("{}?{}", url, user);
-        match client.get(&target).send().await {
-            Ok(r) => {
-                let status = r.status().as_u16();
-                let text = r.text().await.unwrap_or_default();
-                if status == 200 && !text.is_empty() && !text.contains("no such user") {
-                    println!("  {} {:15} — EXISTS", "[+]".green().bold(), user);
-                }
+        if let Ok(r) = client.get(&target).send().await {
+            let status = r.status().as_u16();
+            let text = r.text().await.unwrap_or_default();
+            if status == 200 && !text.is_empty() && !text.contains("no such user") {
+                println!("  {} {:15} — EXISTS", "[+]".green().bold(), user);
             }
-            Err(_) => {}
         }
     }
 
@@ -82,7 +104,12 @@ pub async fn redirect(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 && !text.is_empty() {
-                    println!("  {} {:20} — {} bytes", "[+]".green().bold(), name, text.len());
+                    println!(
+                        "  {} {:20} — {} bytes",
+                        "[+]".green().bold(),
+                        name,
+                        text.len()
+                    );
                 } else {
                     println!("  {} {:20} — status={}", "[-]".dimmed(), name, status);
                 }
@@ -115,7 +142,12 @@ pub async fn bomb(url: &str, timeout: u64) -> anyhow::Result<()> {
                 let status = r.status().as_u16();
                 let text = r.text().await.unwrap_or_default();
                 if status == 200 && !text.is_empty() {
-                    println!("  {} {:20} — {} bytes returned", "[!]".red().bold(), name, text.len());
+                    println!(
+                        "  {} {:20} — {} bytes returned",
+                        "[!]".red().bold(),
+                        name,
+                        text.len()
+                    );
                 } else {
                     println!("  {} {:20} — status={}", "[-]".dimmed(), name, status);
                 }

