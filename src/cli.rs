@@ -380,6 +380,24 @@ pub enum Commands {
         action: ConfluenceAction,
     },
 
+    /// DNS over HTTPS exfiltration — bypass DNS monitoring via DoH providers
+    Doh {
+        #[command(subcommand)]
+        action: DohAction,
+    },
+
+    /// ICMP tunneling — covert data exfiltration through firewalls via ICMP
+    Icmp {
+        #[command(subcommand)]
+        action: IcmpAction,
+    },
+
+    /// Steganography detection — LSB, metadata, trailing data in images
+    Stego {
+        #[command(subcommand)]
+        action: StegoAction,
+    },
+
     /// MFA bypass — fatigue bombing, OTP race, OTP prediction, fallback bypass
     Mfa {
         #[command(subcommand)]
@@ -1103,6 +1121,21 @@ pub enum TlsAction {
         /// Output file path
         #[arg(short = 'o', long)]
         output: Option<String>,
+    },
+
+    /// Spoof JA3/JA4 TLS fingerprint to evade detection
+    Spoof {
+        /// Target URL or host:port
+        #[arg(short, long)]
+        url: String,
+
+        /// Custom JA3 fingerprint string
+        #[arg(short = 'j', long)]
+        ja3: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
     },
 }
 
@@ -5369,6 +5402,60 @@ pub enum ConfluenceAction {
         /// Auth token
         #[arg(short = 't', long)]
         token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum DohAction {
+    /// DNS over HTTPS exfiltration — bypass DNS monitoring via DoH providers
+    Exfil {
+        /// Exfiltration domain (data encoded as subdomain labels)
+        #[arg(short, long)]
+        domain: String,
+
+        /// Data to exfiltrate
+        #[arg(short = 'd', long)]
+        data: String,
+
+        /// DoH provider (cloudflare, google, quad9, adguard, nextdns, mullvad, opendns, cleanbrowsing)
+        #[arg(short = 'p', long, default_value = "cloudflare")]
+        provider: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum IcmpAction {
+    /// ICMP tunneling — covert data exfiltration through firewalls
+    Tunnel {
+        /// Target host
+        #[arg(short = 'H', long)]
+        host: String,
+
+        /// Data to exfiltrate
+        #[arg(short = 'd', long)]
+        data: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum StegoAction {
+    /// Steganography detection — LSB, metadata, trailing data in images
+    Detect {
+        /// Target URL (image directory or page)
+        #[arg(short, long)]
+        url: String,
 
         /// Request timeout in seconds
         #[arg(short = 'T', long, default_value = "15")]

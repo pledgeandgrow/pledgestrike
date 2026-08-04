@@ -71,6 +71,9 @@ pub mod adcs;
 pub mod ad;
 pub mod ivanti;
 pub mod confluence;
+pub mod doh;
+pub mod icmp;
+pub mod stego;
 
 pub mod ble;
 pub mod git;

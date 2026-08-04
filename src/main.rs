@@ -9,23 +9,23 @@ use cli::{
     ApiAction, ArgoCDAction, AwsAction, AzureAction, BleAction, BruteAction, CacheAction,
     CicdAction, Cli, ClickAction, CloudAction, CmdiAction, CoapAction, Commands,
     ConfluenceAction, ContainerAction, CookieAction, CorsAction, CrlfAction, CspAction,
-    CsrfAction, DebugAction, DeserAction, DnsenumAction, DomAction, ElasticAction, EtcdAction,
-    ExchangeAction, ExfilAction, ExploitAction, FingerAction, FtpAction, GitAction, GcpAction,
-    GhaAction, GitlabciAction, GraphqlAttackAction, GrpcAction, H2Action, HostAction, HppAction,
-    IdorAction, IocAction, IpmiAction, IstioAction, IvantiAction, JndiAction, JenkinsAction,
-    JwtAction, K8sAction, KerbAction, LdapiAction, LfiAction, LlmAction, MagiclinkAction,
-    MassAction, MemcacheAction, MfaAction, MongoAction, MqttAction, NfsAction, NosqliAction,
-    NtlmAction, NtpAction, OauthAction, OidcAction, OpenapiAction, OtAction, OwaAction,
-    PadoracleAction, PasskeyAction, PayloadAction, PostmsgAction, ProtoAction, RaceAction,
-    RatelimitAction, RceAction, RdpAction, RebindAction, RedirectAction, RedisxAction,
-    RtspAction, SamlAction, SecretAction, SessionAction, SharepointAction, ShellAction,
-    SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction, SprayAction, SqliAction,
-    SseAction, SshAction, SsrfAction, SsrfChainAction, SstiAction, StompAction, SubdomAction,
-    SupplyAction, SsoAction, SwAction, TakeoverAction, TelnetAction, TftpAction, TfstateAction,
-    TlsAction, UnicodeAction, UpnpAction, VectordbAction, VncAction, WafAction, WasmAction,
-    Web3Action, WebauthnAction, WebdavAction, WebrtcAction, WfuzzAction, WhoisAction,
-    WinrmAction, WsAction, WsdlAction, X11Action, XsleakAction, XssAction, XxeAction,
-    ZookeeperAction,
+    CsrfAction, DebugAction, DeserAction, DnsenumAction, DohAction, DomAction, ElasticAction,
+    EtcdAction, ExchangeAction, ExfilAction, ExploitAction, FingerAction, FtpAction, GitAction,
+    GcpAction, GhaAction, GitlabciAction, GraphqlAttackAction, GrpcAction, H2Action, HostAction,
+    HppAction, IcmpAction, IdorAction, IocAction, IpmiAction, IstioAction, IvantiAction,
+    JndiAction, JenkinsAction, JwtAction, K8sAction, KerbAction, LdapiAction, LfiAction,
+    LlmAction, MagiclinkAction, MassAction, MemcacheAction, MfaAction, MongoAction, MqttAction,
+    NfsAction, NosqliAction, NtlmAction, NtpAction, OauthAction, OidcAction, OpenapiAction,
+    OtAction, OwaAction, PadoracleAction, PasskeyAction, PayloadAction, PostmsgAction,
+    ProtoAction, RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction,
+    RedirectAction, RedisxAction, RtspAction, SamlAction, SecretAction, SessionAction,
+    SharepointAction, ShellAction, SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction,
+    SprayAction, SqliAction, SseAction, SshAction, SsrfAction, SsrfChainAction, SstiAction,
+    StegoAction, StompAction, SubdomAction, SupplyAction, SsoAction, SwAction, TakeoverAction,
+    TelnetAction, TftpAction, TfstateAction, TlsAction, UnicodeAction, UpnpAction,
+    VectordbAction, VncAction, WafAction, WasmAction, Web3Action, WebauthnAction, WebdavAction,
+    WebrtcAction, WfuzzAction, WhoisAction, WinrmAction, WsAction, WsdlAction, X11Action,
+    XsleakAction, XssAction, XxeAction, ZookeeperAction,
 };
 use colored::Colorize;
 
@@ -438,6 +438,17 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 if let Err(e) =
                     modules::tls::generate_report(&input, &format, output.as_deref()).await
                 {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+
+            TlsAction::Spoof {
+                url,
+                ja3,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::tls::spoof(&url, ja3.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -2369,6 +2380,42 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             } => {
                 banner();
                 if let Err(e) = modules::confluence::rce(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Doh { action } => match action {
+            DohAction::Exfil {
+                domain,
+                data,
+                provider,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::doh::exfil(&domain, &data, &provider, timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Icmp { action } => match action {
+            IcmpAction::Tunnel {
+                host,
+                data,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::icmp::tunnel(&host, &data, timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Stego { action } => match action {
+            StegoAction::Detect {
+                url,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::stego::detect(&url, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
