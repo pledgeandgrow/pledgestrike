@@ -1,6 +1,9 @@
 use colored::Colorize;
-use hickory_resolver::{TokioAsyncResolver, name_server::TokioConnectionProvider};
+use hickory_resolver::Resolver;
+use hickory_resolver::config::{NameServerConfig, ResolverConfig, ResolverOpts};
+use hickory_resolver::net::runtime::TokioRuntimeProvider;
 use reqwest::Client;
+use std::net::IpAddr;
 use std::time::Duration;
 
 fn build_client(timeout: u64, token: Option<&str>) -> Client {
@@ -16,36 +19,24 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
     builder.build().unwrap_or_else(|_| Client::new())
 }
 
-async fn build_resolver() -> anyhow::Result<TokioAsyncResolver> {
-    let mut config = hickory_resolver::config::ResolverConfig::new();
-    config.add_name_server(hickory_resolver::config::NameServerConfig {
-        socket_addr: std::net::SocketAddr::new(
-            std::net::IpAddr::V4(std::net::Ipv4Addr::new(8, 8, 8, 8)),
-            53,
-        ),
-        protocol: hickory_resolver::config::Protocol::Udp,
-        tls_dns_name: None,
-        trust_negative_responses: false,
-        bind_addr: None,
-    });
-    config.add_name_server(hickory_resolver::config::NameServerConfig {
-        socket_addr: std::net::SocketAddr::new(
-            std::net::IpAddr::V4(std::net::Ipv4Addr::new(1, 1, 1, 1)),
-            53,
-        ),
-        protocol: hickory_resolver::config::Protocol::Udp,
-        tls_dns_name: None,
-        trust_negative_responses: false,
-        bind_addr: None,
-    });
-    let mut opts = hickory_resolver::config::ResolverOpts::default();
+async fn build_resolver() -> anyhow::Result<hickory_resolver::TokioResolver> {
+    let mut config = ResolverConfig::from_parts(None, vec![], vec![]);
+    config.add_name_server(NameServerConfig::new(
+        IpAddr::V4(std::net::Ipv4Addr::new(8, 8, 8, 8)),
+        false,
+        vec![],
+    ));
+    config.add_name_server(NameServerConfig::new(
+        IpAddr::V4(std::net::Ipv4Addr::new(1, 1, 1, 1)),
+        false,
+        vec![],
+    ));
+    let mut opts = ResolverOpts::default();
     opts.timeout = Duration::from_secs(5);
     opts.attempts = 2;
-    Ok(TokioAsyncResolver::new(
-        config,
-        opts,
-        TokioConnectionProvider::default(),
-    ))
+    Ok(Resolver::builder_with_config(config, TokioRuntimeProvider::default())
+        .with_options(opts)
+        .build()?)
 }
 
 struct DnsInfo {
@@ -54,7 +45,7 @@ struct DnsInfo {
     is_wildcard: bool,
 }
 
-async fn lookup_dns(resolver: &TokioAsyncResolver, domain: &str, wildcard_domain: &str) -> DnsInfo {
+async fn lookup_dns(resolver: &hickory_resolver::TokioResolver, domain: &str, wildcard_domain: &str) -> DnsInfo {
     let cname = match resolver
         .lookup(
             domain.to_string(),
@@ -62,7 +53,7 @@ async fn lookup_dns(resolver: &TokioAsyncResolver, domain: &str, wildcard_domain
         )
         .await
     {
-        Ok(r) => r.iter().next().map(|c| c.to_string()),
+        Ok(r) => r.answers().iter().next().map(|c| c.to_string()),
         Err(_) => None,
     };
 
@@ -73,7 +64,7 @@ async fn lookup_dns(resolver: &TokioAsyncResolver, domain: &str, wildcard_domain
         )
         .await
     {
-        Ok(r) => r.iter().map(|ip| ip.to_string()).collect(),
+        Ok(r) => r.answers().iter().map(|rec| rec.to_string()).collect(),
         Err(_) => Vec::new(),
     };
 
@@ -84,7 +75,7 @@ async fn lookup_dns(resolver: &TokioAsyncResolver, domain: &str, wildcard_domain
         )
         .await
     {
-        Ok(r) => r.iter().map(|ip| ip.to_string()).collect::<Vec<_>>(),
+        Ok(r) => r.answers().iter().map(|rec| rec.to_string()).collect::<Vec<_>>(),
         Err(_) => Vec::new(),
     };
 
@@ -273,7 +264,7 @@ pub async fn scan(domains_file: &str, token: Option<&str>, timeout: u64) -> anyh
         )
         .await
     {
-        Ok(r) => r.iter().map(|ip| ip.to_string()).collect::<Vec<_>>(),
+        Ok(r) => r.answers().iter().map(|rec| rec.to_string()).collect::<Vec<_>>(),
         Err(_) => Vec::new(),
     };
     if !wildcard_a.is_empty() {
