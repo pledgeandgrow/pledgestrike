@@ -74,11 +74,15 @@ pub async fn inject(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
         match client.get(&full_url).send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
+                let has_gitlab = resp.headers().get("x-gitlab").is_some()
+                    || resp.headers().get("x-request-id").map(|v| v.to_str().unwrap_or("").contains("gitlab")).unwrap_or(false);
                 let body = resp.text().await.unwrap_or_default();
-                let accessible = status == 200;
-                let has_vars = body.contains("variable") || body.contains("CI_");
-                let has_runners = body.contains("runner") || body.contains("shared");
-                let has_secrets = body.contains("secret") || body.contains("token") || body.contains("password");
+                let is_html = body.starts_with("<!DOCTYPE") || body.starts_with("<html") || body.contains("<head>");
+                let is_json = body.starts_with("{") || body.starts_with("[");
+                let accessible = status == 200 && !is_html && (has_gitlab || is_json);
+                let has_vars = is_json && (body.contains("\"key\"") || body.contains("\"variable\"") || body.contains("CI_"));
+                let has_runners = is_json && (body.contains("\"runner\"") || body.contains("\"shared\"") || body.contains("\"is_shared\""));
+                let has_secrets = is_json && (body.contains("\"secret\"") || body.contains("\"token\"") || body.contains("\"deploy_token\""));
                 let tag = if accessible {
                     if has_secrets { "SECRETS".red().bold().to_string() }
                     else if has_vars { "VARIABLES".red().bold().to_string() }
@@ -88,6 +92,8 @@ pub async fn inject(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
                     "not found".dimmed().to_string()
                 } else if status == 401 || status == 403 {
                     "auth".yellow().to_string()
+                } else if status == 200 && is_html {
+                    "not gitlab".dimmed().to_string()
                 } else {
                     format!("status {}", status)
                 };
@@ -127,15 +133,20 @@ pub async fn inject(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
         {
             Ok(resp) => {
                 let status = resp.status().as_u16();
+                let has_gitlab_hdr = resp.headers().get("x-gitlab").is_some();
                 let resp_body = resp.text().await.unwrap_or_default();
-                let triggered = status == 201 || status == 200;
-                let has_error = resp_body.contains("error") || resp_body.contains("invalid");
+                let is_html = resp_body.starts_with("<!DOCTYPE") || resp_body.starts_with("<html") || resp_body.contains("<head>");
+                let is_json = resp_body.starts_with("{") || resp_body.starts_with("[");
+                let triggered = (status == 201 || status == 200) && !is_html && (has_gitlab_hdr || is_json);
+                let has_error = resp_body.contains("\"error\"") || resp_body.contains("\"invalid\"") || resp_body.contains("\"message\"");
                 let tag = if triggered {
                     "TRIGGERED".red().bold().to_string()
                 } else if status == 401 || status == 403 {
                     "auth".yellow().to_string()
                 } else if status == 404 {
                     "not found".dimmed().to_string()
+                } else if is_html {
+                    "not gitlab".dimmed().to_string()
                 } else if has_error {
                     "rejected".green().to_string()
                 } else {

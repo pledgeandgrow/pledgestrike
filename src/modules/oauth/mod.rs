@@ -325,15 +325,23 @@ pub async fn ato(auth_url: &str, token: Option<&str>, timeout: u64) -> anyhow::R
                     .to_string();
                 let body = resp.text().await.unwrap_or_default();
 
-                let vulnerable = (!location.is_empty() && location.contains("evil.com"))
+                let location_lower = location.to_lowercase();
+                let redirects_to_evil = location_lower.starts_with("https://evil.com")
+                    || location_lower.starts_with("http://evil.com")
+                    || location_lower.starts_with("//evil.com")
+                    || location_lower.starts_with("https://target.com@evil.com")
+                    || location_lower.starts_with("https://target.com.evil.com")
+                    || location_lower.starts_with("https://evil.com:80@");
+
+                let vulnerable = redirects_to_evil
                     || body.contains("evil.com")
-                    || (status == 302 && location.contains("code="))
-                    || (name.contains("State") && status != 400 && !body.contains("error"))
-                    || (name.contains("PKCE") && status != 400 && !body.contains("error"));
+                    || (status == 302 && location.contains("code=") && !location.contains("error"))
+                    || (name.contains("State") && status == 302 && (location.contains("code=") || location.contains("state=")) && !location.contains("error"))
+                    || (name.contains("PKCE") && status == 302 && (location.contains("code=") || location.contains("code_challenge=")) && !location.contains("error"));
 
                 let tag = if vulnerable {
                     "VULNERABLE".red().bold().to_string()
-                } else if status == 302 || status == 301 {
+                } else if status == 302 || status == 301 || status == 307 || status == 308 {
                     "redirect".yellow().to_string()
                 } else if status == 400 || status == 401 {
                     "blocked".green().to_string()

