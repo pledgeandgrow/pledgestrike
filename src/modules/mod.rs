@@ -58,6 +58,8 @@ pub mod azure;
 pub mod tfstate;
 pub mod istio;
 pub mod argocd;
+pub mod dom;
+pub mod xsleak;
 
 pub mod ble;
 pub mod git;

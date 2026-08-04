@@ -302,6 +302,18 @@ pub enum Commands {
         action: ArgoCDAction,
     },
 
+    /// DOM clobbering — HTML element ID override, variable hijacking, toString pollution
+    Dom {
+        #[command(subcommand)]
+        action: DomAction,
+    },
+
+    /// XS-Leak detection — timing, error events, frame counting, navigation probes
+    Xsleak {
+        #[command(subcommand)]
+        action: XsleakAction,
+    },
+
     /// MFA bypass — fatigue bombing, OTP race, OTP prediction, fallback bypass
     Mfa {
         #[command(subcommand)]
@@ -1688,6 +1700,15 @@ pub enum SmuggleAction {
         #[arg(short = 'T', long, default_value = "10")]
         timeout: u64,
     },
+    /// HTTP desync v2 — h2c upgrade smuggling, HTTP/2 downgrade, header folding
+    Desync {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1777,6 +1798,15 @@ pub enum GraphqlAttackAction {
         timeout: u64,
         #[arg(short, long, default_value = "20")]
         max_depth: usize,
+    },
+    /// Mutation fuzzing — IDOR, mass assignment, unauthorized data modification
+    Fuzz {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "30")]
+        timeout: u64,
     },
 }
 
@@ -5029,6 +5059,42 @@ pub enum ArgoCDAction {
 
         /// Request timeout in seconds
         #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum DomAction {
+    /// DOM clobbering attack — inject HTML elements to override JS variables
+    Clobber {
+        /// Target URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum XsleakAction {
+    /// Detect cross-site leak vectors — timing, error events, frame count, navigation
+    Detect {
+        /// Target URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "30")]
         timeout: u64,
     },
 }

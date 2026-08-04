@@ -8,21 +8,22 @@ use cli::{
     AclAction, ActuatorAction, AgentAction, AiAction, AmqpAction, ApiAction, ArgoCDAction,
     AwsAction, AzureAction, BleAction, BruteAction, CacheAction, CicdAction, Cli, ClickAction,
     CloudAction, CmdiAction, CoapAction, Commands, ContainerAction, CookieAction, CorsAction,
-    CrlfAction, CspAction, CsrfAction, DebugAction, DeserAction, DnsenumAction, ElasticAction,
-    EtcdAction, ExchangeAction, ExfilAction, ExploitAction, FingerAction, FtpAction, GitAction,
-    GcpAction, GraphqlAttackAction, GrpcAction, H2Action, HostAction, HppAction, IdorAction,
-    IocAction, IpmiAction, IstioAction, JndiAction, JwtAction, K8sAction, KerbAction, LdapiAction,
-    LfiAction, LlmAction, MassAction, MemcacheAction, MfaAction, MongoAction, MqttAction,
-    NfsAction, NosqliAction, NtlmAction, NtpAction, OauthAction, OpenapiAction, OtAction,
-    OwaAction, PadoracleAction, PayloadAction, PostmsgAction, ProtoAction, RaceAction,
-    RatelimitAction, RceAction, RdpAction, RebindAction, RedirectAction, RedisxAction,
-    RtspAction, SamlAction, SecretAction, SessionAction, SharepointAction, ShellAction, SipAction,
-    SmbAction, SmtpAction, SmuggleAction, SnmpAction, SprayAction, SqliAction, SseAction,
-    SshAction, SsrfAction, SsrfChainAction, SstiAction, StompAction, SubdomAction, SupplyAction,
-    SwAction, TakeoverAction, TelnetAction, TftpAction, TfstateAction, TlsAction, UnicodeAction,
-    UpnpAction, VectordbAction, VncAction, WafAction, WasmAction, Web3Action, WebauthnAction,
-    WebdavAction, WebrtcAction, WfuzzAction, WhoisAction, WinrmAction, WsAction, WsdlAction,
-    X11Action, XssAction, XxeAction, ZookeeperAction,
+    CrlfAction, CspAction, CsrfAction, DebugAction, DeserAction, DnsenumAction, DomAction,
+    ElasticAction, EtcdAction, ExchangeAction, ExfilAction, ExploitAction, FingerAction,
+    FtpAction, GitAction, GcpAction, GraphqlAttackAction, GrpcAction, H2Action, HostAction,
+    HppAction, IdorAction, IocAction, IpmiAction, IstioAction, JndiAction, JwtAction, K8sAction,
+    KerbAction, LdapiAction, LfiAction, LlmAction, MassAction, MemcacheAction, MfaAction,
+    MongoAction, MqttAction, NfsAction, NosqliAction, NtlmAction, NtpAction, OauthAction,
+    OpenapiAction, OtAction, OwaAction, PadoracleAction, PayloadAction, PostmsgAction,
+    ProtoAction, RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction,
+    RedirectAction, RedisxAction, RtspAction, SamlAction, SecretAction, SessionAction,
+    SharepointAction, ShellAction, SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction,
+    SprayAction, SqliAction, SseAction, SshAction, SsrfAction, SsrfChainAction, SstiAction,
+    StompAction, SubdomAction, SupplyAction, SwAction, TakeoverAction, TelnetAction, TftpAction,
+    TfstateAction, TlsAction, UnicodeAction, UpnpAction, VectordbAction, VncAction, WafAction,
+    WasmAction, Web3Action, WebauthnAction, WebdavAction, WebrtcAction, WfuzzAction, WhoisAction,
+    WinrmAction, WsAction, WsdlAction, X11Action, XsleakAction, XssAction, XxeAction,
+    ZookeeperAction,
 };
 use colored::Colorize;
 
@@ -1016,6 +1017,16 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
+            SmuggleAction::Desync {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::smuggle::desync(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
         },
 
         Commands::Ws { action } => match action {
@@ -1117,6 +1128,18 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 banner();
                 if let Err(e) =
                     modules::graphql_attack::depth(&url, token.as_deref(), timeout, max_depth).await
+                {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+            GraphqlAttackAction::Fuzz {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) =
+                    modules::graphql_attack::fuzz(&url, token.as_deref(), timeout).await
                 {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
@@ -2177,6 +2200,30 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             ArgoCDAction::Probe { url, timeout } => {
                 banner();
                 if let Err(e) = modules::argocd::probe(&url, timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Dom { action } => match action {
+            DomAction::Clobber {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::dom::clobber(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Xsleak { action } => match action {
+            XsleakAction::Detect {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::xsleak::detect(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
