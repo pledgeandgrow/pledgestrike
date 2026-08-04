@@ -266,6 +266,42 @@ pub enum Commands {
         action: VectordbAction,
     },
 
+    /// AWS privilege escalation — IAM privesc chains, Lambda code injection
+    Aws {
+        #[command(subcommand)]
+        action: AwsAction,
+    },
+
+    /// GCP service account abuse — excessive scopes, IAM misconfig, secret access
+    Gcp {
+        #[command(subcommand)]
+        action: GcpAction,
+    },
+
+    /// Azure AD application abuse — service principals, app registrations, role assignments
+    Azure {
+        #[command(subcommand)]
+        action: AzureAction,
+    },
+
+    /// Terraform state file exploitation — S3/GCS/Azure Blob tfstate extraction
+    Tfstate {
+        #[command(subcommand)]
+        action: TfstateAction,
+    },
+
+    /// Istio service mesh abuse — mTLS bypass, istiod debug, Envoy admin, policy violation
+    Istio {
+        #[command(subcommand)]
+        action: IstioAction,
+    },
+
+    /// ArgoCD abuse — unauthenticated access, app enumeration, secret extraction, sync trigger
+    Argocd {
+        #[command(subcommand)]
+        action: ArgoCDAction,
+    },
+
     /// MFA bypass — fatigue bombing, OTP race, OTP prediction, fallback bypass
     Mfa {
         #[command(subcommand)]
@@ -1454,6 +1490,17 @@ pub enum SsrfChainAction {
         timeout: u64,
         #[arg(short = 'p', long, default_value = "common")]
         ports: String,
+    },
+    /// Cloud metadata extraction v2 — IMDSv2 bypass, GCP/Azure, IPv6, Docker socket
+    CloudV2 {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        param: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
     },
 }
 
@@ -4843,6 +4890,140 @@ pub enum VectordbAction {
     /// Test for unauthenticated access and open endpoints
     Probe {
         /// Vector DB URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AwsAction {
+    /// Test AWS IAM for privilege escalation paths (18+ escalation vectors)
+    Privesc {
+        /// AWS access token / Bearer token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+    /// Test Lambda functions for code injection via event payload manipulation
+    LambdaInject {
+        /// Lambda function URL
+        #[arg(short = 'u', long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum GcpAction {
+    /// Test GCP service account for excessive scopes and IAM misconfigurations
+    Abuse {
+        /// GCP service account access token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AzureAction {
+    /// Test Azure AD service principals and app registrations for excessive permissions
+    App {
+        /// Azure AD tenant ID or domain
+        #[arg(short, long)]
+        tenant: String,
+
+        /// Azure AD access token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum TfstateAction {
+    /// Exploit exposed Terraform state files to extract secrets and infrastructure data
+    Exploit {
+        /// S3 bucket name, GCS bucket name, or Azure storage account name
+        #[arg(short = 'b', long)]
+        bucket: String,
+
+        /// Auth token (for authenticated buckets)
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum IstioAction {
+    /// Enumerate Istio service mesh — istiod debug, Envoy admin, service registry
+    Enum {
+        /// Istio control plane URL (e.g. http://target.com:15010)
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+    /// Test for unauthenticated access to Istio control plane
+    Probe {
+        /// Istio control plane URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ArgoCDAction {
+    /// Enumerate ArgoCD — applications, clusters, repos, secrets, projects
+    Enum {
+        /// ArgoCD server URL
+        #[arg(short, long)]
+        url: String,
+
+        /// ArgoCD auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+    /// Test for unauthenticated access to ArgoCD API
+    Probe {
+        /// ArgoCD server URL
         #[arg(short, long)]
         url: String,
 

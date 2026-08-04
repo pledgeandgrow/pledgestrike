@@ -52,6 +52,12 @@ pub mod supply;
 pub mod web3;
 pub mod webauthn;
 pub mod webrtc;
+pub mod aws;
+pub mod gcp;
+pub mod azure;
+pub mod tfstate;
+pub mod istio;
+pub mod argocd;
 
 pub mod ble;
 pub mod git;
