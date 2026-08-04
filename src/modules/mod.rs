@@ -60,6 +60,10 @@ pub mod istio;
 pub mod argocd;
 pub mod dom;
 pub mod xsleak;
+pub mod oidc;
+pub mod passkey;
+pub mod sso;
+pub mod magiclink;
 
 pub mod ble;
 pub mod git;

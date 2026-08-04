@@ -314,6 +314,30 @@ pub enum Commands {
         action: XsleakAction,
     },
 
+    /// OIDC token confusion — mix-up, hybrid flow, JWT algorithm abuse
+    Oidc {
+        #[command(subcommand)]
+        action: OidcAction,
+    },
+
+    /// Passkey/FIDO2 abuse — registration bypass, credential injection, UV bypass
+    Passkey {
+        #[command(subcommand)]
+        action: PasskeyAction,
+    },
+
+    /// SSO session hijacking — fixation, token replay, cross-tenant access
+    Sso {
+        #[command(subcommand)]
+        action: SsoAction,
+    },
+
+    /// Magic link abuse — token leakage, replay, cross-user authentication
+    Magiclink {
+        #[command(subcommand)]
+        action: MagiclinkAction,
+    },
+
     /// MFA bypass — fatigue bombing, OTP race, OTP prediction, fallback bypass
     Mfa {
         #[command(subcommand)]
@@ -1850,6 +1874,15 @@ pub enum OauthAction {
         #[arg(short = 't', long)]
         token: Option<String>,
         #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+    /// Account takeover — redirect_uri chains, state fixation, PKCE bypass
+    Ato {
+        #[arg(short = 'u', long)]
+        auth_url: String,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        #[arg(short = 'T', long, default_value = "15")]
         timeout: u64,
     },
 }
@@ -5095,6 +5128,78 @@ pub enum XsleakAction {
 
         /// Request timeout in seconds
         #[arg(short = 'T', long, default_value = "30")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum OidcAction {
+    /// OIDC token confusion — mix-up, hybrid flow, JWT algorithm abuse, token replay
+    Confuse {
+        /// Target URL (OIDC provider base)
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum PasskeyAction {
+    /// Passkey/FIDO2 registration abuse — cross-device bypass, credential injection, UV bypass
+    Abuse {
+        /// Target URL (WebAuthn endpoint base)
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum SsoAction {
+    /// SSO session hijacking — fixation, token replay, cross-tenant access
+    Hijack {
+        /// Target SSO URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum MagiclinkAction {
+    /// Magic link abuse — token leakage, replay, cross-user authentication
+    Abuse {
+        /// Target magic link URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
         timeout: u64,
     },
 }

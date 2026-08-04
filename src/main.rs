@@ -12,18 +12,18 @@ use cli::{
     ElasticAction, EtcdAction, ExchangeAction, ExfilAction, ExploitAction, FingerAction,
     FtpAction, GitAction, GcpAction, GraphqlAttackAction, GrpcAction, H2Action, HostAction,
     HppAction, IdorAction, IocAction, IpmiAction, IstioAction, JndiAction, JwtAction, K8sAction,
-    KerbAction, LdapiAction, LfiAction, LlmAction, MassAction, MemcacheAction, MfaAction,
-    MongoAction, MqttAction, NfsAction, NosqliAction, NtlmAction, NtpAction, OauthAction,
-    OpenapiAction, OtAction, OwaAction, PadoracleAction, PayloadAction, PostmsgAction,
-    ProtoAction, RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction,
-    RedirectAction, RedisxAction, RtspAction, SamlAction, SecretAction, SessionAction,
-    SharepointAction, ShellAction, SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction,
-    SprayAction, SqliAction, SseAction, SshAction, SsrfAction, SsrfChainAction, SstiAction,
-    StompAction, SubdomAction, SupplyAction, SwAction, TakeoverAction, TelnetAction, TftpAction,
-    TfstateAction, TlsAction, UnicodeAction, UpnpAction, VectordbAction, VncAction, WafAction,
-    WasmAction, Web3Action, WebauthnAction, WebdavAction, WebrtcAction, WfuzzAction, WhoisAction,
-    WinrmAction, WsAction, WsdlAction, X11Action, XsleakAction, XssAction, XxeAction,
-    ZookeeperAction,
+    KerbAction, LdapiAction, LfiAction, LlmAction, MagiclinkAction, MassAction, MemcacheAction,
+    MfaAction, MongoAction, MqttAction, NfsAction, NosqliAction, NtlmAction, NtpAction,
+    OauthAction, OidcAction, OpenapiAction, OtAction, OwaAction, PadoracleAction, PasskeyAction,
+    PayloadAction, PostmsgAction, ProtoAction, RaceAction, RatelimitAction, RceAction, RdpAction,
+    RebindAction, RedirectAction, RedisxAction, RtspAction, SamlAction, SecretAction,
+    SessionAction, SharepointAction, ShellAction, SipAction, SmbAction, SmtpAction,
+    SmuggleAction, SnmpAction, SprayAction, SqliAction, SseAction, SshAction, SsrfAction,
+    SsrfChainAction, SstiAction, StompAction, SubdomAction, SupplyAction, SsoAction, SwAction,
+    TakeoverAction, TelnetAction, TftpAction, TfstateAction, TlsAction, UnicodeAction,
+    UpnpAction, VectordbAction, VncAction, WafAction, WasmAction, Web3Action, WebauthnAction,
+    WebdavAction, WebrtcAction, WfuzzAction, WhoisAction, WinrmAction, WsAction, WsdlAction,
+    X11Action, XsleakAction, XssAction, XxeAction, ZookeeperAction,
 };
 use colored::Colorize;
 
@@ -1194,6 +1194,16 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
+            OauthAction::Ato {
+                auth_url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::oauth::ato(&auth_url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
         },
 
         Commands::Ssti { action } => match action {
@@ -2224,6 +2234,54 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             } => {
                 banner();
                 if let Err(e) = modules::xsleak::detect(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Oidc { action } => match action {
+            OidcAction::Confuse {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::oidc::confuse(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Passkey { action } => match action {
+            PasskeyAction::Abuse {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::passkey::abuse(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Sso { action } => match action {
+            SsoAction::Hijack {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::sso::hijack(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Magiclink { action } => match action {
+            MagiclinkAction::Abuse {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::magiclink::abuse(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
