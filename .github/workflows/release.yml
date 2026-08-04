@@ -169,12 +169,8 @@ jobs:
             pip install pledgestrike
             ```
 
-            #### Homebrew
-            ```
-            brew install pledgestrike
-            ```
-
-            See [MODULE.md](https://github.com/pledgeandgrow/pledgestrike/blob/main/MODULE.md) for full module documentation.
+            See [COMMANDS.md](https://github.com/pledgeandgrow/pledgestrike/blob/main/COMMANDS.md) for the full command reference.
+            See [MODULE.md](https://github.com/pledgeandgrow/pledgestrike/blob/main/MODULE.md) for module status and documentation.
           files: artifacts/*
           generate_release_notes: true
           draft: false
@@ -735,93 +731,3 @@ jobs:
           cd nuget-pkg
           nuget push pledgestrike.*.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_API_KEY }} -SkipDuplicate
 
-  # ─────────────────────────────────────────────
-  # Publish to Homebrew tap
-  # ─────────────────────────────────────────────
-  homebrew:
-    name: Publish to Homebrew
-    needs: github-release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Get version
-        id: version
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download Linux + macOS artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
-
-      - name: Compute SHA256
-        id: sha
-        run: |
-          echo "linux_sha=$(sha256sum artifacts/pledgestrike-${{ steps.version.outputs.version }}-x86_64-unknown-linux-musl.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
-          echo "darwin_sha=$(sha256sum artifacts/pledgestrike-${{ steps.version.outputs.version }}-x86_64-apple-darwin.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
-          echo "arm_sha=$(sha256sum artifacts/pledgestrike-${{ steps.version.outputs.version }}-aarch64-apple-darwin.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
-
-      - name: Update Homebrew tap
-        run: |
-          pip install pyyaml
-          python << 'PYEOF'
-          import os
-          version = "${{ steps.version.outputs.version }}"
-          linux_sha = "${{ steps.sha.outputs.linux_sha }}"
-          darwin_sha = "${{ steps.sha.outputs.darwin_sha }}"
-          arm_sha = "${{ steps.sha.outputs.arm_sha }}"
-
-          formula = f'''class Pledgestrike < Formula
-            desc "All-in-one offensive security toolkit with 120+ attack modules"
-            homepage "https://github.com/pledgeandgrow/pledgestrike"
-            url "https://github.com/pledgeandgrow/pledgestrike/releases/download/v{version}/pledgestrike-{version}-x86_64-unknown-linux-musl.tar.gz"
-            sha256 "{linux_sha}"
-            license "MIT"
-            version "{version}"
-
-            on_macos do
-              on_intel do
-                url "https://github.com/pledgeandgrow/pledgestrike/releases/download/v{version}/pledgestrike-{version}-x86_64-apple-darwin.tar.gz"
-                sha256 "{darwin_sha}"
-              end
-              on_arm do
-                url "https://github.com/pledgeandgrow/pledgestrike/releases/download/v{version}/pledgestrike-{version}-aarch64-apple-darwin.tar.gz"
-                sha256 "{arm_sha}"
-              end
-            end
-
-            def install
-              bin.install "pledgestrike"
-            end
-
-            test do
-              assert_match "PledgeStrike", shell_output("#{bin}/pledgestrike --help", 2)
-            end
-          end
-          '''
-          print(formula)
-          PYEOF
-
-      - name: Dispatch to homebrew tap
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          repository: pledgeandgrow/homebrew-pledgestrike
-          event-type: update-formula
-          client-payload: |
-            {
-              "version": "${{ steps.version.outputs.version }}",
-              "linux_sha": "${{ steps.sha.outputs.linux_sha }}",
-              "darwin_sha": "${{ steps.sha.outputs.darwin_sha }}",
-              "arm_sha": "${{ steps.sha.outputs.arm_sha }}"
-            }
