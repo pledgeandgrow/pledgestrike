@@ -356,6 +356,30 @@ pub enum Commands {
         action: JenkinsAction,
     },
 
+    /// AD CS abuse — ESC1-ESC14 vulnerability paths, NTLM relay to web enrollment
+    Adcs {
+        #[command(subcommand)]
+        action: AdcsAction,
+    },
+
+    /// Active Directory attacks — PetitPotam NTLM relay, coercion vectors
+    Ad {
+        #[command(subcommand)]
+        action: AdAction,
+    },
+
+    /// Ivanti Connect Secure — CVE-2023-46805 auth bypass + CVE-2024-21887 RCE
+    Ivanti {
+        #[command(subcommand)]
+        action: IvantiAction,
+    },
+
+    /// Confluence RCE — CVE-2023-22515 admin creation + CVE-2023-22518 import RCE
+    Confluence {
+        #[command(subcommand)]
+        action: ConfluenceAction,
+    },
+
     /// MFA bypass — fatigue bombing, OTP race, OTP prediction, fallback bypass
     Mfa {
         #[command(subcommand)]
@@ -5263,6 +5287,82 @@ pub enum JenkinsAction {
     /// Jenkins RCE — unauthenticated access, script console, credential extraction
     Rce {
         /// Jenkins base URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AdcsAction {
+    /// AD CS abuse — ESC1-ESC14 vulnerability paths, NTLM relay to web enrollment
+    Abuse {
+        /// Target URL (AD CS web enrollment base)
+        #[arg(short, long)]
+        url: String,
+
+        /// CA name
+        #[arg(short = 'c', long)]
+        ca_name: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AdAction {
+    /// PetitPotam attack — NTLM relay coercion via EFSRPC/LSARPC/ICPR
+    Petitpotam {
+        /// Target URL (AD controller or CA)
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum IvantiAction {
+    /// Ivanti CVE-2023-46805 auth bypass + CVE-2024-21887 RCE chain
+    Cve {
+        /// Target URL (Ivanti Connect Secure)
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ConfluenceAction {
+    /// Confluence RCE — CVE-2023-22515 admin creation + CVE-2023-22518 import RCE
+    Rce {
+        /// Target URL (Confluence base)
         #[arg(short, long)]
         url: String,
 

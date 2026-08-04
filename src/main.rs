@@ -5,26 +5,27 @@ mod modules;
 
 use clap::Parser;
 use cli::{
-    AclAction, ActuatorAction, AgentAction, AiAction, AmqpAction, ApiAction, ArgoCDAction,
-    AwsAction, AzureAction, BleAction, BruteAction, CacheAction, CicdAction, Cli, ClickAction,
-    CloudAction, CmdiAction, CoapAction, Commands, ContainerAction, CookieAction, CorsAction,
-    CrlfAction, CspAction, CsrfAction, DebugAction, DeserAction, DnsenumAction, DomAction,
-    ElasticAction, EtcdAction, ExchangeAction, ExfilAction, ExploitAction, FingerAction,
-    FtpAction, GitAction, GcpAction, GhaAction, GitlabciAction, GraphqlAttackAction, GrpcAction,
-    H2Action, HostAction, HppAction, IdorAction, IocAction, IpmiAction, IstioAction,
-    JndiAction, JenkinsAction, JwtAction, K8sAction, KerbAction, LdapiAction, LfiAction,
-    LlmAction, MagiclinkAction, MassAction, MemcacheAction, MfaAction, MongoAction, MqttAction,
-    NfsAction, NosqliAction, NtlmAction, NtpAction, OauthAction, OidcAction, OpenapiAction,
-    OtAction, OwaAction, PadoracleAction, PasskeyAction, PayloadAction, PostmsgAction,
-    ProtoAction, RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction,
-    RedirectAction, RedisxAction, RtspAction, SamlAction, SecretAction, SessionAction,
-    SharepointAction, ShellAction, SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction,
-    SprayAction, SqliAction, SseAction, SshAction, SsrfAction, SsrfChainAction, SstiAction,
-    StompAction, SubdomAction, SupplyAction, SsoAction, SwAction, TakeoverAction, TelnetAction,
-    TftpAction, TfstateAction, TlsAction, UnicodeAction, UpnpAction, VectordbAction, VncAction,
-    WafAction, WasmAction, Web3Action, WebauthnAction, WebdavAction, WebrtcAction, WfuzzAction,
-    WhoisAction, WinrmAction, WsAction, WsdlAction, X11Action, XsleakAction, XssAction,
-    XxeAction, ZookeeperAction,
+    AclAction, ActuatorAction, AdAction, AdcsAction, AgentAction, AiAction, AmqpAction,
+    ApiAction, ArgoCDAction, AwsAction, AzureAction, BleAction, BruteAction, CacheAction,
+    CicdAction, Cli, ClickAction, CloudAction, CmdiAction, CoapAction, Commands,
+    ConfluenceAction, ContainerAction, CookieAction, CorsAction, CrlfAction, CspAction,
+    CsrfAction, DebugAction, DeserAction, DnsenumAction, DomAction, ElasticAction, EtcdAction,
+    ExchangeAction, ExfilAction, ExploitAction, FingerAction, FtpAction, GitAction, GcpAction,
+    GhaAction, GitlabciAction, GraphqlAttackAction, GrpcAction, H2Action, HostAction, HppAction,
+    IdorAction, IocAction, IpmiAction, IstioAction, IvantiAction, JndiAction, JenkinsAction,
+    JwtAction, K8sAction, KerbAction, LdapiAction, LfiAction, LlmAction, MagiclinkAction,
+    MassAction, MemcacheAction, MfaAction, MongoAction, MqttAction, NfsAction, NosqliAction,
+    NtlmAction, NtpAction, OauthAction, OidcAction, OpenapiAction, OtAction, OwaAction,
+    PadoracleAction, PasskeyAction, PayloadAction, PostmsgAction, ProtoAction, RaceAction,
+    RatelimitAction, RceAction, RdpAction, RebindAction, RedirectAction, RedisxAction,
+    RtspAction, SamlAction, SecretAction, SessionAction, SharepointAction, ShellAction,
+    SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction, SprayAction, SqliAction,
+    SseAction, SshAction, SsrfAction, SsrfChainAction, SstiAction, StompAction, SubdomAction,
+    SupplyAction, SsoAction, SwAction, TakeoverAction, TelnetAction, TftpAction, TfstateAction,
+    TlsAction, UnicodeAction, UpnpAction, VectordbAction, VncAction, WafAction, WasmAction,
+    Web3Action, WebauthnAction, WebdavAction, WebrtcAction, WfuzzAction, WhoisAction,
+    WinrmAction, WsAction, WsdlAction, X11Action, XsleakAction, XssAction, XxeAction,
+    ZookeeperAction,
 };
 use colored::Colorize;
 
@@ -2319,6 +2320,55 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             } => {
                 banner();
                 if let Err(e) = modules::jenkins::rce(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Adcs { action } => match action {
+            AdcsAction::Abuse {
+                url,
+                ca_name,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::adcs::abuse(&url, &ca_name, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Ad { action } => match action {
+            AdAction::Petitpotam {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::ad::petitpotam(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Ivanti { action } => match action {
+            IvantiAction::Cve {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::ivanti::cve(&url, token.as_deref(), timeout).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Confluence { action } => match action {
+            ConfluenceAction::Rce {
+                url,
+                token,
+                timeout,
+            } => {
+                banner();
+                if let Err(e) = modules::confluence::rce(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
