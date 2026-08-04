@@ -1,7 +1,6 @@
 #![allow(dead_code, clippy::too_many_arguments)]
 
-mod cli;
-mod modules;
+use pledgestrike::{cli, modules};
 
 use clap::Parser;
 use cli::{

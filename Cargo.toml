@@ -37,3 +37,7 @@ webpki-roots = "0.26"
 x509-parser = "0.16"
 hickory-resolver = "0.26"
 urlencoding = "2.1"
+
+[dev-dependencies]
+wiremock = "0.6"
+tokio = { version = "1.40", features = ["full", "test-util"] }

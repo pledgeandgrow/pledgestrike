@@ -124,7 +124,7 @@ pub async fn detect(url: &str, timeout: u64) -> anyhow::Result<()> {
         if is_png {
             let iend_pos = find_png_iend(data);
             let trailing = if let Some(pos) = iend_pos {
-                data.len() - (pos + 12)
+                data.len().saturating_sub(pos + 8)
             } else {
                 0
             };
