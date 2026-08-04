@@ -1,1 +1,10 @@
 /target
+*.tar.gz
+*.zip
+*.nupkg
+*.gem
+/dist
+npm-pkg/
+pypi-pkg/
+gem-pkg/
+nuget-pkg/

@@ -2,6 +2,15 @@
 name = "pledgestrike"
 version = "0.1.0"
 edition = "2024"
+authors = ["PledgeCyber <contact@pledgecyber.com>"]
+license = "MIT"
+description = "All-in-one offensive security toolkit with 120+ attack modules covering web exploitation, infrastructure testing, credential attacks, cloud/container, supply chain, OT/ICS, IoT, and network protocols"
+repository = "https://github.com/pledgeandgrow/pledgestrike"
+homepage = "https://github.com/pledgeandgrow/pledgestrike"
+documentation = "https://github.com/pledgeandgrow/pledgestrike/blob/main/MODULE.md"
+readme = "README.md"
+keywords = ["security", "pentesting", "offensive-security", "vulnerability", "web-security"]
+categories = ["command-line-utilities", "development-tools::testing"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }

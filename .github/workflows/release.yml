@@ -1,0 +1,827 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. 0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Build cross-platform binaries
+  # ─────────────────────────────────────────────
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+            cross: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
+            archive: zip
+            cross: true
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-unknown-freebsd
+            os: ubuntu-latest
+            archive: tar.gz
+            cross: true
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build with cross
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Build native
+        if: !matrix.cross
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package (Unix)
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          mkdir -p package
+          cp target/${{ matrix.target }}/release/pledgestrike package/
+          cp README.md MODULE.md LICENSE package/ 2>/dev/null || true
+          tar czf pledgestrike-${{ steps.version.outputs.version }}-${{ matrix.target }}.tar.gz -C package .
+
+      - name: Package (Windows)
+        if: matrix.archive == 'zip'
+        shell: bash
+        run: |
+          mkdir -p package
+          cp target/${{ matrix.target }}/release/pledgestrike.exe package/ 2>/dev/null || cp target/${{ matrix.target }}/release/pledgestrike package/pledgestrike.exe
+          cp README.md MODULE.md LICENSE package/ 2>/dev/null || true
+          cd package && zip -r ../pledgestrike-${{ steps.version.outputs.version }}-${{ matrix.target }}.zip .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pledgestrike-${{ matrix.target }}
+          path: pledgestrike-*.${{ matrix.archive }}
+          retention-days: 7
+
+  # ─────────────────────────────────────────────
+  # GitHub Release
+  # ─────────────────────────────────────────────
+  github-release:
+    name: GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: PledgeStrike v${{ steps.version.outputs.version }}
+          body: |
+            ## PledgeStrike v${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            #### Download binary
+            Download the appropriate archive for your platform from the assets below.
+
+            #### Cargo
+            ```
+            cargo install pledgestrike
+            ```
+
+            #### npm
+            ```
+            npm install -g pledgestrike
+            ```
+
+            #### PyPI
+            ```
+            pip install pledgestrike
+            ```
+
+            #### Homebrew
+            ```
+            brew install pledgestrike
+            ```
+
+            See [MODULE.md](https://github.com/pledgeandgrow/pledgestrike/blob/main/MODULE.md) for full module documentation.
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+
+  # ─────────────────────────────────────────────
+  # Publish to crates.io
+  # ─────────────────────────────────────────────
+  crates-io:
+    name: Publish to crates.io
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Cargo login
+        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish to crates.io
+        run: cargo publish --allow-dirty --no-verify
+      - name: Verify publish
+        run: cargo search pledgestrike --limit 1
+
+  # ─────────────────────────────────────────────
+  # Publish to npm (wrapper installer)
+  # ─────────────────────────────────────────────
+  npm:
+    name: Publish to npm
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create npm package
+        run: |
+          mkdir -p npm-pkg/bin
+          cat > npm-pkg/package.json << EOF
+          {
+            "name": "pledgestrike",
+            "version": "${{ steps.version.outputs.version }}",
+            "description": "All-in-one offensive security toolkit with 120+ attack modules",
+            "license": "MIT",
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/pledgeandgrow/pledgestrike"
+            },
+            "homepage": "https://github.com/pledgeandgrow/pledgestrike",
+            "keywords": ["security", "pentesting", "offensive-security", "vulnerability", "cli"],
+            "bin": {
+              "pledgestrike": "bin/pledgestrike.js"
+            },
+            "scripts": {
+              "postinstall": "node bin/install.js",
+              "postuninstall": "node bin/uninstall.js"
+            },
+            "files": ["bin/"]
+          }
+          EOF
+
+          cat > npm-pkg/bin/install.js << 'SCRIPT'
+          const { https } = require("https");
+          const { createWriteStream, mkdirSync, existsSync, chmodSync } = require("fs");
+          const { join } = require("path");
+          const { execSync } = require("child_process");
+
+          const PLATFORM = process.platform;
+          const ARCH = process.arch;
+
+          const TARGETS = {
+            "linux-x64": "x86_64-unknown-linux-musl",
+            "linux-arm64": "aarch64-unknown-linux-gnu",
+            "darwin-x64": "x86_64-apple-darwin",
+            "darwin-arm64": "aarch64-apple-darwin",
+            "win32-x64": "x86_64-pc-windows-msvc",
+          };
+
+          const key = `${PLATFORM}-${ARCH}`;
+          const target = TARGETS[key];
+
+          if (!target) {
+            console.error(`PledgeStrike: unsupported platform ${key}`);
+            process.exit(1);
+          }
+
+          const version = require("../package.json").version;
+          const ext = PLATFORM === "win32" ? "zip" : "tar.gz";
+          const filename = `pledgestrike-${version}-${target}.${ext}`;
+          const url = `https://github.com/pledgeandgrow/pledgestrike/releases/download/v${version}/${filename}`;
+
+          const binDir = join(__dirname, "..", "bin");
+          if (!existsSync(binDir)) mkdirSync(binDir, { recursive: true });
+
+          const binName = PLATFORM === "win32" ? "pledgestrike.exe" : "pledgestrike";
+          const binPath = join(binDir, binName);
+
+          console.log(`PledgeStrike: downloading ${filename}...`);
+
+          const https = require("https");
+          function download(url, dest, cb) {
+            const file = createWriteStream(dest);
+            const req = https.get(url, (res) => {
+              if (res.statusCode === 302 || res.statusCode === 301) {
+                download(res.headers.location, dest, cb);
+                return;
+              }
+              res.pipe(file);
+              file.on("finish", () => { file.close(cb); });
+            });
+            req.on("error", cb);
+          }
+
+          const tmpFile = join(binDir, filename);
+          download(url, tmpFile, (err) => {
+            if (err) { console.error("PledgeStrike: download failed", err); process.exit(1); }
+            try {
+              if (PLATFORM === "win32") {
+                execSync(`cd "${binDir}" && unzip -o "${filename}"`, { stdio: "inherit" });
+              } else {
+                execSync(`cd "${binDir}" && tar xzf "${filename}"`, { stdio: "inherit" });
+                chmodSync(binPath, 0o755);
+              }
+              console.log("PledgeStrike: installed successfully!");
+            } catch (e) {
+              console.error("PledgeStrike: extraction failed", e);
+              process.exit(1);
+            }
+          });
+          SCRIPT
+
+          cat > npm-pkg/bin/uninstall.js << 'SCRIPT'
+          console.log("PledgeStrike: uninstalled.");
+          SCRIPT
+
+          cat > npm-pkg/bin/pledgestrike.js << 'SCRIPT'
+          const { spawn } = require("child_process");
+          const { join } = require("path");
+          const binName = process.platform === "win32" ? "pledgestrike.exe" : "pledgestrike";
+          const binPath = join(__dirname, binName);
+          const child = spawn(binPath, process.argv.slice(2), { stdio: "inherit" });
+          child.on("close", (code) => process.exit(code));
+          SCRIPT
+
+      - name: Publish to npm
+        run: |
+          cd npm-pkg
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ─────────────────────────────────────────────
+  # Publish to PyPI (wrapper installer)
+  # ─────────────────────────────────────────────
+  pypi:
+    name: Publish to PyPI
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create PyPI package
+        run: |
+          mkdir -p pypi-pkg/pledgestrike
+
+          cat > pypi-pkg/pyproject.toml << EOF
+          [build-system]
+          requires = ["setuptools>=64", "wheel"]
+          build-backend = "setuptools.build_meta"
+
+          [project]
+          name = "pledgestrike"
+          version = "${{ steps.version.outputs.version }}"
+          description = "All-in-one offensive security toolkit with 120+ attack modules"
+          license = { text = "MIT" }
+          requires-python = ">=3.8"
+          authors = [{ name = "PledgeCyber", email = "contact@pledgecyber.com" }]
+          keywords = ["security", "pentesting", "offensive-security", "vulnerability"]
+          classifiers = [
+            "Environment :: Console",
+            "Intended Audience :: Information Technology",
+            "License :: OSI Approved :: MIT License",
+            "Operating System :: OS Independent",
+            "Programming Language :: Python :: 3",
+            "Topic :: Security",
+          ]
+
+          [project.urls]
+          Homepage = "https://github.com/pledgeandgrow/pledgestrike"
+          Repository = "https://github.com/pledgeandgrow/pledgestrike"
+
+          [project.scripts]
+          pledgestrike = "pledgestrike.cli:main"
+          EOF
+
+          cat > pypi-pkg/pledgestrike/__init__.py << 'PYEOF'
+          __version__ = "${{ steps.version.outputs.version }}"
+          PYEOF
+
+          cat > pypi-pkg/pledgestrike/cli.py << 'PYEOF'
+          import sys
+          import os
+          import platform
+          import subprocess
+          import urllib.request
+          import tarfile
+          import zipfile
+          import shutil
+
+          BIN_DIR = os.path.join(os.path.dirname(__file__), "bin")
+          VERSION = "0.0.0"  # replaced at build time
+
+          TARGETS = {
+              ("linux", "x86_64"): "x86_64-unknown-linux-musl",
+              ("linux", "aarch64"): "aarch64-unknown-linux-gnu",
+              ("darwin", "x86_64"): "x86_64-apple-darwin",
+              ("darwin", "arm64"): "aarch64-apple-darwin",
+              ("win32", "amd64"): "x86_64-pc-windows-msvc",
+          }
+
+          def get_target():
+              system = platform.system().lower()
+              if system == "linux":
+                  system = "linux"
+              elif system == "darwin":
+                  system = "darwin"
+              elif system == "windows":
+                  system = "win32"
+              machine = platform.machine().lower()
+              if machine in ("x86_64", "amd64"):
+                  machine = "x86_64" if system != "win32" else "amd64"
+              elif machine in ("arm64", "aarch64"):
+                  machine = "aarch64" if system == "linux" else "arm64"
+              return TARGETS.get((system, machine))
+
+          def ensure_binary():
+              from pledgestrike import __version__
+              global VERSION
+              VERSION = __version__
+              bin_name = "pledgestrike.exe" if platform.system() == "Windows" else "pledgestrike"
+              bin_path = os.path.join(BIN_DIR, bin_name)
+              if os.path.isfile(bin_path):
+                  return bin_path
+
+              target = get_target()
+              if not target:
+                  print(f"PledgeStrike: unsupported platform {platform.system()}/{platform.machine()}", file=sys.stderr)
+                  sys.exit(1)
+
+              ext = "zip" if platform.system() == "Windows" else "tar.gz"
+              filename = f"pledgestrike-{VERSION}-{target}.{ext}"
+              url = f"https://github.com/pledgeandgrow/pledgestrike/releases/download/v{VERSION}/{filename}"
+
+              os.makedirs(BIN_DIR, exist_ok=True)
+              tmp_path = os.path.join(BIN_DIR, filename)
+              print(f"PledgeStrike: downloading {filename}...")
+              urllib.request.urlretrieve(url, tmp_path)
+
+              if ext == "zip":
+                  with zipfile.ZipFile(tmp_path) as z:
+                      z.extractall(BIN_DIR)
+              else:
+                  with tarfile.open(tmp_path, "r:gz") as t:
+                      t.extractall(BIN_DIR)
+
+              os.remove(tmp_path)
+              if platform.system() != "Windows":
+                  os.chmod(bin_path, 0o755)
+              return bin_path
+
+          def main():
+              bin_path = ensure_binary()
+              result = subprocess.run([bin_path] + sys.argv[1:])
+              sys.exit(result.returncode)
+
+          if __name__ == "__main__":
+              main()
+          PYEOF
+
+          cat > pypi-pkg/setup.py << 'PYEOF'
+          from setuptools import setup
+          setup()
+          PYEOF
+
+      - name: Build wheel
+        run: |
+          cd pypi-pkg
+          pip install build
+          python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: pypi-pkg/dist/
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+
+  # ─────────────────────────────────────────────
+  # Publish to RubyGems (wrapper installer)
+  # ─────────────────────────────────────────────
+  rubygems:
+    name: Publish to RubyGems
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Ruby gem
+        run: |
+          mkdir -p gem-pkg/bin
+
+          cat > gem-pkg/pledgestrike.gemspec << EOF
+          Gem::Specification.new do |s|
+            s.name          = "pledgestrike"
+            s.version       = "${{ steps.version.outputs.version }}"
+            s.summary       = "All-in-one offensive security toolkit with 120+ attack modules"
+            s.description   = "PledgeStrike is an offensive security toolkit covering web exploitation, infrastructure testing, credential attacks, cloud/container, supply chain, OT/ICS, IoT, and network protocols."
+            s.license       = "MIT"
+            s.homepage      = "https://github.com/pledgeandgrow/pledgestrike"
+            s.authors       = ["PledgeCyber"]
+            s.email         = "contact@pledgecyber.com"
+            s.files         = Dir["bin/*", "lib/**/*"]
+            s.executables   = ["pledgestrike"]
+            s.required_ruby_version = ">= 2.7"
+          end
+          EOF
+
+          mkdir -p gem-pkg/lib/pledgestrike
+
+          cat > gem-pkg/lib/pledgestrike.rb << 'RUBYEOF'
+          require "pledgestrike/version"
+          require "pledgestrike/downloader"
+
+          module PledgeStrike
+            def self.run!
+              binary = Downloader.ensure_binary!
+              exec binary, *ARGV
+            end
+          end
+          RUBYEOF
+
+          cat > gem-pkg/lib/pledgestrike/version.rb << 'RUBYEOF'
+          module PledgeStrike
+            VERSION = "${{ steps.version.outputs.version }}"
+          end
+          RUBYEOF
+
+          cat > gem-pkg/lib/pledgestrike/downloader.rb << 'RUBYEOF'
+          require "net/http"
+          require "uri"
+          require "fileutils"
+          require "open-uri"
+          require "rubygems/package"
+          require "zlib"
+          require "tmpdir"
+
+          module PledgeStrike
+            class Downloader
+              TARGETS = {
+                ["linux", "x86_64"] => "x86_64-unknown-linux-musl",
+                ["linux", "aarch64"] => "aarch64-unknown-linux-gnu",
+                ["darwin", "x86_64"] => "x86_64-apple-darwin",
+                ["darwin", "arm64"] => "aarch64-apple-darwin",
+                ["windows", "x64"] => "x86_64-pc-windows-msvc",
+              }.freeze
+
+              def self.ensure_binary!
+                bin_name = Gem.win_platform? ? "pledgestrike.exe" : "pledgestrike"
+                bin_dir = File.join(Gem.dir, "bin")
+                bin_path = File.join(bin_dir, bin_name)
+                return bin_path if File.file?(bin_path)
+
+                target = TARGETS[[RUBY_PLATFORM.split("-").last, RUBY_PLATFORM.include?("x86_64") ? "x86_64" : "arm64"]]
+                target ||= case RUBY_PLATFORM
+                           when /linux.*x86_64/ then "x86_64-unknown-linux-musl"
+                           when /darwin.*x86_64/ then "x86_64-apple-darwin"
+                           when /darwin.*arm64/ then "aarch64-apple-darwin"
+                           end
+
+                unless target
+                  warn "PledgeStrike: unsupported platform #{RUBY_PLATFORM}"
+                  exit 1
+                end
+
+                ext = Gem.win_platform? ? "zip" : "tar.gz"
+                filename = "pledgestrike-#{VERSION}-#{target}.#{ext}"
+                url = "https://github.com/pledgeandgrow/pledgestrike/releases/download/v#{VERSION}/#{filename}"
+
+                FileUtils.mkdir_p(bin_dir)
+                tmp = File.join(bin_dir, filename)
+                warn "PledgeStrike: downloading #{filename}..."
+                URI.open(url) { |f| File.binwrite(tmp, f.read) }
+
+                if Gem.win_platform?
+                  system("cd #{bin_dir} && unzip -o #{filename}")
+                else
+                  system("cd #{bin_dir} && tar xzf #{filename}")
+                  FileUtils.chmod(0o755, bin_path)
+                end
+                File.delete(tmp)
+                bin_path
+              end
+            end
+          end
+          RUBYEOF
+
+          cat > gem-pkg/bin/pledgestrike << 'RUBYEOF'
+          #!/usr/bin/env ruby
+          require "pledgestrike"
+          PledgeStrike.run!
+          RUBYEOF
+
+          chmod +x gem-pkg/bin/pledgestrike
+
+      - name: Build gem
+        run: |
+          cd gem-pkg
+          gem build pledgestrike.gemspec
+
+      - name: Publish to RubyGems
+        run: |
+          cd gem-pkg
+          mkdir -p $HOME/.gem
+          echo -e "---\n:rubygems_api_key: ${{ secrets.RUBYGEMS_API_KEY }}" > $HOME/.gem/credentials
+          chmod 0600 $HOME/.gem/credentials
+          gem push pledgestrike-*.gem
+
+  # ─────────────────────────────────────────────
+  # Publish to NuGet (wrapper installer)
+  # ─────────────────────────────────────────────
+  nuget:
+    name: Publish to NuGet
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create NuGet package
+        run: |
+          mkdir -p nuget-pkg/tools
+
+          cat > nuget-pkg/pledgestrike.nuspec << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+            <metadata>
+              <id>pledgestrike</id>
+              <version>${{ steps.version.outputs.version }}</version>
+              <title>PledgeStrike</title>
+              <authors>PledgeCyber</authors>
+              <description>All-in-one offensive security toolkit with 120+ attack modules</description>
+              <license type="expression">MIT</license>
+              <projectUrl>https://github.com/pledgeandgrow/pledgestrike</projectUrl>
+              <tags>security pentesting offensive-security vulnerability cli</tags>
+              <packageTypes>
+                <packageType name="Tool" />
+              </packageTypes>
+            </metadata>
+            <files>
+              <file src="tools/**/*" target="tools/" />
+            </files>
+          </package>
+          EOF
+
+          cat > nuget-pkg/tools/install.ps1 << 'PS1EOF'
+          $ErrorActionPreference = "Stop"
+          $version = "${{ steps.version.outputs.version }}"
+          $target = "x86_64-pc-windows-msvc"
+          $filename = "pledgestrike-$version-$target.zip"
+          $url = "https://github.com/pledgeandgrow/pledgestrike/releases/download/v$version/$filename"
+          $binDir = "$env:LOCALAPPDATA\pledgestrike\bin"
+          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+          $zipPath = Join-Path $binDir $filename
+          Write-Host "PledgeStrike: downloading $filename..."
+          Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
+          Expand-Archive -Path $zipPath -DestinationPath $binDir -Force
+          Remove-Item $zipPath
+          $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+          if ($currentPath -notlike "*$binDir*") {
+            [Environment]::SetEnvironmentVariable("Path", "$currentPath;$binDir", "User")
+            Write-Host "PledgeStrike: added $binDir to PATH"
+          }
+          Write-Host "PledgeStrike: installed successfully!"
+          PS1EOF
+
+          cat > nuget-pkg/tools/pledgestrike.ps1 << 'PS1EOF'
+          $binPath = "$env:LOCALAPPDATA\pledgestrike\bin\pledgestrike.exe"
+          if (-not (Test-Path $binPath)) {
+            Write-Error "PledgeStrike binary not found. Run 'dotnet tool install pledgestrike' first."
+            exit 1
+          }
+          & $binPath @args
+          PS1EOF
+
+      - name: Pack NuGet
+        run: |
+          cd nuget-pkg
+          nuget pack pledgestrike.nuspec -NoDefaultExcludes
+
+      - name: Publish to NuGet
+        run: |
+          cd nuget-pkg
+          nuget push pledgestrike.*.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_API_KEY }} -SkipDuplicate
+
+  # ─────────────────────────────────────────────
+  # Publish to Homebrew tap
+  # ─────────────────────────────────────────────
+  homebrew:
+    name: Publish to Homebrew
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download Linux + macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Compute SHA256
+        id: sha
+        run: |
+          echo "linux_sha=$(sha256sum artifacts/pledgestrike-${{ steps.version.outputs.version }}-x86_64-unknown-linux-musl.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "darwin_sha=$(sha256sum artifacts/pledgestrike-${{ steps.version.outputs.version }}-x86_64-apple-darwin.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "arm_sha=$(sha256sum artifacts/pledgestrike-${{ steps.version.outputs.version }}-aarch64-apple-darwin.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Update Homebrew tap
+        run: |
+          pip install pyyaml
+          python << 'PYEOF'
+          import os
+          version = "${{ steps.version.outputs.version }}"
+          linux_sha = "${{ steps.sha.outputs.linux_sha }}"
+          darwin_sha = "${{ steps.sha.outputs.darwin_sha }}"
+          arm_sha = "${{ steps.sha.outputs.arm_sha }}"
+
+          formula = f'''class Pledgestrike < Formula
+            desc "All-in-one offensive security toolkit with 120+ attack modules"
+            homepage "https://github.com/pledgeandgrow/pledgestrike"
+            url "https://github.com/pledgeandgrow/pledgestrike/releases/download/v{version}/pledgestrike-{version}-x86_64-unknown-linux-musl.tar.gz"
+            sha256 "{linux_sha}"
+            license "MIT"
+            version "{version}"
+
+            on_macos do
+              on_intel do
+                url "https://github.com/pledgeandgrow/pledgestrike/releases/download/v{version}/pledgestrike-{version}-x86_64-apple-darwin.tar.gz"
+                sha256 "{darwin_sha}"
+              end
+              on_arm do
+                url "https://github.com/pledgeandgrow/pledgestrike/releases/download/v{version}/pledgestrike-{version}-aarch64-apple-darwin.tar.gz"
+                sha256 "{arm_sha}"
+              end
+            end
+
+            def install
+              bin.install "pledgestrike"
+            end
+
+            test do
+              assert_match "PledgeStrike", shell_output("#{bin}/pledgestrike --help", 2)
+            end
+          end
+          '''
+          print(formula)
+          PYEOF
+
+      - name: Dispatch to homebrew tap
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          repository: pledgeandgrow/homebrew-pledgestrike
+          event-type: update-formula
+          client-payload: |
+            {
+              "version": "${{ steps.version.outputs.version }}",
+              "linux_sha": "${{ steps.sha.outputs.linux_sha }}",
+              "darwin_sha": "${{ steps.sha.outputs.darwin_sha }}",
+              "arm_sha": "${{ steps.sha.outputs.arm_sha }}"
+            }
