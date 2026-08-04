@@ -5,23 +5,23 @@ mod modules;
 
 use clap::Parser;
 use cli::{
-    AclAction, ActuatorAction, AgentAction, AmqpAction, ApiAction, BleAction, BruteAction,
-    CacheAction, CicdAction, Cli, ClickAction, CloudAction, CmdiAction, CoapAction, Commands,
-    ContainerAction, CookieAction, CorsAction, CrlfAction, CspAction, CsrfAction, DebugAction,
-    DeserAction, DnsenumAction, ElasticAction, EtcdAction, ExchangeAction, ExfilAction,
-    ExploitAction, FingerAction, FtpAction, GitAction, GraphqlAttackAction, GrpcAction, H2Action,
-    HostAction, HppAction, IdorAction, IocAction, IpmiAction, JndiAction, JwtAction, K8sAction,
-    KerbAction, LdapiAction, LfiAction, LlmAction, MassAction, MemcacheAction, MfaAction,
-    MongoAction, MqttAction, NfsAction, NosqliAction, NtlmAction, NtpAction, OauthAction,
-    OpenapiAction, OtAction, OwaAction, PadoracleAction, PayloadAction, PostmsgAction, ProtoAction,
-    RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction, RedirectAction, RedisxAction,
-    RtspAction, SamlAction, SecretAction, SessionAction, SharepointAction, ShellAction, SipAction,
-    SmbAction, SmtpAction, SmuggleAction, SnmpAction, SprayAction, SqliAction, SseAction,
-    SshAction, SsrfAction, SsrfChainAction, SstiAction, StompAction, SubdomAction, SupplyAction,
-    SwAction, TakeoverAction, TelnetAction, TftpAction, TlsAction, UnicodeAction, UpnpAction,
-    VncAction, WafAction, WasmAction, Web3Action, WebauthnAction, WebdavAction, WebrtcAction,
-    WfuzzAction, WhoisAction, WinrmAction, WsAction, WsdlAction, X11Action, XssAction, XxeAction,
-    ZookeeperAction,
+    AclAction, ActuatorAction, AgentAction, AiAction, AmqpAction, ApiAction, BleAction,
+    BruteAction, CacheAction, CicdAction, Cli, ClickAction, CloudAction, CmdiAction, CoapAction,
+    Commands, ContainerAction, CookieAction, CorsAction, CrlfAction, CspAction, CsrfAction,
+    DebugAction, DeserAction, DnsenumAction, ElasticAction, EtcdAction, ExchangeAction,
+    ExfilAction, ExploitAction, FingerAction, FtpAction, GitAction, GraphqlAttackAction,
+    GrpcAction, H2Action, HostAction, HppAction, IdorAction, IocAction, IpmiAction, JndiAction,
+    JwtAction, K8sAction, KerbAction, LdapiAction, LfiAction, LlmAction, MassAction,
+    MemcacheAction, MfaAction, MongoAction, MqttAction, NfsAction, NosqliAction, NtlmAction,
+    NtpAction, OauthAction, OpenapiAction, OtAction, OwaAction, PadoracleAction, PayloadAction,
+    PostmsgAction, ProtoAction, RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction,
+    RedirectAction, RedisxAction, RtspAction, SamlAction, SecretAction, SessionAction,
+    SharepointAction, ShellAction, SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction,
+    SprayAction, SqliAction, SseAction, SshAction, SsrfAction, SsrfChainAction, SstiAction,
+    StompAction, SubdomAction, SupplyAction, SwAction, TakeoverAction, TelnetAction, TftpAction,
+    TlsAction, UnicodeAction, UpnpAction, VectordbAction, VncAction, WafAction, WasmAction,
+    Web3Action, WebauthnAction, WebdavAction, WebrtcAction, WfuzzAction, WhoisAction, WinrmAction,
+    WsAction, WsdlAction, X11Action, XssAction, XxeAction, ZookeeperAction,
 };
 use colored::Colorize;
 
@@ -38,10 +38,15 @@ ____  _     _____ ____   ____ _____   ____ _____ ____  ___ _  _______
 }
 
 fn main() -> anyhow::Result<()> {
-    let args = Cli::parse();
-
-    let runtime = tokio::runtime::Runtime::new()?;
-    runtime.block_on(Box::pin(async_main(args)))
+    let builder = std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024);
+    let handle = builder.spawn(|| {
+        let args = Cli::parse();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(Box::pin(async_main(args)))
+    })?;
+    handle.join().unwrap();
+    Ok(())
 }
 
 async fn async_main(args: Cli) -> anyhow::Result<()> {
@@ -1949,6 +1954,26 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
+            LlmAction::Exfil {
+                url,
+                timeout,
+                token,
+            } => {
+                banner();
+                if let Err(e) = modules::llm::exfil(&url, timeout, token.as_deref()).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+            LlmAction::Bypass {
+                url,
+                timeout,
+                token,
+            } => {
+                banner();
+                if let Err(e) = modules::llm::bypass(&url, timeout, token.as_deref()).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
         },
         Commands::Agent { action } => match action {
             AgentAction::Tool {
@@ -1988,6 +2013,74 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             } => {
                 banner();
                 if let Err(e) = modules::agent::plugin(&url, timeout, token.as_deref()).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Ai { action } => match action {
+            AiAction::Extract {
+                url,
+                queries,
+                timeout,
+                token,
+            } => {
+                banner();
+                if let Err(e) = modules::ai::extract(&url, queries, timeout, token.as_deref()).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+            AiAction::Hyper {
+                url,
+                timeout,
+                token,
+            } => {
+                banner();
+                if let Err(e) = modules::ai::hyper(&url, timeout, token.as_deref()).await {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+            AiAction::Adversarial {
+                url,
+                input_type,
+                timeout,
+                token,
+            } => {
+                banner();
+                if let Err(e) =
+                    modules::ai::adversarial(&url, &input_type, timeout, token.as_deref()).await
+                {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+        },
+        Commands::Vectordb { action } => match action {
+            VectordbAction::Extract {
+                url,
+                limit,
+                timeout,
+                token,
+            } => {
+                banner();
+                if let Err(e) =
+                    modules::vectordb::extract(&url, limit, timeout, token.as_deref()).await
+                {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+            VectordbAction::Enum {
+                url,
+                timeout,
+                token,
+            } => {
+                banner();
+                if let Err(e) = modules::vectordb::enumerate(&url, timeout, token.as_deref()).await
+                {
+                    println!("{} Error: {}", "[-]".red().bold(), e);
+                }
+            }
+            VectordbAction::Probe { url, timeout } => {
+                banner();
+                if let Err(e) = modules::vectordb::probe(&url, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }

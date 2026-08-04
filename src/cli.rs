@@ -242,7 +242,7 @@ pub enum Commands {
         action: ExploitAction,
     },
 
-    /// LLM prompt injection — direct/indirect injection, jailbreak, data leak, hijack
+    /// LLM prompt injection — direct/indirect injection, jailbreak, data leak, hijack, exfil, bypass
     Llm {
         #[command(subcommand)]
         action: LlmAction,
@@ -252,6 +252,18 @@ pub enum Commands {
     Agent {
         #[command(subcommand)]
         action: AgentAction,
+    },
+
+    /// AI model extraction — model stealing, hyperparameter inference, decision boundary
+    Ai {
+        #[command(subcommand)]
+        action: AiAction,
+    },
+
+    /// Vector DB extraction — Pinecone, Weaviate, Chroma, Milvus unauthenticated access
+    Vectordb {
+        #[command(subcommand)]
+        action: VectordbAction,
     },
 
     /// MFA bypass — fatigue bombing, OTP race, OTP prediction, fallback bypass
@@ -2494,6 +2506,22 @@ pub enum LlmAction {
         #[arg(short = 't', long)]
         token: Option<String>,
     },
+    Exfil {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "30")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    Bypass {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short = 'T', long, default_value = "30")]
+        timeout: u64,
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -4720,6 +4748,106 @@ pub enum WafAction {
 
         /// Request timeout in seconds
         #[arg(short = 'T', long, default_value = "10")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AiAction {
+    /// Model stealing via repeated API queries — extracts decision boundaries
+    Extract {
+        /// Target prediction API URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Number of queries to send
+        #[arg(short = 'n', long, default_value = "1000")]
+        queries: u32,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "30")]
+        timeout: u64,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    /// Infer hyperparameters via timing and output analysis
+    Hyper {
+        /// Target prediction API URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "30")]
+        timeout: u64,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    /// Test for adversarial evasion — perturb inputs to cause misclassification
+    Adversarial {
+        /// Target classification API URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Input type (text, image, tabular)
+        #[arg(short, long, default_value = "text")]
+        input_type: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "30")]
+        timeout: u64,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum VectordbAction {
+    /// Extract vectors and metadata from unauthenticated vector databases
+    Extract {
+        /// Vector DB URL (Pinecone, Weaviate, Chroma, Milvus)
+        #[arg(short, long)]
+        url: String,
+
+        /// Number of records to fetch per query
+        #[arg(short = 'n', long, default_value = "100")]
+        limit: u32,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    /// Enumerate collections, indexes, and schema
+    Enum {
+        /// Vector DB URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    /// Test for unauthenticated access and open endpoints
+    Probe {
+        /// Vector DB URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
         timeout: u64,
     },
 }
