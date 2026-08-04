@@ -50,6 +50,16 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
 
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install cross
         if: matrix.cross
         run: cargo install cross
@@ -59,7 +69,7 @@ jobs:
         run: cross build --release --target ${{ matrix.target }}
 
       - name: Build (native)
-        if: !matrix.cross
+        if: ${{ !matrix.cross }}
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package (Unix)
@@ -80,16 +90,6 @@ jobs:
           copy MODULE.md package\ 2>$null
           copy LICENSE package\ 2>$null
           Compress-Archive -Path package\* -DestinationPath pledgestrike-${{ steps.version.outputs.version }}-${{ matrix.target }}.zip
-
-      - name: Get version
-        id: version
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
