@@ -64,6 +64,9 @@ pub mod oidc;
 pub mod passkey;
 pub mod sso;
 pub mod magiclink;
+pub mod gha;
+pub mod gitlabci;
+pub mod jenkins;
 
 pub mod ble;
 pub mod git;

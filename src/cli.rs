@@ -338,6 +338,24 @@ pub enum Commands {
         action: MagiclinkAction,
     },
 
+    /// GitHub Actions injection — PR title/body, branch name, ${{ }} expression, YAML injection
+    Gha {
+        #[command(subcommand)]
+        action: GhaAction,
+    },
+
+    /// GitLab CI injection — MR title, commit message, variable expansion, schedule inject
+    Gitlabci {
+        #[command(subcommand)]
+        action: GitlabciAction,
+    },
+
+    /// Jenkins RCE — unauthenticated access, script console, credential extraction
+    Jenkins {
+        #[command(subcommand)]
+        action: JenkinsAction,
+    },
+
     /// MFA bypass — fatigue bombing, OTP race, OTP prediction, fallback bypass
     Mfa {
         #[command(subcommand)]
@@ -5191,6 +5209,60 @@ pub enum MagiclinkAction {
     /// Magic link abuse — token leakage, replay, cross-user authentication
     Abuse {
         /// Target magic link URL
+        #[arg(short, long)]
+        url: String,
+
+        /// Auth token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum GhaAction {
+    /// GitHub Actions script injection — PR titles, issue bodies, branch names, ${{ }} expressions
+    Inject {
+        /// GitHub repo (owner/repo format)
+        #[arg(short, long)]
+        repo: String,
+
+        /// GitHub token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum GitlabciAction {
+    /// GitLab CI injection — MR titles, commit messages, variable expansion, schedule inject
+    Inject {
+        /// GitLab base URL
+        #[arg(short, long)]
+        url: String,
+
+        /// GitLab private token
+        #[arg(short = 't', long)]
+        token: Option<String>,
+
+        /// Request timeout in seconds
+        #[arg(short = 'T', long, default_value = "15")]
+        timeout: u64,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum JenkinsAction {
+    /// Jenkins RCE — unauthenticated access, script console, credential extraction
+    Rce {
+        /// Jenkins base URL
         #[arg(short, long)]
         url: String,
 
