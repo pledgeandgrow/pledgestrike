@@ -1,6 +1,6 @@
 [package]
 name = "pledgestrike"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 authors = ["PledgeCyber <contact@pledgecyber.com>"]
 license = "MIT"
@@ -32,7 +32,7 @@ ratatui = "0.30"
 crossterm = "0.28"
 tui-input = "0.15"
 regex = "1.10"
-rustls = "0.23"
+rustls = { version = "0.23", features = ["ring"] }
 webpki-roots = "0.26"
 x509-parser = "0.16"
 hickory-resolver = "0.26"

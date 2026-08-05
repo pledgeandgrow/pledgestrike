@@ -299,6 +299,8 @@ jobs:
     name: PyPI
     needs: github-release
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -424,8 +426,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: pypi-pkg/dist/
-        env:
-          PYPI_API_TOKEN: ${{ secrets.PYTHON_TOKEN }}
+          password: ${{ secrets.PYTHON_TOKEN }}
 
   rubygems:
     name: RubyGems

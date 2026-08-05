@@ -201,8 +201,17 @@ pub async fn probe(url: &str, timeout: u64) -> anyhow::Result<()> {
         match req.send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
+                let content_type = resp
+                    .headers()
+                    .get("content-type")
+                    .and_then(|v| v.to_str().ok())
+                    .unwrap_or("")
+                    .to_lowercase();
                 let body = resp.text().await.unwrap_or_default();
-                let is_open = status == 200 && !body.is_empty();
+                let is_html = content_type.contains("text/html")
+                    || body.trim_start().starts_with("<!doctype")
+                    || body.trim_start().starts_with("<html");
+                let is_open = status == 200 && !body.is_empty() && !is_html;
                 let tag = if is_open {
                     "OPEN".red().bold().to_string()
                 } else if status == 401 || status == 403 {

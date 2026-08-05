@@ -32,6 +32,7 @@ pub async fn idor(
     let client = build_client(timeout, token);
 
     let mut found = Vec::new();
+    let mut responses: Vec<(u64, usize, String, String)> = Vec::new();
 
     for i in 0..count {
         let test_id = start_id + i;
@@ -39,10 +40,19 @@ pub async fn idor(
         match client.get(&test_url).send().await {
             Ok(resp) => {
                 let status = resp.status();
+                let content_type = resp
+                    .headers()
+                    .get("content-type")
+                    .and_then(|v| v.to_str().ok())
+                    .unwrap_or("")
+                    .to_lowercase();
                 let body = resp.text().await.unwrap_or_default();
                 let body_len = body.len();
+                let is_html = content_type.contains("text/html")
+                    || body.trim_start().starts_with("<!doctype")
+                    || body.trim_start().starts_with("<html");
 
-                if status.as_u16() == 200 && body_len > 50 {
+                if status.as_u16() == 200 && body_len > 50 && !is_html {
                     println!(
                         "  {} ID={} status={} len={} [ACCESSIBLE]",
                         "*".cyan(),
@@ -50,7 +60,16 @@ pub async fn idor(
                         status,
                         body_len
                     );
-                    found.push((test_id, body_len));
+                    responses.push((test_id, body_len, body.clone(), content_type));
+                } else if status.as_u16() == 200 && is_html {
+                    println!(
+                        "  {} ID={} status={} len={} [HTML — likely SPA catch-all]",
+                        "*".dimmed(),
+                        test_id,
+                        status,
+                        body_len
+                    );
+                    responses.push((test_id, body_len, body.clone(), content_type));
                 } else if status.as_u16() == 403 {
                     println!("  {} ID={} status=403 (forbidden)", "*".dimmed(), test_id);
                 } else if status.as_u16() == 404 {
@@ -67,6 +86,28 @@ pub async fn idor(
             }
             Err(_) => {
                 println!("  {} ID={} error", "*".red(), test_id);
+            }
+        }
+    }
+
+    // Filter out identical responses (SPA catch-all pattern)
+    if !responses.is_empty() {
+        let first_body = &responses[0].2;
+        let all_identical = responses
+            .iter()
+            .all(|(_, _, body, _)| body == first_body);
+        if all_identical && responses.len() > 1 {
+            println!(
+                "\n{} All {} responses are identical ({} bytes) — likely SPA catch-all, not IDOR.",
+                "[-]".yellow().bold(),
+                responses.len(),
+                first_body.len()
+            );
+        } else {
+            for (id, len, body, ct) in &responses {
+                if !ct.contains("text/html") && len > &50 {
+                    found.push((*id, *len));
+                }
             }
         }
     }

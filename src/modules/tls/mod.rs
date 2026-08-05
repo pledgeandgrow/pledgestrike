@@ -213,6 +213,9 @@ async fn analyze_tls(host: &str, _port: u16, result: &mut TlsScanResult) -> anyh
         cert_data: cert_data.clone(),
     });
 
+    // Install a CryptoProvider to avoid panic when rustls can't auto-detect one
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     let config = ClientConfig::builder()
         .dangerous()
         .with_custom_certificate_verifier(verifier)
