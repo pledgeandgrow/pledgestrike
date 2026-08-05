@@ -19,13 +19,25 @@ const VECTORDB_ENDPOINTS: &[(&str, &str, &str)] = &[
     ("/v1/schema", "GET", "Weaviate — get schema"),
     ("/v1/meta", "GET", "Weaviate — get meta"),
     ("/v1/objects", "GET", "Weaviate — list objects"),
-    ("/v1/classifications", "GET", "Weaviate — list classifications"),
+    (
+        "/v1/classifications",
+        "GET",
+        "Weaviate — list classifications",
+    ),
     ("/v1/nodes", "GET", "Weaviate — cluster nodes"),
     ("/api/v1/collections", "GET", "Chroma — list collections"),
-    ("/api/v1/collections/count", "GET", "Chroma — collection count"),
+    (
+        "/api/v1/collections/count",
+        "GET",
+        "Chroma — collection count",
+    ),
     ("/api/v1/heartbeat", "GET", "Chroma — heartbeat"),
     ("/api/v2/collections", "GET", "Chroma v2 — list collections"),
-    ("/api/v1/tenants/default_tenant", "GET", "Chroma — default tenant"),
+    (
+        "/api/v1/tenants/default_tenant",
+        "GET",
+        "Chroma — default tenant",
+    ),
     ("/v1/collections", "GET", "Milvus — list collections (REST)"),
     ("/v1/partitions", "GET", "Milvus — list partitions"),
     ("/health", "GET", "Generic — health check"),
@@ -40,22 +52,39 @@ const VECTORDB_ENDPOINTS: &[(&str, &str, &str)] = &[
 
 const PROBE_PAYLOADS: &[(&str, &str)] = &[
     // Weaviate object query
-    ("POST", r#"{"query":"{ Get { __schema { types { name } } } }"}"#),
+    (
+        "POST",
+        r#"{"query":"{ Get { __schema { types { name } } } }"}"#,
+    ),
     // Weaviate GraphQL
     ("POST", r#"{"query":"{ Aggregate { __typename } }"}"#),
     // Pinecone query
-    ("POST", r#"{"vector":[0.1,0.2,0.3,0.4,0.5],"topK":10,"includeMetadata":true}"#),
+    (
+        "POST",
+        r#"{"vector":[0.1,0.2,0.3,0.4,0.5],"topK":10,"includeMetadata":true}"#,
+    ),
     // Pinecone upsert
-    ("POST", r#"{"vectors":[{"id":"test1","values":[0.1,0.2,0.3],"metadata":{"test":"true"}}]}"#),
+    (
+        "POST",
+        r#"{"vectors":[{"id":"test1","values":[0.1,0.2,0.3],"metadata":{"test":"true"}}]}"#,
+    ),
     // Chroma list
     ("POST", r#"{"limit":100}"#),
     // Milvus search
-    ("POST", r#"{"collection_name":"default","search_params":{"anns_field":"vector","topk":10}}"#),
+    (
+        "POST",
+        r#"{"collection_name":"default","search_params":{"anns_field":"vector","topk":10}}"#,
+    ),
     // Generic vector query
     ("POST", r#"{"query":[0.0,0.0,0.0,0.0,0.0],"n_results":10}"#),
 ];
 
-pub async fn extract(url: &str, limit: u32, timeout: u64, token: Option<&str>) -> anyhow::Result<()> {
+pub async fn extract(
+    url: &str,
+    limit: u32,
+    timeout: u64,
+    token: Option<&str>,
+) -> anyhow::Result<()> {
     println!("{} Vector DB Data Extraction", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
@@ -66,11 +95,16 @@ pub async fn extract(url: &str, limit: u32, timeout: u64, token: Option<&str>) -
     let mut extracted = 0u32;
     let mut accessible_endpoints = Vec::new();
 
-    println!("\n{} Probing vector DB API endpoints...", "[*]".cyan().bold());
+    println!(
+        "\n{} Probing vector DB API endpoints...",
+        "[*]".cyan().bold()
+    );
     for (path, method, desc) in VECTORDB_ENDPOINTS {
         let full_url = format!("{}{}", url.trim_end_matches('/'), path);
         let mut req = if *method == "POST" {
-            client.post(&full_url).header("Content-Type", "application/json")
+            client
+                .post(&full_url)
+                .header("Content-Type", "application/json")
         } else {
             client.get(&full_url)
         };
@@ -107,21 +141,13 @@ pub async fn extract(url: &str, limit: u32, timeout: u64, token: Option<&str>) -
                 }
             }
             Err(_) => {
-                println!(
-                    "  {} {:6} {:30} error",
-                    "*".red(),
-                    method,
-                    path
-                );
+                println!("  {} {:6} {:30} error", "*".red(), method, path);
             }
         }
     }
 
     if accessible_endpoints.is_empty() {
-        println!(
-            "\n{} No accessible endpoints found.",
-            "[-]".red().bold()
-        );
+        println!("\n{} No accessible endpoints found.", "[-]".red().bold());
         return Ok(());
     }
 
@@ -145,17 +171,15 @@ pub async fn extract(url: &str, limit: u32, timeout: u64, token: Option<&str>) -
                 ">".cyan(),
                 initial_data.len()
             );
-            println!(
-                "    {}",
-                initial_data.chars().take(500).collect::<String>()
-            );
+            println!("    {}", initial_data.chars().take(500).collect::<String>());
             extracted += 1;
         }
 
         for (payload_method, payload) in PROBE_PAYLOADS {
             let full_url = format!("{}{}", url.trim_end_matches('/'), path);
             let mut req = if *payload_method == "POST" {
-                client.post(&full_url)
+                client
+                    .post(&full_url)
                     .header("Content-Type", "application/json")
                     .body(payload.to_string())
             } else {
@@ -227,7 +251,10 @@ pub async fn enumerate(url: &str, timeout: u64, token: Option<&str>) -> anyhow::
     let client = build_client(timeout);
     let mut collections = Vec::new();
 
-    println!("\n{} Enumerating collections and schema...", "[*]".cyan().bold());
+    println!(
+        "\n{} Enumerating collections and schema...",
+        "[*]".cyan().bold()
+    );
 
     let enum_endpoints = [
         ("/v1/collections", "Pinecone collections"),
@@ -268,7 +295,8 @@ pub async fn enumerate(url: &str, timeout: u64, token: Option<&str>) -> anyhow::
                                 if let Some(s) = item.as_str() {
                                     collections.push(s.to_string());
                                     println!("    {} collection: {}", ">".cyan(), s);
-                                } else if let Some(name) = item.get("name").and_then(|n| n.as_str()) {
+                                } else if let Some(name) = item.get("name").and_then(|n| n.as_str())
+                                {
                                     collections.push(name.to_string());
                                     println!("    {} collection: {}", ">".cyan(), name);
                                 }
@@ -322,7 +350,10 @@ pub async fn enumerate(url: &str, timeout: u64, token: Option<&str>) -> anyhow::
 }
 
 pub async fn probe(url: &str, timeout: u64) -> anyhow::Result<()> {
-    println!("{} Vector DB Unauthenticated Access Probe", "[*]".cyan().bold());
+    println!(
+        "{} Vector DB Unauthenticated Access Probe",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
     println!("{}", "-".repeat(60).dimmed());
@@ -330,11 +361,16 @@ pub async fn probe(url: &str, timeout: u64) -> anyhow::Result<()> {
     let client = build_client(timeout);
     let mut open_count = 0u32;
 
-    println!("\n{} Testing without authentication...", "[*]".cyan().bold());
+    println!(
+        "\n{} Testing without authentication...",
+        "[*]".cyan().bold()
+    );
     for (path, method, desc) in VECTORDB_ENDPOINTS {
         let full_url = format!("{}{}", url.trim_end_matches('/'), path);
         let req = if *method == "POST" {
-            client.post(&full_url).header("Content-Type", "application/json")
+            client
+                .post(&full_url)
+                .header("Content-Type", "application/json")
         } else {
             client.get(&full_url)
         };
@@ -379,11 +415,7 @@ pub async fn probe(url: &str, timeout: u64) -> anyhow::Result<()> {
                 }
             }
             Err(_) => {
-                println!(
-                    "  {} {:30} error",
-                    "*".red(),
-                    path
-                );
+                println!("  {} {:30} error", "*".red(), path);
             }
         }
     }

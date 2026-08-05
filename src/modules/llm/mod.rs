@@ -548,8 +548,7 @@ pub async fn bypass(url: &str, timeout: u64, token: Option<&str>) -> anyhow::Res
         BYPASS_PAYLOADS.len()
     );
     if !results.is_empty() {
-        let techniques: std::collections::HashSet<&str> =
-            results.iter().map(|(_, t)| *t).collect();
+        let techniques: std::collections::HashSet<&str> = results.iter().map(|(_, t)| *t).collect();
         println!(
             "{} Successful techniques: {}",
             "[!]".red().bold(),

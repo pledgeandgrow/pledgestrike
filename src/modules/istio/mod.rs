@@ -18,18 +18,63 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
 const ISTIO_ENDPOINTS: &[(&str, &str, &str, &str)] = &[
     ("Istiod debug", "/debug", "GET", "Istiod debug endpoint"),
     ("Istiod syncz", "/debug/syncz", "GET", "Istiod sync status"),
-    ("Istiod configz", "/debug/configz", "GET", "Istiod config dump"),
-    ("Istiod endpointsz", "/debug/endpointsz", "GET", "Istiod endpoints"),
-    ("Istiod registryz", "/debug/registryz", "GET", "Istiod service registry"),
-    ("Istiod clusterz", "/debug/clusterz", "GET", "Istiod cluster config"),
-    ("Istiod secretz", "/debug/secretz", "GET", "Istiod secrets dump"),
-    ("Istiod networkz", "/debug/networkz", "GET", "Istiod network config"),
+    (
+        "Istiod configz",
+        "/debug/configz",
+        "GET",
+        "Istiod config dump",
+    ),
+    (
+        "Istiod endpointsz",
+        "/debug/endpointsz",
+        "GET",
+        "Istiod endpoints",
+    ),
+    (
+        "Istiod registryz",
+        "/debug/registryz",
+        "GET",
+        "Istiod service registry",
+    ),
+    (
+        "Istiod clusterz",
+        "/debug/clusterz",
+        "GET",
+        "Istiod cluster config",
+    ),
+    (
+        "Istiod secretz",
+        "/debug/secretz",
+        "GET",
+        "Istiod secrets dump",
+    ),
+    (
+        "Istiod networkz",
+        "/debug/networkz",
+        "GET",
+        "Istiod network config",
+    ),
     ("Istiod istsz", "/debug/istsz", "GET", "Istiod IST status"),
     ("Envoy admin", "/stats", "GET", "Envoy admin stats"),
-    ("Envoy config dump", "/config_dump", "POST", "Envoy full config"),
+    (
+        "Envoy config dump",
+        "/config_dump",
+        "POST",
+        "Envoy full config",
+    ),
     ("Envoy clusters", "/clusters", "GET", "Envoy cluster info"),
-    ("Envoy listeners", "/listeners", "GET", "Envoy listener info"),
-    ("Envoy server info", "/server_info", "GET", "Envoy server info"),
+    (
+        "Envoy listeners",
+        "/listeners",
+        "GET",
+        "Envoy listener info",
+    ),
+    (
+        "Envoy server info",
+        "/server_info",
+        "GET",
+        "Envoy server info",
+    ),
     ("Envoy certs", "/certs", "GET", "Envoy TLS certificates"),
     ("Envoy ready", "/ready", "GET", "Envoy readiness"),
     ("Envoy logging", "/logging", "GET", "Envoy log levels"),
@@ -42,7 +87,11 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
     println!("{} Istio Service Mesh Enumeration", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
-    println!("{} Testing {} endpoints", "[*]".cyan().bold(), ISTIO_ENDPOINTS.len());
+    println!(
+        "{} Testing {} endpoints",
+        "[*]".cyan().bold(),
+        ISTIO_ENDPOINTS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -52,7 +101,9 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
     for (name, path, method, desc) in ISTIO_ENDPOINTS {
         let full_url = format!("{}{}", base, path);
         let req = if *method == "POST" {
-            client.post(&full_url).header("Content-Type", "application/json")
+            client
+                .post(&full_url)
+                .header("Content-Type", "application/json")
         } else {
             client.get(&full_url)
         };
@@ -87,14 +138,22 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
         }
     }
 
-    println!("\n{} Testing mTLS bypass — sending without client cert...", "[*]".cyan().bold());
+    println!(
+        "\n{} Testing mTLS bypass — sending without client cert...",
+        "[*]".cyan().bold()
+    );
     let mtls_test_urls = [
         format!("{}/debug/registryz", base),
         format!("{}/debug/secretz", base),
         format!("{}/debug/configz", base),
     ];
     for test_url in &mtls_test_urls {
-        match client.get(test_url).header("X-Forwarded-Client-Cert", "").send().await {
+        match client
+            .get(test_url)
+            .header("X-Forwarded-Client-Cert", "")
+            .send()
+            .await
+        {
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
@@ -106,7 +165,11 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
                 };
                 println!("  {} {:50} status={} {}", "*".cyan(), test_url, status, tag);
                 if bypassed {
-                    println!("    {} {}", ">".red().bold(), body.chars().take(200).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        body.chars().take(200).collect::<String>()
+                    );
                 }
             }
             Err(_) => {
@@ -115,7 +178,10 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
         }
     }
 
-    println!("\n{} Testing Istio policy bypass headers...", "[*]".cyan().bold());
+    println!(
+        "\n{} Testing Istio policy bypass headers...",
+        "[*]".cyan().bold()
+    );
     let bypass_headers = [
         ("X-Forwarded-For", "127.0.0.1"),
         ("X-Real-IP", "10.0.0.1"),
@@ -133,7 +199,14 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
                 } else {
                     "blocked".green().to_string()
                 };
-                println!("  {} {:30}={:15} status={} {}", "*".cyan(), header, value, status, tag);
+                println!(
+                    "  {} {:30}={:15} status={} {}",
+                    "*".cyan(),
+                    header,
+                    value,
+                    status,
+                    tag
+                );
             }
             Err(_) => {
                 println!("  {} {:30} error", "*".red(), header);
@@ -150,7 +223,13 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
     if !accessible.is_empty() {
         println!("{} Accessible Istio resources:", "[!]".red().bold());
         for (name, path, body) in &accessible {
-            println!("  {} {} {} — {}", "*".red(), name, path, body.chars().take(80).collect::<String>());
+            println!(
+                "  {} {} {} — {}",
+                "*".red(),
+                name,
+                path,
+                body.chars().take(80).collect::<String>()
+            );
         }
     }
     Ok(())
@@ -185,10 +264,21 @@ pub async fn probe(url: &str, timeout: u64) -> anyhow::Result<()> {
                 } else {
                     "closed".dimmed().to_string()
                 };
-                println!("  {} {:30} status={} {} — {}", "*".cyan(), name, status, tag, desc);
+                println!(
+                    "  {} {:30} status={} {} — {}",
+                    "*".cyan(),
+                    name,
+                    status,
+                    tag,
+                    desc
+                );
                 if is_open {
                     open += 1;
-                    println!("    {} {}", ">".red().bold(), body.chars().take(200).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        body.chars().take(200).collect::<String>()
+                    );
                 }
             }
             Err(_) => {
@@ -204,7 +294,10 @@ pub async fn probe(url: &str, timeout: u64) -> anyhow::Result<()> {
         ISTIO_ENDPOINTS.len()
     );
     if open > 0 {
-        println!("{} Istio control plane exposed — mesh can be enumerated and manipulated!", "[!]".red().bold());
+        println!(
+            "{} Istio control plane exposed — mesh can be enumerated and manipulated!",
+            "[!]".red().bold()
+        );
     }
     Ok(())
 }

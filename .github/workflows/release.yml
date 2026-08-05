@@ -174,7 +174,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Publish to crates.io
-        run: cargo publish --token ${{ secrets.CRATES_TOKEN }} --allow-dirty
+        run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
 
   npm:
     name: npm

@@ -45,22 +45,42 @@ const TUNNEL_PAYLOADS: &[(&str, &str)] = &[
 const ICMP_DETECTION_BYPASSES: &[(&str, &str)] = &[
     ("Rate limiting — slow ping", "1 ping/second with data"),
     ("Rate limiting — burst ping", "10 pings/burst then pause"),
-    ("Payload randomization", "Random padding to avoid pattern matching"),
+    (
+        "Payload randomization",
+        "Random padding to avoid pattern matching",
+    ),
     ("Payload encryption", "AES-256-CBC encrypted payload"),
     ("TTL manipulation", "Vary TTL to avoid traceroute detection"),
     ("ID randomization", "Random ICMP ID per packet"),
     ("Size variation", "Variable payload sizes (8-1472 bytes)"),
     ("Inter-packet delay", "Exponential backoff between packets"),
-    ("Protocol switching", "Alternate between ICMP echo/timestamp/mask"),
-    ("Cover traffic", "Mix exfil data with legitimate ping traffic"),
+    (
+        "Protocol switching",
+        "Alternate between ICMP echo/timestamp/mask",
+    ),
+    (
+        "Cover traffic",
+        "Mix exfil data with legitimate ping traffic",
+    ),
 ];
 
 pub async fn tunnel(host: &str, data: &str, timeout: u64) -> anyhow::Result<()> {
     println!("{} ICMP Tunneling Suite", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Host: {}", "[*]".cyan().bold(), host);
-    println!("{} Data: {} ({} bytes)", "[*]".cyan().bold(), data, data.len());
-    println!("{} {} probe hosts, {} tunnel payloads, {} detection bypasses", "[*]".cyan().bold(), ICMP_PROBE_HOSTS.len(), TUNNEL_PAYLOADS.len(), ICMP_DETECTION_BYPASSES.len());
+    println!(
+        "{} Data: {} ({} bytes)",
+        "[*]".cyan().bold(),
+        data,
+        data.len()
+    );
+    println!(
+        "{} {} probe hosts, {} tunnel payloads, {} detection bypasses",
+        "[*]".cyan().bold(),
+        ICMP_PROBE_HOSTS.len(),
+        TUNNEL_PAYLOADS.len(),
+        ICMP_DETECTION_BYPASSES.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
@@ -71,34 +91,83 @@ pub async fn tunnel(host: &str, data: &str, timeout: u64) -> anyhow::Result<()> 
         match client.get(&ping_url).send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
-                let tag = if status > 0 { "reachable".green().to_string() } else { "unreachable".red().to_string() };
-                println!("  {} {:15} status={} {}", "*".cyan(), probe_host, status, tag);
+                let tag = if status > 0 {
+                    "reachable".green().to_string()
+                } else {
+                    "unreachable".red().to_string()
+                };
+                println!(
+                    "  {} {:15} status={} {}",
+                    "*".cyan(),
+                    probe_host,
+                    status,
+                    tag
+                );
             }
             Err(_) => {
-                println!("  {} {:15} timeout (ICMP may still work)", "*".yellow(), probe_host);
+                println!(
+                    "  {} {:15} timeout (ICMP may still work)",
+                    "*".yellow(),
+                    probe_host
+                );
             }
         }
     }
 
-    println!("\n{} [2/3] ICMP tunnel payload analysis...", "[*]".cyan().bold());
+    println!(
+        "\n{} [2/3] ICMP tunnel payload analysis...",
+        "[*]".cyan().bold()
+    );
     let data_bytes = data.as_bytes();
     let mut results = Vec::new();
 
     for (name, method) in TUNNEL_PAYLOADS {
         let (payload_desc, payload_size, chunks) = match *method {
             "echo" => ("data in echo payload", data_bytes.len(), 1),
-            "timestamp" => ("data encoded in timestamp field", (data_bytes.len() + 3) / 4, 1),
-            "mask" => ("data encoded in address mask", (data_bytes.len() + 3) / 4, 1),
+            "timestamp" => (
+                "data encoded in timestamp field",
+                (data_bytes.len() + 3) / 4,
+                1,
+            ),
+            "mask" => (
+                "data encoded in address mask",
+                (data_bytes.len() + 3) / 4,
+                1,
+            ),
             "info" => ("data in info request", data_bytes.len(), 1),
             "large" => ("large payload (MTU-sized)", 1472, 1),
-            "fragmented" => ("fragmented payload", data_bytes.len(), (data_bytes.len() + 127) / 128),
-            "ttl" => ("TTL-encoded (1 byte per packet)", data_bytes.len(), data_bytes.len()),
-            "id" => ("ID-encoded (2 bytes per packet)", (data_bytes.len() + 1) / 2, (data_bytes.len() + 1) / 2),
-            "seq" => ("sequence-encoded (2 bytes per packet)", (data_bytes.len() + 1) / 2, (data_bytes.len() + 1) / 2),
+            "fragmented" => (
+                "fragmented payload",
+                data_bytes.len(),
+                (data_bytes.len() + 127) / 128,
+            ),
+            "ttl" => (
+                "TTL-encoded (1 byte per packet)",
+                data_bytes.len(),
+                data_bytes.len(),
+            ),
+            "id" => (
+                "ID-encoded (2 bytes per packet)",
+                (data_bytes.len() + 1) / 2,
+                (data_bytes.len() + 1) / 2,
+            ),
+            "seq" => (
+                "sequence-encoded (2 bytes per packet)",
+                (data_bytes.len() + 1) / 2,
+                (data_bytes.len() + 1) / 2,
+            ),
             "type" => ("ICMP type-encoded", data_bytes.len(), data_bytes.len()),
             "code" => ("ICMP code-encoded", data_bytes.len(), data_bytes.len()),
-            "checksum" => ("checksum-encoded", (data_bytes.len() + 1) / 2, (data_bytes.len() + 1) / 2),
-            "combined" => ("combined field encoding", (data_bytes.len() + 5) / 6, (data_bytes.len() + 5) / 6),
+            "checksum" => (
+                "checksum-encoded",
+                (data_bytes.len() + 1) / 2,
+                (data_bytes.len() + 1) / 2,
+            ),
+            "combined" => (
+                "combined field encoding",
+                (data_bytes.len() + 5) / 6,
+                (data_bytes.len() + 5) / 6,
+            ),
             "base64" => ("base64 in payload", ((data_bytes.len() * 4) + 2) / 3, 1),
             "hex" => ("hex in payload", data_bytes.len() * 2, 1),
             "binary" => ("raw binary in payload", data_bytes.len(), 1),
@@ -131,7 +200,10 @@ pub async fn tunnel(host: &str, data: &str, timeout: u64) -> anyhow::Result<()> 
         results.push((name, chunks));
     }
 
-    println!("\n{} [3/3] Detection bypass strategies...", "[*]".cyan().bold());
+    println!(
+        "\n{} [3/3] Detection bypass strategies...",
+        "[*]".cyan().bold()
+    );
     for (name, desc) in ICMP_DETECTION_BYPASSES {
         println!("  {} {:30} {}", "*".cyan(), name, desc);
     }
@@ -148,9 +220,18 @@ pub async fn tunnel(host: &str, data: &str, timeout: u64) -> anyhow::Result<()> 
         slow
     );
 
-    println!("{} ICMP tunneling bypasses firewalls that allow ICMP echo/reply", "[*]".cyan().bold());
-    println!("{} Most efficient: echo payload, base64, hex, binary (single-packet)", "[*]".cyan().bold());
-    println!("{} Most stealthy: TTL-encoded, XOR, AES-pattern (evades DPI)", "[*]".cyan().bold());
+    println!(
+        "{} ICMP tunneling bypasses firewalls that allow ICMP echo/reply",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "{} Most efficient: echo payload, base64, hex, binary (single-packet)",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "{} Most stealthy: TTL-encoded, XOR, AES-pattern (evades DPI)",
+        "[*]".cyan().bold()
+    );
 
     Ok(())
 }

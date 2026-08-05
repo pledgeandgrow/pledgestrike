@@ -93,9 +93,7 @@ pub async fn idor(
     // Filter out identical responses (SPA catch-all pattern)
     if !responses.is_empty() {
         let first_body = &responses[0].2;
-        let all_identical = responses
-            .iter()
-            .all(|(_, _, body, _)| body == first_body);
+        let all_identical = responses.iter().all(|(_, _, body, _)| body == first_body);
         if all_identical && responses.len() > 1 {
             println!(
                 "\n{} All {} responses are identical ({} bytes) — likely SPA catch-all, not IDOR.",

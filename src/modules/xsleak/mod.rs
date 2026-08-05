@@ -39,21 +39,66 @@ const TIMING_ORIGINS: &[&str] = &[
 ];
 
 const ERROR_EVENTS: &[(&str, &str)] = &[
-    ("img onerror", "<img src=\"https://TARGET/x\" onerror=\"log('error')\">"),
-    ("script onerror", "<script src=\"https://TARGET/x\" onerror=\"log('error')\">"),
-    ("link onerror", "<link rel=\"stylesheet\" href=\"https://TARGET/x\" onerror=\"log('error')\">"),
-    ("object onerror", "<object data=\"https://TARGET/x\" onerror=\"log('error')\">"),
-    ("audio onerror", "<audio src=\"https://TARGET/x\" onerror=\"log('error')\">"),
-    ("video onerror", "<video src=\"https://TARGET/x\" onerror=\"log('error')\">"),
-    ("source onerror", "<source src=\"https://TARGET/x\" onerror=\"log('error')\">"),
-    ("iframe onload", "<iframe src=\"https://TARGET\" onload=\"log('loaded')\">"),
-    ("fetch catch", "fetch('https://TARGET').catch(()=>log('blocked'))"),
-    ("XMLHttpRequest", "var x=new XMLHttpRequest();x.open('GET','https://TARGET');x.onerror=()=>log('blocked');x.send()"),
-    ("import()", "import('https://TARGET/x').catch(()=>log('blocked'))"),
-    ("Worker", "new Worker('https://TARGET/x').onerror=()=>log('blocked')"),
-    ("SharedWorker", "new SharedWorker('https://TARGET/x').onerror=()=>log('blocked')"),
-    ("WebSocket", "new WebSocket('wss://TARGET/x').onerror=()=>log('blocked')"),
-    ("EventSource", "new EventSource('https://TARGET/x').onerror=()=>log('blocked')"),
+    (
+        "img onerror",
+        "<img src=\"https://TARGET/x\" onerror=\"log('error')\">",
+    ),
+    (
+        "script onerror",
+        "<script src=\"https://TARGET/x\" onerror=\"log('error')\">",
+    ),
+    (
+        "link onerror",
+        "<link rel=\"stylesheet\" href=\"https://TARGET/x\" onerror=\"log('error')\">",
+    ),
+    (
+        "object onerror",
+        "<object data=\"https://TARGET/x\" onerror=\"log('error')\">",
+    ),
+    (
+        "audio onerror",
+        "<audio src=\"https://TARGET/x\" onerror=\"log('error')\">",
+    ),
+    (
+        "video onerror",
+        "<video src=\"https://TARGET/x\" onerror=\"log('error')\">",
+    ),
+    (
+        "source onerror",
+        "<source src=\"https://TARGET/x\" onerror=\"log('error')\">",
+    ),
+    (
+        "iframe onload",
+        "<iframe src=\"https://TARGET\" onload=\"log('loaded')\">",
+    ),
+    (
+        "fetch catch",
+        "fetch('https://TARGET').catch(()=>log('blocked'))",
+    ),
+    (
+        "XMLHttpRequest",
+        "var x=new XMLHttpRequest();x.open('GET','https://TARGET');x.onerror=()=>log('blocked');x.send()",
+    ),
+    (
+        "import()",
+        "import('https://TARGET/x').catch(()=>log('blocked'))",
+    ),
+    (
+        "Worker",
+        "new Worker('https://TARGET/x').onerror=()=>log('blocked')",
+    ),
+    (
+        "SharedWorker",
+        "new SharedWorker('https://TARGET/x').onerror=()=>log('blocked')",
+    ),
+    (
+        "WebSocket",
+        "new WebSocket('wss://TARGET/x').onerror=()=>log('blocked')",
+    ),
+    (
+        "EventSource",
+        "new EventSource('https://TARGET/x').onerror=()=>log('blocked')",
+    ),
 ];
 
 const FRAME_COUNT_PAYLOADS: &[&str] = &[
@@ -70,11 +115,23 @@ const NAVIGATION_PAYLOADS: &[(&str, &str)] = &[
     ("location.href", "location.href='https://TARGET'"),
     ("location.replace", "location.replace('https://TARGET')"),
     ("location.assign", "location.assign('https://TARGET')"),
-    ("history.pushState", "history.pushState({}, '', 'https://TARGET')"),
-    ("history.replaceState", "history.replaceState({}, '', 'https://TARGET')"),
+    (
+        "history.pushState",
+        "history.pushState({}, '', 'https://TARGET')",
+    ),
+    (
+        "history.replaceState",
+        "history.replaceState({}, '', 'https://TARGET')",
+    ),
     ("form.action", "document.forms[0].action='https://TARGET'"),
-    ("a.href click", "var a=document.createElement('a');a.href='https://TARGET';a.click()"),
-    ("meta refresh", "<meta http-equiv='refresh' content='0;url=https://TARGET'>"),
+    (
+        "a.href click",
+        "var a=document.createElement('a');a.href='https://TARGET';a.click()",
+    ),
+    (
+        "meta refresh",
+        "<meta http-equiv='refresh' content='0;url=https://TARGET'>",
+    ),
     ("window.navigate", "window.navigate('https://TARGET')"),
 ];
 
@@ -86,12 +143,23 @@ pub async fn detect(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
 
     let client = build_client(timeout, token);
 
-    println!("\n{} [1/4] Timing-based XS-Leak detection...", "[*]".cyan().bold());
-    println!("  {} Measuring response times for {} origins...", "*".cyan(), TIMING_ORIGINS.len());
+    println!(
+        "\n{} [1/4] Timing-based XS-Leak detection...",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "  {} Measuring response times for {} origins...",
+        "*".cyan(),
+        TIMING_ORIGINS.len()
+    );
     let mut timing_results = Vec::new();
 
     for origin in TIMING_ORIGINS {
-        let test_url = origin.replace("TARGET", &url.trim_start_matches("https://").trim_start_matches("http://"));
+        let test_url = origin.replace(
+            "TARGET",
+            &url.trim_start_matches("https://")
+                .trim_start_matches("http://"),
+        );
         let start = Instant::now();
         match client.get(&test_url).send().await {
             Ok(resp) => {
@@ -128,26 +196,49 @@ pub async fn detect(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
         }
     }
 
-    let fast_count = timing_results.iter().filter(|(_, t, _)| t.as_millis() < 100).count();
-    let slow_count = timing_results.iter().filter(|(_, t, _)| t.as_millis() > 500).count();
+    let fast_count = timing_results
+        .iter()
+        .filter(|(_, t, _)| t.as_millis() < 100)
+        .count();
+    let slow_count = timing_results
+        .iter()
+        .filter(|(_, t, _)| t.as_millis() > 500)
+        .count();
     println!(
         "  {} {} fast (<100ms), {} slow (>500ms) — timing side-channel {}",
         "[*]".cyan().bold(),
         fast_count,
         slow_count,
-        if slow_count > fast_count / 2 { "POSSIBLE".red().bold().to_string() } else { "unlikely".green().to_string() }
+        if slow_count > fast_count / 2 {
+            "POSSIBLE".red().bold().to_string()
+        } else {
+            "unlikely".green().to_string()
+        }
     );
 
-    println!("\n{} [2/4] Error event XS-Leak detection...", "[*]".cyan().bold());
-    println!("  {} Testing {} error event vectors...", "*".cyan(), ERROR_EVENTS.len());
+    println!(
+        "\n{} [2/4] Error event XS-Leak detection...",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "  {} Testing {} error event vectors...",
+        "*".cyan(),
+        ERROR_EVENTS.len()
+    );
     for (name, payload) in ERROR_EVENTS {
-        let test_payload = payload.replace("TARGET", &url.trim_start_matches("https://").trim_start_matches("http://"));
+        let test_payload = payload.replace(
+            "TARGET",
+            &url.trim_start_matches("https://")
+                .trim_start_matches("http://"),
+        );
         let test_url = format!("{}?xss={}", url, urlencoding_encode(&test_payload));
         match client.get(&test_url).send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
-                let reflected = body.contains(&test_payload) || body.contains("onerror") || body.contains("onload");
+                let reflected = body.contains(&test_payload)
+                    || body.contains("onerror")
+                    || body.contains("onload");
                 let tag = if reflected {
                     "REFLECTED".red().bold().to_string()
                 } else {
@@ -162,7 +253,11 @@ pub async fn detect(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
     }
 
     println!("\n{} [3/4] Frame counting XS-Leak...", "[*]".cyan().bold());
-    println!("  {} Testing {} frame count probes...", "*".cyan(), FRAME_COUNT_PAYLOADS.len());
+    println!(
+        "  {} Testing {} frame count probes...",
+        "*".cyan(),
+        FRAME_COUNT_PAYLOADS.len()
+    );
     for payload in FRAME_COUNT_PAYLOADS {
         let test_url = format!("{}?probe={}", url, urlencoding_encode(payload));
         match client.get(&test_url).send().await {
@@ -183,17 +278,30 @@ pub async fn detect(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
         }
     }
 
-    println!("\n{} [4/4] Navigation-based XS-Leak...", "[*]".cyan().bold());
-    println!("  {} Testing {} navigation vectors...", "*".cyan(), NAVIGATION_PAYLOADS.len());
+    println!(
+        "\n{} [4/4] Navigation-based XS-Leak...",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "  {} Testing {} navigation vectors...",
+        "*".cyan(),
+        NAVIGATION_PAYLOADS.len()
+    );
     let mut nav_results = Vec::new();
     for (name, payload) in NAVIGATION_PAYLOADS {
-        let test_payload = payload.replace("TARGET", &url.trim_start_matches("https://").trim_start_matches("http://"));
+        let test_payload = payload.replace(
+            "TARGET",
+            &url.trim_start_matches("https://")
+                .trim_start_matches("http://"),
+        );
         let test_url = format!("{}?nav={}", url, urlencoding_encode(&test_payload));
         match client.get(&test_url).send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 let body = resp.text().await.unwrap_or_default();
-                let reflected = body.contains(&test_payload) || body.contains("location.href") || body.contains("window.open");
+                let reflected = body.contains(&test_payload)
+                    || body.contains("location.href")
+                    || body.contains("window.open");
                 let tag = if reflected {
                     "REFLECTED".red().bold().to_string()
                 } else {
@@ -211,16 +319,40 @@ pub async fn detect(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
     }
 
     println!("\n{} XS-Leak Summary:", "[*]".cyan().bold());
-    println!("  {} Timing side-channel: {} fast, {} slow responses", "*".cyan(), fast_count, slow_count);
-    println!("  {} Error events: {} vectors tested", "*".cyan(), ERROR_EVENTS.len());
-    println!("  {} Frame counting: {} probes tested", "*".cyan(), FRAME_COUNT_PAYLOADS.len());
-    println!("  {} Navigation: {} / {} reflected", "*".cyan(), nav_results.len(), NAVIGATION_PAYLOADS.len());
+    println!(
+        "  {} Timing side-channel: {} fast, {} slow responses",
+        "*".cyan(),
+        fast_count,
+        slow_count
+    );
+    println!(
+        "  {} Error events: {} vectors tested",
+        "*".cyan(),
+        ERROR_EVENTS.len()
+    );
+    println!(
+        "  {} Frame counting: {} probes tested",
+        "*".cyan(),
+        FRAME_COUNT_PAYLOADS.len()
+    );
+    println!(
+        "  {} Navigation: {} / {} reflected",
+        "*".cyan(),
+        nav_results.len(),
+        NAVIGATION_PAYLOADS.len()
+    );
 
     if slow_count > 3 {
-        println!("\n{} [HIGH] Timing differences detected — cross-site timing attack possible!", "[!]".red().bold());
+        println!(
+            "\n{} [HIGH] Timing differences detected — cross-site timing attack possible!",
+            "[!]".red().bold()
+        );
     }
     if !nav_results.is_empty() {
-        println!("{} [MEDIUM] Navigation payloads reflected — history-based leak possible", "[!]".yellow().bold());
+        println!(
+            "{} [MEDIUM] Navigation payloads reflected — history-based leak possible",
+            "[!]".yellow().bold()
+        );
     }
 
     Ok(())

@@ -18,7 +18,11 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
 const ARGOCD_ENDPOINTS: &[(&str, &str, &str)] = &[
     ("API versions", "/api/v1/version", "GET"),
     ("Applications", "/api/v1/applications", "GET"),
-    ("Application (default)", "/api/v1/applications/default", "GET"),
+    (
+        "Application (default)",
+        "/api/v1/applications/default",
+        "GET",
+    ),
     ("Clusters", "/api/v1/clusters", "GET"),
     ("Repositories", "/api/v1/repositories", "GET"),
     ("Repo certs", "/api/v1/certificates", "GET"),
@@ -28,24 +32,60 @@ const ARGOCD_ENDPOINTS: &[(&str, &str, &str)] = &[
     ("Project (default)", "/api/v1/projects/default", "GET"),
     ("GPG keys", "/api/v1/gpgkeys", "GET"),
     ("Notifications", "/api/v1/notifications/services", "GET"),
-    ("Application sync (POST)", "/api/v1/applications/default/sync", "POST"),
-    ("Application refresh (GET)", "/api/v1/applications/default?refresh=true", "GET"),
-    ("Cluster info", "/api/v1/clusters/https%3A%2F%2Fkubernetes.default.svc", "GET"),
-    ("Repo connection", "/api/v1/repositories/https%3A%2F%2Fgithub.com%2Ftarget%2Frepo", "GET"),
-    ("Stream logs", "/api/v1/stream/applications/default/logs", "GET"),
-    ("Resource tree", "/api/v1/applications/default/resource-tree", "GET"),
+    (
+        "Application sync (POST)",
+        "/api/v1/applications/default/sync",
+        "POST",
+    ),
+    (
+        "Application refresh (GET)",
+        "/api/v1/applications/default?refresh=true",
+        "GET",
+    ),
+    (
+        "Cluster info",
+        "/api/v1/clusters/https%3A%2F%2Fkubernetes.default.svc",
+        "GET",
+    ),
+    (
+        "Repo connection",
+        "/api/v1/repositories/https%3A%2F%2Fgithub.com%2Ftarget%2Frepo",
+        "GET",
+    ),
+    (
+        "Stream logs",
+        "/api/v1/stream/applications/default/logs",
+        "GET",
+    ),
+    (
+        "Resource tree",
+        "/api/v1/applications/default/resource-tree",
+        "GET",
+    ),
     ("Manifests", "/api/v1/applications/default/manifests", "GET"),
-    ("Operation logs", "/api/v1/applications/default/operation", "GET"),
+    (
+        "Operation logs",
+        "/api/v1/applications/default/operation",
+        "GET",
+    ),
     ("User info", "/api/v1/session", "GET"),
     ("Dex login", "/api/dex", "GET"),
-    ("Health", "/api/v1/stream/applications/default/resource-tree", "GET"),
+    (
+        "Health",
+        "/api/v1/stream/applications/default/resource-tree",
+        "GET",
+    ),
 ];
 
 pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} ArgoCD Enumeration & Abuse", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
-    println!("{} Testing {} ArgoCD endpoints", "[*]".cyan().bold(), ARGOCD_ENDPOINTS.len());
+    println!(
+        "{} Testing {} ArgoCD endpoints",
+        "[*]".cyan().bold(),
+        ARGOCD_ENDPOINTS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -55,7 +95,9 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
     for (name, path, method) in ARGOCD_ENDPOINTS {
         let full_url = format!("{}{}", base, path);
         let req = if *method == "POST" {
-            client.post(&full_url).header("Content-Type", "application/json")
+            client
+                .post(&full_url)
+                .header("Content-Type", "application/json")
         } else {
             client.get(&full_url)
         };
@@ -90,7 +132,10 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
     }
 
     if !accessible.is_empty() {
-        println!("\n{} Extracting data from accessible endpoints...", "[*]".cyan().bold());
+        println!(
+            "\n{} Extracting data from accessible endpoints...",
+            "[*]".cyan().bold()
+        );
 
         for (name, path, body) in &accessible {
             if *name == "Applications" {
@@ -98,26 +143,31 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(body) {
                     if let Some(items) = json.get("items").and_then(|i| i.as_array()) {
                         for app in items.iter().take(20) {
-                            let app_name = app.get("metadata")
+                            let app_name = app
+                                .get("metadata")
                                 .and_then(|m| m.get("name"))
                                 .and_then(|n| n.as_str())
                                 .unwrap_or("unknown");
-                            let dest_namespace = app.get("spec")
+                            let dest_namespace = app
+                                .get("spec")
                                 .and_then(|s| s.get("destination"))
                                 .and_then(|d| d.get("namespace"))
                                 .and_then(|n| n.as_str())
                                 .unwrap_or("unknown");
-                            let dest_server = app.get("spec")
+                            let dest_server = app
+                                .get("spec")
                                 .and_then(|s| s.get("destination"))
                                 .and_then(|d| d.get("server"))
                                 .and_then(|s| s.as_str())
                                 .unwrap_or("unknown");
-                            let sync_status = app.get("status")
+                            let sync_status = app
+                                .get("status")
                                 .and_then(|s| s.get("sync"))
                                 .and_then(|s| s.get("status"))
                                 .and_then(|s| s.as_str())
                                 .unwrap_or("unknown");
-                            let repo_url = app.get("spec")
+                            let repo_url = app
+                                .get("spec")
                                 .and_then(|s| s.get("source"))
                                 .and_then(|s| s.get("repoURL"))
                                 .and_then(|r| r.as_str())
@@ -137,35 +187,64 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
 
             if *name == "Clusters" {
                 println!("\n{} Cluster configuration:", "[!]".red().bold());
-                println!("  {} {}", ">".red().bold(), body.chars().take(400).collect::<String>());
+                println!(
+                    "  {} {}",
+                    ">".red().bold(),
+                    body.chars().take(400).collect::<String>()
+                );
             }
 
             if *name == "Repositories" {
                 println!("\n{} Repository credentials:", "[!]".red().bold());
-                println!("  {} {}", ">".red().bold(), body.chars().take(400).collect::<String>());
+                println!(
+                    "  {} {}",
+                    ">".red().bold(),
+                    body.chars().take(400).collect::<String>()
+                );
             }
 
             if *name == "Settings" {
                 println!("\n{} ArgoCD settings:", "[!]".red().bold());
-                if body.contains("password") || body.contains("secret") || body.contains("credential") {
+                if body.contains("password")
+                    || body.contains("secret")
+                    || body.contains("credential")
+                {
                     println!("  {} Contains sensitive configuration!", "[!]".red().bold());
                 }
-                println!("  {} {}", ">".red().bold(), body.chars().take(400).collect::<String>());
+                println!(
+                    "  {} {}",
+                    ">".red().bold(),
+                    body.chars().take(400).collect::<String>()
+                );
             }
 
             if *name == "Accounts" {
                 println!("\n{} ArgoCD accounts:", "[!]".red().bold());
-                println!("  {} {}", ">".red().bold(), body.chars().take(300).collect::<String>());
+                println!(
+                    "  {} {}",
+                    ">".red().bold(),
+                    body.chars().take(300).collect::<String>()
+                );
             }
         }
 
-        let can_sync = accessible.iter().any(|(n, _, _)| *n == "Application sync (POST)");
-        let can_refresh = accessible.iter().any(|(n, _, _)| *n == "Application refresh (GET)");
+        let can_sync = accessible
+            .iter()
+            .any(|(n, _, _)| *n == "Application sync (POST)");
+        let can_refresh = accessible
+            .iter()
+            .any(|(n, _, _)| *n == "Application refresh (GET)");
         if can_sync {
-            println!("\n{} [CRITICAL] Can trigger application sync — deploy malicious manifests!", "[!]".red().bold());
+            println!(
+                "\n{} [CRITICAL] Can trigger application sync — deploy malicious manifests!",
+                "[!]".red().bold()
+            );
         }
         if can_refresh {
-            println!("{} [HIGH] Can refresh applications — force reconciliation with Git repo", "[!]".red().bold());
+            println!(
+                "{} [HIGH] Can refresh applications — force reconciliation with Git repo",
+                "[!]".red().bold()
+            );
         }
     }
 
@@ -176,7 +255,10 @@ pub async fn enumerate(url: &str, token: Option<&str>, timeout: u64) -> anyhow::
         ARGOCD_ENDPOINTS.len()
     );
     if accessible.is_empty() {
-        println!("{} ArgoCD requires authentication or is not exposed.", "[-]".green().bold());
+        println!(
+            "{} ArgoCD requires authentication or is not exposed.",
+            "[-]".green().bold()
+        );
     }
     Ok(())
 }
@@ -223,7 +305,11 @@ pub async fn probe(url: &str, timeout: u64) -> anyhow::Result<()> {
                 if is_open {
                     open += 1;
                     if body.len() > 100 {
-                        println!("    {} {}", ">".red().bold(), body.chars().take(200).collect::<String>());
+                        println!(
+                            "    {} {}",
+                            ">".red().bold(),
+                            body.chars().take(200).collect::<String>()
+                        );
                     }
                 }
             }
@@ -240,7 +326,10 @@ pub async fn probe(url: &str, timeout: u64) -> anyhow::Result<()> {
         ARGOCD_ENDPOINTS.len()
     );
     if open > 0 {
-        println!("{} ArgoCD is exposed without authentication — full cluster compromise possible!", "[!]".red().bold());
+        println!(
+            "{} ArgoCD is exposed without authentication — full cluster compromise possible!",
+            "[!]".red().bold()
+        );
     }
     Ok(())
 }

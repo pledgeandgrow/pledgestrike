@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-audit --locked
-      - run: cargo audit --deny vulnerabilities
+      - run: cargo audit --deny warnings
 
   test:
     name: Test

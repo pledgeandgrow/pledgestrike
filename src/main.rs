@@ -4,27 +4,26 @@ use pledgestrike::{cli, modules};
 
 use clap::Parser;
 use cli::{
-    AclAction, ActuatorAction, AdAction, AdcsAction, AgentAction, AiAction, AmqpAction,
-    ApiAction, ArgoCDAction, AwsAction, AzureAction, BleAction, BruteAction, CacheAction,
-    CicdAction, Cli, ClickAction, CloudAction, CmdiAction, CoapAction, Commands,
-    ConfluenceAction, ContainerAction, CookieAction, CorsAction, CrlfAction, CspAction,
-    CsrfAction, DebugAction, DeserAction, DnsenumAction, DohAction, DomAction, ElasticAction,
-    EtcdAction, ExchangeAction, ExfilAction, ExploitAction, FingerAction, FtpAction, GitAction,
-    GcpAction, GhaAction, GitlabciAction, GraphqlAttackAction, GrpcAction, H2Action, HostAction,
-    HppAction, IcmpAction, IdorAction, IocAction, IpmiAction, IstioAction, IvantiAction,
-    JndiAction, JenkinsAction, JwtAction, K8sAction, KerbAction, LdapiAction, LfiAction,
-    LlmAction, MagiclinkAction, MassAction, MemcacheAction, MfaAction, MongoAction, MqttAction,
-    NfsAction, NosqliAction, NtlmAction, NtpAction, OauthAction, OidcAction, OpenapiAction,
-    OtAction, OwaAction, PadoracleAction, PasskeyAction, PayloadAction, PostmsgAction,
-    ProtoAction, RaceAction, RatelimitAction, RceAction, RdpAction, RebindAction,
-    RedirectAction, RedisxAction, RtspAction, SamlAction, SecretAction, SessionAction,
-    SharepointAction, ShellAction, SipAction, SmbAction, SmtpAction, SmuggleAction, SnmpAction,
-    SprayAction, SqliAction, SseAction, SshAction, SsrfAction, SsrfChainAction, SstiAction,
-    StegoAction, StompAction, SubdomAction, SupplyAction, SsoAction, SwAction, TakeoverAction,
-    TelnetAction, TftpAction, TfstateAction, TlsAction, UnicodeAction, UpnpAction,
-    VectordbAction, VncAction, WafAction, WasmAction, Web3Action, WebauthnAction, WebdavAction,
-    WebrtcAction, WfuzzAction, WhoisAction, WinrmAction, WsAction, WsdlAction, X11Action,
-    XsleakAction, XssAction, XxeAction, ZookeeperAction,
+    AclAction, ActuatorAction, AdAction, AdcsAction, AgentAction, AiAction, AmqpAction, ApiAction,
+    ArgoCDAction, AwsAction, AzureAction, BleAction, BruteAction, CacheAction, CicdAction, Cli,
+    ClickAction, CloudAction, CmdiAction, CoapAction, Commands, ConfluenceAction, ContainerAction,
+    CookieAction, CorsAction, CrlfAction, CspAction, CsrfAction, DebugAction, DeserAction,
+    DnsenumAction, DohAction, DomAction, ElasticAction, EtcdAction, ExchangeAction, ExfilAction,
+    ExploitAction, FingerAction, FtpAction, GcpAction, GhaAction, GitAction, GitlabciAction,
+    GraphqlAttackAction, GrpcAction, H2Action, HostAction, HppAction, IcmpAction, IdorAction,
+    IocAction, IpmiAction, IstioAction, IvantiAction, JenkinsAction, JndiAction, JwtAction,
+    K8sAction, KerbAction, LdapiAction, LfiAction, LlmAction, MagiclinkAction, MassAction,
+    MemcacheAction, MfaAction, MongoAction, MqttAction, NfsAction, NosqliAction, NtlmAction,
+    NtpAction, OauthAction, OidcAction, OpenapiAction, OtAction, OwaAction, PadoracleAction,
+    PasskeyAction, PayloadAction, PostmsgAction, ProtoAction, RaceAction, RatelimitAction,
+    RceAction, RdpAction, RebindAction, RedirectAction, RedisxAction, RtspAction, SamlAction,
+    SecretAction, SessionAction, SharepointAction, ShellAction, SipAction, SmbAction, SmtpAction,
+    SmuggleAction, SnmpAction, SprayAction, SqliAction, SseAction, SshAction, SsoAction,
+    SsrfAction, SsrfChainAction, SstiAction, StegoAction, StompAction, SubdomAction, SupplyAction,
+    SwAction, TakeoverAction, TelnetAction, TfstateAction, TftpAction, TlsAction, UnicodeAction,
+    UpnpAction, VectordbAction, VncAction, WafAction, WasmAction, Web3Action, WebauthnAction,
+    WebdavAction, WebrtcAction, WfuzzAction, WhoisAction, WinrmAction, WsAction, WsdlAction,
+    X11Action, XsleakAction, XssAction, XxeAction, ZookeeperAction,
 };
 use colored::Colorize;
 
@@ -41,14 +40,13 @@ ____  _     _____ ____   ____ _____   ____ _____ ____  ___ _  _______
 }
 
 fn main() -> anyhow::Result<()> {
-    let builder = std::thread::Builder::new()
-        .stack_size(8 * 1024 * 1024);
+    let builder = std::thread::Builder::new().stack_size(8 * 1024 * 1024);
     let handle = builder.spawn(|| {
         let args = Cli::parse();
         let runtime = tokio::runtime::Runtime::new().unwrap();
         runtime.block_on(Box::pin(async_main(args)))
     })?;
-    handle.join().unwrap();
+    let _ = handle.join().unwrap();
     Ok(())
 }
 
@@ -441,11 +439,7 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 }
             }
 
-            TlsAction::Spoof {
-                url,
-                ja3,
-                timeout,
-            } => {
+            TlsAction::Spoof { url, ja3, timeout } => {
                 banner();
                 if let Err(e) = modules::tls::spoof(&url, ja3.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -1150,8 +1144,7 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 timeout,
             } => {
                 banner();
-                if let Err(e) =
-                    modules::graphql_attack::fuzz(&url, token.as_deref(), timeout).await
+                if let Err(e) = modules::graphql_attack::fuzz(&url, token.as_deref(), timeout).await
                 {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
@@ -2084,7 +2077,8 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 token,
             } => {
                 banner();
-                if let Err(e) = modules::ai::extract(&url, queries, timeout, token.as_deref()).await {
+                if let Err(e) = modules::ai::extract(&url, queries, timeout, token.as_deref()).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -2151,7 +2145,11 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
-            AwsAction::LambdaInject { url, token, timeout } => {
+            AwsAction::LambdaInject {
+                url,
+                token,
+                timeout,
+            } => {
                 banner();
                 if let Err(e) = modules::aws::lambda_inject(&url, token.as_deref(), timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);
@@ -2185,7 +2183,8 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 timeout,
             } => {
                 banner();
-                if let Err(e) = modules::tfstate::exploit(&bucket, token.as_deref(), timeout).await {
+                if let Err(e) = modules::tfstate::exploit(&bucket, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -2342,7 +2341,9 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
                 timeout,
             } => {
                 banner();
-                if let Err(e) = modules::adcs::abuse(&url, &ca_name, token.as_deref(), timeout).await {
+                if let Err(e) =
+                    modules::adcs::abuse(&url, &ca_name, token.as_deref(), timeout).await
+                {
                     println!("{} Error: {}", "[-]".red().bold(), e);
                 }
             }
@@ -2409,10 +2410,7 @@ async fn async_main(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Stego { action } => match action {
-            StegoAction::Detect {
-                url,
-                timeout,
-            } => {
+            StegoAction::Detect { url, timeout } => {
                 banner();
                 if let Err(e) = modules::stego::detect(&url, timeout).await {
                     println!("{} Error: {}", "[-]".red().bold(), e);

@@ -16,31 +16,83 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
 }
 
 const AZURE_ENDPOINTS: &[(&str, &str)] = &[
-    ("Graph — applications", "https://graph.microsoft.com/v1.0/applications"),
-    ("Graph — service principals", "https://graph.microsoft.com/v1.0/servicePrincipals"),
+    (
+        "Graph — applications",
+        "https://graph.microsoft.com/v1.0/applications",
+    ),
+    (
+        "Graph — service principals",
+        "https://graph.microsoft.com/v1.0/servicePrincipals",
+    ),
     ("Graph — users", "https://graph.microsoft.com/v1.0/users"),
     ("Graph — groups", "https://graph.microsoft.com/v1.0/groups"),
-    ("Graph — directory roles", "https://graph.microsoft.com/v1.0/directoryRoles"),
-    ("Graph — role assignments", "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments"),
-    ("Graph — app role assignments", "https://graph.microsoft.com/v1.0/servicePrincipals/appRoleAssignedTo"),
-    ("Graph — oauth2 permission grants", "https://graph.microsoft.com/v1.0/oauth2PermissionGrants"),
-    ("Graph — conditional access", "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies"),
-    ("Graph — access reviews", "https://graph.microsoft.com/v1.0/accessReviews"),
-    ("ARM — subscriptions", "https://management.azure.com/subscriptions?api-version=2020-01-01"),
-    ("ARM — resource groups", "https://management.azure.com/subscriptions/-/resourceGroups?api-version=2021-04-01"),
-    ("ARM — key vaults", "https://management.azure.com/subscriptions/-/resources?api-version=2021-04-01&$filter=resourceType eq 'Microsoft.KeyVault/vaults'"),
-    ("Key Vault — secrets", "https://.vault.azure.net/secrets?api-version=7.3"),
-    ("Key Vault — keys", "https://.vault.azure.net/keys?api-version=7.3"),
-    ("Storage — accounts", "https://management.azure.com/subscriptions/-/providers/Microsoft.Storage/storageAccounts?api-version=2021-09-01"),
-    ("Azure AD — tenant info", "https://graph.microsoft.com/v1.0/organization"),
-    ("Azure AD — domains", "https://graph.microsoft.com/v1.0/domains"),
+    (
+        "Graph — directory roles",
+        "https://graph.microsoft.com/v1.0/directoryRoles",
+    ),
+    (
+        "Graph — role assignments",
+        "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments",
+    ),
+    (
+        "Graph — app role assignments",
+        "https://graph.microsoft.com/v1.0/servicePrincipals/appRoleAssignedTo",
+    ),
+    (
+        "Graph — oauth2 permission grants",
+        "https://graph.microsoft.com/v1.0/oauth2PermissionGrants",
+    ),
+    (
+        "Graph — conditional access",
+        "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies",
+    ),
+    (
+        "Graph — access reviews",
+        "https://graph.microsoft.com/v1.0/accessReviews",
+    ),
+    (
+        "ARM — subscriptions",
+        "https://management.azure.com/subscriptions?api-version=2020-01-01",
+    ),
+    (
+        "ARM — resource groups",
+        "https://management.azure.com/subscriptions/-/resourceGroups?api-version=2021-04-01",
+    ),
+    (
+        "ARM — key vaults",
+        "https://management.azure.com/subscriptions/-/resources?api-version=2021-04-01&$filter=resourceType eq 'Microsoft.KeyVault/vaults'",
+    ),
+    (
+        "Key Vault — secrets",
+        "https://.vault.azure.net/secrets?api-version=7.3",
+    ),
+    (
+        "Key Vault — keys",
+        "https://.vault.azure.net/keys?api-version=7.3",
+    ),
+    (
+        "Storage — accounts",
+        "https://management.azure.com/subscriptions/-/providers/Microsoft.Storage/storageAccounts?api-version=2021-09-01",
+    ),
+    (
+        "Azure AD — tenant info",
+        "https://graph.microsoft.com/v1.0/organization",
+    ),
+    (
+        "Azure AD — domains",
+        "https://graph.microsoft.com/v1.0/domains",
+    ),
 ];
 
 pub async fn app(tenant: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Azure AD Application Abuse Tester", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Tenant: {}", "[*]".cyan().bold(), tenant);
-    println!("{} Testing {} Azure AD endpoints", "[*]".cyan().bold(), AZURE_ENDPOINTS.len());
+    println!(
+        "{} Testing {} Azure AD endpoints",
+        "[*]".cyan().bold(),
+        AZURE_ENDPOINTS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -60,13 +112,7 @@ pub async fn app(tenant: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
                 } else {
                     format!("status {}", status)
                 };
-                println!(
-                    "  {} {:45} status={} {}",
-                    "*".cyan(),
-                    name,
-                    status,
-                    tag
-                );
+                println!("  {} {:45} status={} {}", "*".cyan(), name, status, tag);
                 if allowed {
                     accessible.push((*name, body.chars().take(300).collect::<String>()));
                 }
@@ -77,7 +123,10 @@ pub async fn app(tenant: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
         }
     }
 
-    println!("\n{} Checking for excessive app permissions...", "[*]".cyan().bold());
+    println!(
+        "\n{} Checking for excessive app permissions...",
+        "[*]".cyan().bold()
+    );
     let graph_url = "https://graph.microsoft.com/v1.0/applications";
     if let Ok(resp) = client.get(graph_url).send().await {
         if resp.status().as_u16() == 200 {
@@ -85,8 +134,14 @@ pub async fn app(tenant: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
                 if let Some(apps) = json.get("value").and_then(|v| v.as_array()) {
                     for app in apps.iter().take(20) {
-                        let display_name = app.get("displayName").and_then(|d| d.as_str()).unwrap_or("unknown");
-                        let app_id = app.get("appId").and_then(|a| a.as_str()).unwrap_or("unknown");
+                        let display_name = app
+                            .get("displayName")
+                            .and_then(|d| d.as_str())
+                            .unwrap_or("unknown");
+                        let app_id = app
+                            .get("appId")
+                            .and_then(|a| a.as_str())
+                            .unwrap_or("unknown");
                         let required_access = app.get("requiredResourceAccess");
                         let perm_count = required_access
                             .and_then(|r| r.as_array())
@@ -113,7 +168,10 @@ pub async fn app(tenant: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
         }
     }
 
-    println!("\n{} Checking service principal role assignments...", "[*]".cyan().bold());
+    println!(
+        "\n{} Checking service principal role assignments...",
+        "[*]".cyan().bold()
+    );
     let roles_url = "https://graph.microsoft.com/v1.0/directoryRoles";
     if let Ok(resp) = client.get(roles_url).send().await {
         if resp.status().as_u16() == 200 {
@@ -121,14 +179,26 @@ pub async fn app(tenant: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
                 if let Some(roles) = json.get("value").and_then(|v| v.as_array()) {
                     for role in roles.iter().take(10) {
-                        let desc = role.get("description").and_then(|d| d.as_str()).unwrap_or("");
-                        let display = role.get("displayName").and_then(|d| d.as_str()).unwrap_or("unknown");
+                        let desc = role
+                            .get("description")
+                            .and_then(|d| d.as_str())
+                            .unwrap_or("");
+                        let display = role
+                            .get("displayName")
+                            .and_then(|d| d.as_str())
+                            .unwrap_or("unknown");
                         let risk = if display.contains("Global") || display.contains("Admin") {
                             "CRITICAL".red().bold().to_string()
                         } else {
                             "info".green().to_string()
                         };
-                        println!("  {} {:30} {} — {}", "*".cyan(), display, risk, desc.chars().take(50).collect::<String>());
+                        println!(
+                            "  {} {:30} {} — {}",
+                            "*".cyan(),
+                            display,
+                            risk,
+                            desc.chars().take(50).collect::<String>()
+                        );
                     }
                 }
             }
@@ -144,7 +214,12 @@ pub async fn app(tenant: &str, token: Option<&str>, timeout: u64) -> anyhow::Res
     if !accessible.is_empty() {
         println!("{} Accessible Azure AD resources:", "[!]".red().bold());
         for (name, body) in &accessible {
-            println!("  {} {} — {}", "*".red(), name, body.chars().take(80).collect::<String>());
+            println!(
+                "  {} {} — {}",
+                "*".red(),
+                name,
+                body.chars().take(80).collect::<String>()
+            );
         }
     }
     Ok(())

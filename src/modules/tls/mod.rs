@@ -769,15 +769,42 @@ pub fn print_scan_result(result: &TlsScanResult) {
 }
 
 const JA3_FINGERPRINTS: &[(&str, &str)] = &[
-    ("Chrome 120", "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24,0"),
-    ("Firefox 120", "771,4865-4867-4866-49195-49199-52393-52392-49196-49200-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-34-51-43-13-45-28-65037,29-23-24-25-256-257,0"),
-    ("Safari 17", "771,4865-4866-4867-49195-49196-52393-49200-49199-52392-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-16-5-13-18-51-45-43-27-21,29-23-24,0"),
-    ("Edge 120", "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24,0"),
-    ("curl 8.5", "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24,0"),
-    ("Python requests", "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24,0"),
-    ("Go net/http", "771,4865-4866-4867-49195-49199-52393-52392-49196-49200-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27,29-23-24,0"),
-    ("Java 21", "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27,29-23-24,0"),
-    ("Randomized", "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24-25-256-257,0"),
+    (
+        "Chrome 120",
+        "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24,0",
+    ),
+    (
+        "Firefox 120",
+        "771,4865-4867-4866-49195-49199-52393-52392-49196-49200-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-34-51-43-13-45-28-65037,29-23-24-25-256-257,0",
+    ),
+    (
+        "Safari 17",
+        "771,4865-4866-4867-49195-49196-52393-49200-49199-52392-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-16-5-13-18-51-45-43-27-21,29-23-24,0",
+    ),
+    (
+        "Edge 120",
+        "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24,0",
+    ),
+    (
+        "curl 8.5",
+        "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24,0",
+    ),
+    (
+        "Python requests",
+        "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24,0",
+    ),
+    (
+        "Go net/http",
+        "771,4865-4866-4867-49195-49199-52393-52392-49196-49200-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27,29-23-24,0",
+    ),
+    (
+        "Java 21",
+        "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49162-49161-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27,29-23-24,0",
+    ),
+    (
+        "Randomized",
+        "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513,29-23-24-25-256-257,0",
+    ),
     ("Custom (user-supplied)", ""),
 ];
 
@@ -793,10 +820,19 @@ const JA4_FINGERPRINTS: &[(&str, &str)] = &[
 ];
 
 const TLS_SPOOF_EXTENSIONS: &[(&str, &str)] = &[
-    ("Server Name Indication (SNI)", "spoofed hostname in SNI extension"),
-    ("Application-Layer Protocol Negotiation", "custom ALPN protocols (h2, http/1.1)"),
+    (
+        "Server Name Indication (SNI)",
+        "spoofed hostname in SNI extension",
+    ),
+    (
+        "Application-Layer Protocol Negotiation",
+        "custom ALPN protocols (h2, http/1.1)",
+    ),
     ("Supported Versions", "TLS 1.2 vs 1.3 selection"),
-    ("Key Share", "curve selection (x25519, secp256r1, secp384r1)"),
+    (
+        "Key Share",
+        "curve selection (x25519, secp256r1, secp384r1)",
+    ),
     ("Signature Algorithms", "custom signature algorithm list"),
     ("Supported Groups", "elliptic curve group ordering"),
     ("Session ID", "randomized session ID"),
@@ -812,15 +848,27 @@ const TLS_SPOOF_EXTENSIONS: &[(&str, &str)] = &[
 
 pub async fn spoof(url: &str, ja3: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     println!("{} TLS Fingerprint Spoofing Suite", "[*]".cyan().bold());
-    println!("{} JA3/JA4 fingerprint generation & evasion", "[*]".cyan().bold());
+    println!(
+        "{} JA3/JA4 fingerprint generation & evasion",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
     println!("{} URL: {}", "[*]".cyan().bold(), url);
-    println!("{} {} JA3 profiles, {} JA4 profiles, {} extension vectors", "[*]".cyan().bold(), JA3_FINGERPRINTS.len(), JA4_FINGERPRINTS.len(), TLS_SPOOF_EXTENSIONS.len());
+    println!(
+        "{} {} JA3 profiles, {} JA4 profiles, {} extension vectors",
+        "[*]".cyan().bold(),
+        JA3_FINGERPRINTS.len(),
+        JA4_FINGERPRINTS.len(),
+        TLS_SPOOF_EXTENSIONS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let (hostname, port) = parse_host(url);
 
-    println!("\n{} [1/3] JA3 fingerprint profiles...", "[*]".cyan().bold());
+    println!(
+        "\n{} [1/3] JA3 fingerprint profiles...",
+        "[*]".cyan().bold()
+    );
     for (name, fingerprint) in JA3_FINGERPRINTS {
         let fp_display = if fingerprint.is_empty() {
             if let Some(custom) = ja3 {
@@ -834,23 +882,43 @@ pub async fn spoof(url: &str, ja3: Option<&str>, timeout: u64) -> anyhow::Result
         println!("  {} {:25} {}", "*".cyan(), name, fp_display);
     }
 
-    println!("\n{} [2/3] JA4 fingerprint profiles...", "[*]".cyan().bold());
+    println!(
+        "\n{} [2/3] JA4 fingerprint profiles...",
+        "[*]".cyan().bold()
+    );
     for (name, fingerprint) in JA4_FINGERPRINTS {
         println!("  {} {:25} {}", "*".cyan(), name, fingerprint);
     }
 
-    println!("\n{} [3/3] TLS extension spoofing vectors...", "[*]".cyan().bold());
+    println!(
+        "\n{} [3/3] TLS extension spoofing vectors...",
+        "[*]".cyan().bold()
+    );
     for (name, desc) in TLS_SPOOF_EXTENSIONS {
         println!("  {} {:40} {}", "*".cyan(), name, desc);
     }
 
-    println!("\n{} Connection test with fingerprint analysis...", "[*]".cyan().bold());
+    println!(
+        "\n{} Connection test with fingerprint analysis...",
+        "[*]".cyan().bold()
+    );
     let addr = format!("{}:{}", hostname, port);
     match TcpStream::connect(&addr).await {
         Ok(stream) => {
-            println!("  {} Connected to {} — TLS handshake analysis possible", "*".green(), addr);
-            println!("  {} Client fingerprint would be: JA3={}", "*".cyan(), ja3.unwrap_or("default browser profile"));
-            println!("  {} Server fingerprint detection: JA3S/JA4S from ServerHello", "*".cyan());
+            println!(
+                "  {} Connected to {} — TLS handshake analysis possible",
+                "*".green(),
+                addr
+            );
+            println!(
+                "  {} Client fingerprint would be: JA3={}",
+                "*".cyan(),
+                ja3.unwrap_or("default browser profile")
+            );
+            println!(
+                "  {} Server fingerprint detection: JA3S/JA4S from ServerHello",
+                "*".cyan()
+            );
             drop(stream);
         }
         Err(e) => {
@@ -858,12 +926,30 @@ pub async fn spoof(url: &str, ja3: Option<&str>, timeout: u64) -> anyhow::Result
         }
     }
 
-    println!("\n{} TLS fingerprint spoofing strategies:", "[*]".cyan().bold());
-    println!("  {} Use browser-matching JA3 to blend with legitimate traffic", "*".cyan());
-    println!("  {} Randomize cipher suite order to avoid static fingerprinting", "*".cyan());
-    println!("  {} Use ECH/ESNI to hide SNI from network monitoring", "*".cyan());
-    println!("  {} Vary TLS extensions to prevent pattern matching", "*".cyan());
-    println!("  {} Rotate fingerprints across connections to avoid correlation", "*".cyan());
+    println!(
+        "\n{} TLS fingerprint spoofing strategies:",
+        "[*]".cyan().bold()
+    );
+    println!(
+        "  {} Use browser-matching JA3 to blend with legitimate traffic",
+        "*".cyan()
+    );
+    println!(
+        "  {} Randomize cipher suite order to avoid static fingerprinting",
+        "*".cyan()
+    );
+    println!(
+        "  {} Use ECH/ESNI to hide SNI from network monitoring",
+        "*".cyan()
+    );
+    println!(
+        "  {} Vary TLS extensions to prevent pattern matching",
+        "*".cyan()
+    );
+    println!(
+        "  {} Rotate fingerprints across connections to avoid correlation",
+        "*".cyan()
+    );
 
     Ok(())
 }

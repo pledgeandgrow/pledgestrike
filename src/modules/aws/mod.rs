@@ -16,24 +16,80 @@ fn build_client(timeout: u64, token: Option<&str>) -> Client {
 }
 
 const PRIVESC_PATHS: &[(&str, &str, &str)] = &[
-    ("sts:GetCallerIdentity", "GET", "https://sts.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15"),
-    ("iam:ListUsers", "GET", "https://iam.amazonaws.com/?Action=ListUsers&Version=2010-05-08"),
-    ("iam:ListRoles", "GET", "https://iam.amazonaws.com/?Action=ListRoles&Version=2010-05-08"),
-    ("iam:GetRole", "GET", "https://iam.amazonaws.com/?Action=GetRole&RoleName=target&Version=2010-05-08"),
-    ("iam:ListAttachedRolePolicies", "GET", "https://iam.amazonaws.com/?Action=ListAttachedRolePolicies&RoleName=target&Version=2010-05-08"),
-    ("iam:ListPolicies", "GET", "https://iam.amazonaws.com/?Action=ListPolicies&Version=2010-05-08"),
-    ("iam:GetPolicy", "GET", "https://iam.amazonaws.com/?Action=GetPolicy&PolicyArn=arn:aws:iam::aws:policy/AdministratorAccess&Version=2010-05-08"),
+    (
+        "sts:GetCallerIdentity",
+        "GET",
+        "https://sts.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15",
+    ),
+    (
+        "iam:ListUsers",
+        "GET",
+        "https://iam.amazonaws.com/?Action=ListUsers&Version=2010-05-08",
+    ),
+    (
+        "iam:ListRoles",
+        "GET",
+        "https://iam.amazonaws.com/?Action=ListRoles&Version=2010-05-08",
+    ),
+    (
+        "iam:GetRole",
+        "GET",
+        "https://iam.amazonaws.com/?Action=GetRole&RoleName=target&Version=2010-05-08",
+    ),
+    (
+        "iam:ListAttachedRolePolicies",
+        "GET",
+        "https://iam.amazonaws.com/?Action=ListAttachedRolePolicies&RoleName=target&Version=2010-05-08",
+    ),
+    (
+        "iam:ListPolicies",
+        "GET",
+        "https://iam.amazonaws.com/?Action=ListPolicies&Version=2010-05-08",
+    ),
+    (
+        "iam:GetPolicy",
+        "GET",
+        "https://iam.amazonaws.com/?Action=GetPolicy&PolicyArn=arn:aws:iam::aws:policy/AdministratorAccess&Version=2010-05-08",
+    ),
     ("iam:CreateAccessKey", "POST", "https://iam.amazonaws.com/"),
-    ("iam:UpdateAssumeRolePolicy", "POST", "https://iam.amazonaws.com/"),
+    (
+        "iam:UpdateAssumeRolePolicy",
+        "POST",
+        "https://iam.amazonaws.com/",
+    ),
     ("iam:PassRole", "POST", "https://iam.amazonaws.com/"),
-    ("lambda:CreateFunction", "POST", "https://lambda.us-east-1.amazonaws.com/2015-03-31/functions"),
-    ("lambda:InvokeFunction", "POST", "https://lambda.us-east-1.amazonaws.com/2015-03-31/functions/target/invocations"),
+    (
+        "lambda:CreateFunction",
+        "POST",
+        "https://lambda.us-east-1.amazonaws.com/2015-03-31/functions",
+    ),
+    (
+        "lambda:InvokeFunction",
+        "POST",
+        "https://lambda.us-east-1.amazonaws.com/2015-03-31/functions/target/invocations",
+    ),
     ("sts:AssumeRole", "POST", "https://sts.amazonaws.com/"),
     ("s3:ListAllMyBuckets", "GET", "https://s3.amazonaws.com/"),
-    ("ec2:DescribeInstances", "GET", "https://ec2.us-east-1.amazonaws.com/?Action=DescribeInstances&Version=2016-11-15"),
-    ("ssm:GetParameters", "POST", "https://ssm.us-east-1.amazonaws.com/"),
-    ("secretsmanager:GetSecretValue", "POST", "https://secretsmanager.us-east-1.amazonaws.com/"),
-    ("kms:ListKeys", "GET", "https://kms.us-east-1.amazonaws.com/"),
+    (
+        "ec2:DescribeInstances",
+        "GET",
+        "https://ec2.us-east-1.amazonaws.com/?Action=DescribeInstances&Version=2016-11-15",
+    ),
+    (
+        "ssm:GetParameters",
+        "POST",
+        "https://ssm.us-east-1.amazonaws.com/",
+    ),
+    (
+        "secretsmanager:GetSecretValue",
+        "POST",
+        "https://secretsmanager.us-east-1.amazonaws.com/",
+    ),
+    (
+        "kms:ListKeys",
+        "GET",
+        "https://kms.us-east-1.amazonaws.com/",
+    ),
 ];
 
 const LAMBDA_PAYLOADS: &[&str] = &[
@@ -43,9 +99,16 @@ const LAMBDA_PAYLOADS: &[&str] = &[
 ];
 
 pub async fn privesc(token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
-    println!("{} AWS IAM Privilege Escalation Tester", "[*]".cyan().bold());
+    println!(
+        "{} AWS IAM Privilege Escalation Tester",
+        "[*]".cyan().bold()
+    );
     println!("{}", "=".repeat(60).cyan());
-    println!("{} Testing {} escalation paths", "[*]".cyan().bold(), PRIVESC_PATHS.len());
+    println!(
+        "{} Testing {} escalation paths",
+        "[*]".cyan().bold(),
+        PRIVESC_PATHS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -56,7 +119,9 @@ pub async fn privesc(token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
         let req = if *method == "GET" {
             client.get(*url)
         } else {
-            client.post(*url).header("Content-Type", "application/x-amz-json-1.1")
+            client
+                .post(*url)
+                .header("Content-Type", "application/x-amz-json-1.1")
         };
         match req.send().await {
             Ok(resp) => {
@@ -70,13 +135,7 @@ pub async fn privesc(token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
                 } else {
                     format!("status {}", status)
                 };
-                println!(
-                    "  {} {:40} status={} {}",
-                    "*".cyan(),
-                    perm,
-                    status,
-                    tag
-                );
+                println!("  {} {:40} status={} {}", "*".cyan(), perm, status, tag);
                 if allowed {
                     accessible.push((*perm, body.chars().take(200).collect::<String>()));
                 } else if status == 403 {
@@ -101,31 +160,64 @@ pub async fn privesc(token: Option<&str>, timeout: u64) -> anyhow::Result<()> {
     if !accessible.is_empty() {
         println!("\n{} Accessible permissions:", "[!]".red().bold());
         for (perm, body) in &accessible {
-            println!("  {} {} — {}", "*".red(), perm, body.chars().take(80).collect::<String>());
+            println!(
+                "  {} {} — {}",
+                "*".red(),
+                perm,
+                body.chars().take(80).collect::<String>()
+            );
         }
 
         if accessible.iter().any(|(p, _)| *p == "iam:CreateAccessKey") {
-            println!("\n{} [CRITICAL] Can create access keys — full account compromise!", "[!]".red().bold());
+            println!(
+                "\n{} [CRITICAL] Can create access keys — full account compromise!",
+                "[!]".red().bold()
+            );
         }
         if accessible.iter().any(|(p, _)| *p == "sts:AssumeRole") {
-            println!("{} [CRITICAL] Can assume roles — lateral movement possible!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] Can assume roles — lateral movement possible!",
+                "[!]".red().bold()
+            );
         }
         if accessible.iter().any(|(p, _)| *p == "iam:PassRole") {
-            println!("{} [CRITICAL] Can pass roles to services — privesc via service!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] Can pass roles to services — privesc via service!",
+                "[!]".red().bold()
+            );
         }
-        if accessible.iter().any(|(p, _)| *p == "lambda:CreateFunction") {
-            println!("{} [HIGH] Can create Lambda functions — RCE via Lambda!", "[!]".red().bold());
+        if accessible
+            .iter()
+            .any(|(p, _)| *p == "lambda:CreateFunction")
+        {
+            println!(
+                "{} [HIGH] Can create Lambda functions — RCE via Lambda!",
+                "[!]".red().bold()
+            );
         }
-        if accessible.iter().any(|(p, _)| *p == "secretsmanager:GetSecretValue") {
-            println!("{} [HIGH] Can read secrets — credential extraction!", "[!]".red().bold());
+        if accessible
+            .iter()
+            .any(|(p, _)| *p == "secretsmanager:GetSecretValue")
+        {
+            println!(
+                "{} [HIGH] Can read secrets — credential extraction!",
+                "[!]".red().bold()
+            );
         }
         if accessible.iter().any(|(p, _)| *p == "ssm:GetParameters") {
-            println!("{} [HIGH] Can read SSM parameters — may contain secrets!", "[!]".red().bold());
+            println!(
+                "{} [HIGH] Can read SSM parameters — may contain secrets!",
+                "[!]".red().bold()
+            );
         }
     }
 
     if !denied.is_empty() {
-        println!("\n{} Denied permissions ({} total) — check for missing privileges:", "[*]".cyan().bold(), denied.len());
+        println!(
+            "\n{} Denied permissions ({} total) — check for missing privileges:",
+            "[*]".cyan().bold(),
+            denied.len()
+        );
     }
 
     Ok(())
@@ -166,7 +258,11 @@ pub async fn lambda_inject(url: &str, token: Option<&str>, timeout: u64) -> anyh
                 };
                 println!("  {} [{:02}] status={} {}", "*".cyan(), i + 1, status, tag);
                 if exploited {
-                    println!("    {} {}", ">".red().bold(), text.chars().take(300).collect::<String>());
+                    println!(
+                        "    {} {}",
+                        ">".red().bold(),
+                        text.chars().take(300).collect::<String>()
+                    );
                     results.push(true);
                 }
             }

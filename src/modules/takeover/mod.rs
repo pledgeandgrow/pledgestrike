@@ -34,9 +34,11 @@ async fn build_resolver() -> anyhow::Result<hickory_resolver::TokioResolver> {
     let mut opts = ResolverOpts::default();
     opts.timeout = Duration::from_secs(5);
     opts.attempts = 2;
-    Ok(Resolver::builder_with_config(config, TokioRuntimeProvider::default())
-        .with_options(opts)
-        .build()?)
+    Ok(
+        Resolver::builder_with_config(config, TokioRuntimeProvider::default())
+            .with_options(opts)
+            .build()?,
+    )
 }
 
 struct DnsInfo {
@@ -45,7 +47,11 @@ struct DnsInfo {
     is_wildcard: bool,
 }
 
-async fn lookup_dns(resolver: &hickory_resolver::TokioResolver, domain: &str, wildcard_domain: &str) -> DnsInfo {
+async fn lookup_dns(
+    resolver: &hickory_resolver::TokioResolver,
+    domain: &str,
+    wildcard_domain: &str,
+) -> DnsInfo {
     let cname = match resolver
         .lookup(
             domain.to_string(),
@@ -75,7 +81,11 @@ async fn lookup_dns(resolver: &hickory_resolver::TokioResolver, domain: &str, wi
         )
         .await
     {
-        Ok(r) => r.answers().iter().map(|rec| rec.to_string()).collect::<Vec<_>>(),
+        Ok(r) => r
+            .answers()
+            .iter()
+            .map(|rec| rec.to_string())
+            .collect::<Vec<_>>(),
         Err(_) => Vec::new(),
     };
 
@@ -264,7 +274,11 @@ pub async fn scan(domains_file: &str, token: Option<&str>, timeout: u64) -> anyh
         )
         .await
     {
-        Ok(r) => r.answers().iter().map(|rec| rec.to_string()).collect::<Vec<_>>(),
+        Ok(r) => r
+            .answers()
+            .iter()
+            .map(|rec| rec.to_string())
+            .collect::<Vec<_>>(),
         Err(_) => Vec::new(),
     };
     if !wildcard_a.is_empty() {

